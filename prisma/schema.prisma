@@ -1,0 +1,187 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum CompanyType {
+  sender
+  reviewer
+  admin
+}
+
+enum UserRole {
+  admin
+  sender
+  review_manager
+  evaluator
+}
+
+enum ReportStatus {
+  draft
+  submitted
+  assigned
+  in_review
+  needs_revision
+  completed
+  approved
+  rejected
+}
+
+enum AssignmentStatus {
+  pending
+  submitted
+}
+
+model Company {
+  id             String   @id @default(cuid())
+  name           String
+  registerNumber String   @unique
+  type           CompanyType
+  users          User[]
+  reports        Report[] @relation("senderReports")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model User {
+  id           String            @id @default(cuid())
+  name         String
+  email        String            @unique
+  password     String
+  company      Company?          @relation(fields: [companyId], references: [id])
+  companyId    String?
+  role         UserRole
+  phone        String?
+  position     String?
+  notifications Notification[]
+  evaluatorAssignments ReportAssignment[] @relation("evaluatorAssignments")
+  managerAssignments ReportAssignment[] @relation("managerAssignments")
+  activityLogs ActivityLog[]
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+}
+
+model ReportType {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  isActive  Boolean  @default(true)
+  reports   Report[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Report {
+  id               String             @id @default(cuid())
+  reportNumber     String             @unique
+  reportType       ReportType         @relation(fields: [reportTypeId], references: [id])
+  reportTypeId     String
+  senderCompany    Company            @relation("senderReports", fields: [senderCompanyId], references: [id])
+  senderCompanyId  String
+  title            String
+  description      String?
+  fileUrl          String?
+  status           ReportStatus      @default(draft)
+  finalScore       Float?             
+  year             Int
+  submittedAt      DateTime?
+  location         ReportLocation?
+  assignments      ReportAssignment[]
+  evaluations      Evaluation[]       @relation("reportEvaluations")
+  notifications    Notification[]     
+  activityLogs     ActivityLog[]      
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+}
+
+model ReportLocation {
+  id             String   @id @default(cuid())
+  report         Report   @relation(fields: [reportId], references: [id])
+  reportId       String   @unique
+  province       String
+  district       String
+  khoroo         String
+  addressDetail  String?
+  latitude       Float?
+  longitude      Float?
+  geometryType   String?
+  geometryFileUrl String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model EvaluationCriterion {
+  id         String           @id @default(cuid())
+  name       String
+  maxScore   Int
+  sortOrder  Int
+  isActive   Boolean          @default(true)
+  scores     EvaluationScore[]
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+}
+
+model ReportAssignment {
+  id               String       @id @default(cuid())
+  report           Report       @relation(fields: [reportId], references: [id])
+  reportId         String
+  evaluator        User         @relation("evaluatorAssignments", fields: [evaluatorUserId], references: [id])
+  evaluatorUserId  String
+  assignedBy       User         @relation("managerAssignments", fields: [assignedByUserId], references: [id])
+  assignedByUserId String
+  status           AssignmentStatus @default(pending)
+  deadline         DateTime?
+  assignedAt       DateTime     @default(now())
+  submittedAt      DateTime?
+  evaluation       Evaluation?
+}
+
+model Evaluation {
+  id           String             @id @default(cuid())
+  assignment   ReportAssignment   @relation(fields: [assignmentId], references: [id])
+  assignmentId String             @unique
+  report       Report             @relation("reportEvaluations", fields: [reportId], references: [id])
+  reportId     String
+  totalScore   Int
+  comment      String?
+  submittedAt  DateTime           @default(now())
+  scores       EvaluationScore[]
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+}
+
+model EvaluationScore {
+  id           String            @id @default(cuid())
+  evaluation   Evaluation        @relation(fields: [evaluationId], references: [id])
+  evaluationId String
+  criterion    EvaluationCriterion @relation(fields: [criterionId], references: [id])
+  criterionId  String
+  score        Int
+}
+
+model Notification {
+  id         String   @id @default(cuid())
+  user       User     @relation(fields: [userId], references: [id])
+  userId     String
+  report     Report?  @relation(fields: [reportId], references: [id])
+  reportId   String?
+  title      String
+  message    String
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+}
+
+model ActivityLog {
+  id          String   @id @default(cuid())
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String
+  report      Report?  @relation(fields: [reportId], references: [id])
+  reportId    String?
+  action      String
+  description String?
+  createdAt   DateTime @default(now())
+}
