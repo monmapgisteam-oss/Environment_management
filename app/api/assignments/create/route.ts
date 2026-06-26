@@ -61,6 +61,21 @@ export async function POST(request: Request) {
           message: `"${report.title}" тайланд үнэлгээ хийх үүрэг даалгавар ирлээ.`,
         })),
       });
+
+      // Confirm the distribution back to the manager who made it.
+      const assignedStaff = await prisma.user.findMany({
+        where: { id: { in: toAssign } },
+        select: { name: true },
+      });
+      const staffNames = assignedStaff.map((s) => s.name).join(', ');
+      await prisma.notification.create({
+        data: {
+          userId: assignedByUserId,
+          reportId,
+          title: 'Тайлан амжилттай оноогдлоо',
+          message: `Та ${staffNames}-д "${report.title}" тайланг оноож өглөө.`,
+        },
+      });
     } else {
       await prisma.report.update({
         where: { id: reportId },

@@ -1,6 +1,12 @@
 import Link from 'next/link';
-import type { ReactNode } from 'react';
-import { LuShieldCheck, LuSend, LuFileSearch, LuUserCog, LuArrowRight } from 'react-icons/lu';
+import { LuShieldCheck, LuSend, LuFileSearch, LuUserCog } from 'react-icons/lu';
+import OrgLoginCard from '@/components/OrgLoginCard';
+import {
+  SENDER_ACCOUNTS,
+  REVIEWER_ACCOUNTS,
+  SENDER_ROLES,
+  REVIEWER_ROLES,
+} from '@/lib/constants';
 
 function BackgroundDecorations() {
   return (
@@ -39,31 +45,6 @@ function BackgroundDecorations() {
   );
 }
 
-function RoleCard({ href, title, icon }: { href: string; title: string; icon: ReactNode }) {
-  return (
-    <Link
-      href={href}
-      className="group relative flex flex-col items-center rounded-[28px] border border-sky-100 bg-gradient-to-b from-white to-sky-50/40 px-8 py-10 text-center shadow-[0_8px_30px_rgba(2,132,199,0.08)] transition-all duration-300 hover:-translate-y-1.5 hover:border-cyan-300 hover:shadow-[0_18px_45px_rgba(2,132,199,0.18)]"
-    >
-      <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-cyan-400 text-white shadow-lg shadow-blue-500/25 transition-transform duration-300 group-hover:scale-105">
-        {icon}
-      </div>
-
-      <h3 className="mt-6 text-xl font-bold text-[#08264A]">{title}</h3>
-
-      <div className="mt-3 flex items-center justify-center gap-1.5">
-        <span className="h-1 w-8 rounded-full bg-gradient-to-r from-blue-500 to-cyan-400" />
-        <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
-      </div>
-
-      <span className="mt-8 inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 px-9 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition-all duration-300 group-hover:from-blue-500 group-hover:to-cyan-400 group-hover:shadow-xl group-hover:-translate-y-0.5">
-        Нэвтрэх
-        <LuArrowRight size={16} className="transition-transform duration-300 group-hover:translate-x-1" />
-      </span>
-    </Link>
-  );
-}
-
 export default function HomePage() {
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-cyan-400 via-sky-500 to-blue-700 px-4 py-12">
@@ -82,10 +63,22 @@ export default function HomePage() {
           <p className="mt-3 text-base text-slate-500">Та нэвтрэх төрлөө сонгоно уу</p>
         </div>
 
-        {/* Cards */}
-        <div className="mx-auto mt-12 grid max-w-3xl gap-8 md:grid-cols-2">
-          <RoleCard href="/login/sender" title="Тайлан илгээх байгууллага" icon={<LuSend size={34} />} />
-          <RoleCard href="/login/reviewer" title="Тайлан хянах байгууллага" icon={<LuFileSearch size={34} />} />
+        {/* Cards — each organisation lists its accounts; one click logs in. */}
+        <div className="mx-auto mt-12 grid max-w-3xl items-start gap-8 md:grid-cols-2">
+          <OrgLoginCard
+            title="Тайлан илгээх байгууллага"
+            subtitle="Байгууллагаа сонгож нэвтэрнэ үү."
+            icon={<LuSend size={34} />}
+            accounts={SENDER_ACCOUNTS}
+            allowedRoles={SENDER_ROLES}
+          />
+          <OrgLoginCard
+            title="Тайлан хянах байгууллага"
+            subtitle="Аккаунтаа сонгож нэвтэрнэ үү."
+            icon={<LuFileSearch size={34} />}
+            accounts={REVIEWER_ACCOUNTS}
+            allowedRoles={REVIEWER_ROLES}
+          />
         </div>
 
         {/* Admin link */}

@@ -2,51 +2,47 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { LuShieldCheck, LuUser, LuLock, LuEye, LuEyeOff, LuArrowRight } from 'react-icons/lu';
+import { LuShieldCheck, LuArrowRight } from 'react-icons/lu';
+
+type Account = {
+  label: string;
+  email: string;
+  password: string;
+};
 
 type Props = {
   title: string;
   subtitle: string;
-  defaultEmail?: string;
-  defaultPassword?: string;
+  accounts: Account[];
   allowedRoles: string[];
 };
 
-export default function AuthForm({
-  title,
-  subtitle,
-  defaultEmail = '',
-  defaultPassword = '',
-  allowedRoles,
-}: Props) {
+export default function AuthForm({ title, subtitle, accounts, allowedRoles }: Props) {
   const router = useRouter();
-  const [email, setEmail] = useState(defaultEmail);
-  const [password, setPassword] = useState(defaultPassword);
-  const [showPassword, setShowPassword] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+  const [loadingEmail, setLoadingEmail] = useState<string | null>(null);
   const [error, setError] = useState('');
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setSubmitting(true);
+  // One-click login: no typing — submit the account's known credentials and
+  // route by the role the API resolves.
+  const loginAs = async (account: Account) => {
+    setLoadingEmail(account.email);
     setError('');
     try {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, allowedRoles }),
+        body: JSON.stringify({ email: account.email, password: account.password, allowedRoles }),
       });
       const data = await response.json().catch(() => ({}));
       if (response.ok) {
-        // Route by the role the API resolved (manager and staff share a portal).
         router.push(data.redirect || '/');
       } else {
-        setError(data.error || 'Имэйл эсвэл нууц үг буруу байна.');
+        setError(data.error || 'Нэвтрэхэд алдаа гарлаа.');
+        setLoadingEmail(null);
       }
     } catch {
       setError('Алдаа гарлаа. Дахин оролдоно уу.');
-    } finally {
-      setSubmitting(false);
+      setLoadingEmail(null);
     }
   };
 
@@ -85,65 +81,27 @@ export default function AuthForm({
           <p className="mt-2 text-sm text-slate-500">{subtitle}</p>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="mt-8 space-y-5">
-          <div>
-            <label className="mb-1.5 block text-sm font-semibold text-[#08264A]">Имэйл</label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
-                <LuUser size={16} />
-              </span>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full rounded-2xl border border-slate-200 bg-white py-3.5 pl-12 pr-4 text-sm text-slate-900 shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/15"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-sm font-semibold text-[#08264A]">Нууц үг</label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
-                <LuLock size={16} />
-              </span>
-              <input
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="w-full rounded-2xl border border-slate-200 bg-white py-3.5 pl-12 pr-12 text-sm text-slate-900 shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/15"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-slate-600"
-                aria-label={showPassword ? 'Нууц үг нуух' : 'Нууц үг харах'}
-              >
-                {showPassword ? <LuEye size={18} /> : <LuEyeOff size={18} />}
-              </button>
-            </div>
-          </div>
-
-          {error && <p className="text-sm font-medium text-red-500">{error}</p>}
-
-          <button
-            type="submit"
-            disabled={submitting}
-            className="group flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 py-3.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition-all duration-300 hover:from-blue-500 hover:to-cyan-400 hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-60 disabled:hover:translate-y-0"
-          >
-            {submitting ? (
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-            ) : (
-              <>
-                Нэвтрэх
+        {/* One-click login buttons */}
+        <div className="mt-8 space-y-3">
+          {accounts.map((account) => (
+            <button
+              key={account.email}
+              type="button"
+              onClick={() => loginAs(account)}
+              disabled={loadingEmail !== null}
+              className="group flex w-full items-center justify-between gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 px-5 py-3.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition-all duration-300 hover:from-blue-500 hover:to-cyan-400 hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-60 disabled:hover:translate-y-0"
+            >
+              <span>{account.label}</span>
+              {loadingEmail === account.email ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+              ) : (
                 <LuArrowRight size={16} className="transition-transform duration-300 group-hover:translate-x-1" />
-              </>
-            )}
-          </button>
-        </form>
+              )}
+            </button>
+          ))}
+
+          {error && <p className="text-center text-sm font-medium text-red-500">{error}</p>}
+        </div>
       </div>
     </div>
   );

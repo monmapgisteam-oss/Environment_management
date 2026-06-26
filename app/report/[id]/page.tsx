@@ -2,6 +2,8 @@ import prisma from '@/lib/prisma';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import StatusBadge from '@/components/StatusBadge';
+import AttachmentList from '@/components/AttachmentList';
+import { parseAttachments } from '@/lib/attachments';
 import { formatDate } from '@/lib/utils';
 
 type Props = {
@@ -48,6 +50,7 @@ async function fetchReportTypes() {
 
 export default async function ReportDetailPage({ params, searchParams }: Props) {
   const isReviewer = searchParams.role === 'reviewer';
+  const isStaff = searchParams.role === 'staff';
 
   const [report, criteria, reportTypes] = await Promise.all([
     fetchReportDetail(params.id),
@@ -70,25 +73,7 @@ export default async function ReportDetailPage({ params, searchParams }: Props) 
 
   const displayStatus = report.status === 'approved' ? 'completed' : report.status === 'assigned' ? 'submitted' : report.status;
 
-  // Attachments are stored as a JSON array of { url, name } so the reviewer
-  // sees the sender's original file name. Fall back to legacy plain URLs.
-  let attachments: { url: string; name: string }[] = [];
-  if (report.fileUrl) {
-    try {
-      const parsed = JSON.parse(report.fileUrl);
-      if (Array.isArray(parsed)) {
-        attachments = parsed
-          .filter((f: any) => f && f.url)
-          .map((f: any) => ({ url: f.url, name: f.name || f.url.split('/').pop() }));
-      }
-    } catch {
-      attachments = report.fileUrl
-        .split(',')
-        .map((u: string) => u.trim())
-        .filter(Boolean)
-        .map((u: string) => ({ url: u, name: decodeURIComponent(u.split('/').pop() || u) }));
-    }
-  }
+  const attachments = parseAttachments(report.fileUrl);
 
   const sidebarItems = isReviewer
     ? [
@@ -104,6 +89,12 @@ export default async function ReportDetailPage({ params, searchParams }: Props) 
         { label: 'Гишүүдэд оноох', href: '/reviewer/assign' },
         { label: 'Үнэлгээний явц', href: '/reviewer/evaluation-progress' },
         { label: 'Буцаасан тайлан', href: '/reviewer' },
+      ]
+    : isStaff
+    ? [
+        { label: 'Удирдлагын хуудас', href: '/evaluator' },
+        { label: 'Надад оноогдсон тайлангууд', href: '/evaluator' },
+        { label: 'Үнэлгээ өгсөн тайлангууд', href: '/evaluator/evaluated' },
       ]
     : [
         { label: 'Хяналтын самбар', href: '/sender' },
@@ -124,12 +115,12 @@ export default async function ReportDetailPage({ params, searchParams }: Props) 
         { label: 'Үнэлгээний хариу', href: '/sender' },
       ];
 
-  const backHref = isReviewer ? '/reviewer' : '/sender';
+  const backHref = isReviewer ? '/reviewer' : isStaff ? '/evaluator' : '/sender';
 
   return (
     <div className="min-h-screen bg-background">
-      {isReviewer ? (
-        <Header userName="Хянах менежер" companyName="Хянах байгууллага" companyType="reviewer" />
+      {isReviewer || isStaff ? (
+        <Header userName={isStaff ? 'Үнэлгээний ажилтан' : 'Хянах менежер'} companyName="Хянах байгууллага" role={isStaff ? 'staff' : 'reviewer'} />
       ) : (
         <Header userName="Илгээх хэрэглэгч" companyName="Илгээх байгууллага" companyType="sender" />
       )}
@@ -164,6 +155,24 @@ export default async function ReportDetailPage({ params, searchParams }: Props) 
                 <p className="text-slate-500 text-xs">Илгээсэн огноо</p>
                 <p className="font-medium text-slate-800 mt-0.5">{formatDate(report.submittedAt)}</p>
               </div>
+              {report.implementerName && (
+                <div>
+                  <p className="text-slate-500 text-xs">Төсөл хэрэгжүүлэгчийн нэр</p>
+                  <p className="font-medium text-slate-800 mt-0.5">{report.implementerName}</p>
+                </div>
+              )}
+              {report.implementerRegister && (
+                <div>
+                  <p className="text-slate-500 text-xs">Төсөл хэрэгжүүлэгчийн РД</p>
+                  <p className="font-medium text-slate-800 mt-0.5">{report.implementerRegister}</p>
+                </div>
+              )}
+              {report.approvedDate && (
+                <div>
+                  <p className="text-slate-500 text-xs">Тайлан батлагдсан огноо</p>
+                  <p className="font-medium text-slate-800 mt-0.5">{formatDate(report.approvedDate)}</p>
+                </div>
+              )}
             </div>
 
             {report.description && (
@@ -215,29 +224,7 @@ export default async function ReportDetailPage({ params, searchParams }: Props) 
           </div>
 
           {/* Attachments */}
-          {attachments.length > 0 && (
-            <div className="bg-white rounded-2xl border border-slate-200 p-6">
-              <h2 className="text-base font-semibold text-slate-900 mb-4">Хавсралт файл</h2>
-              <div className="space-y-2">
-                {attachments.map((file, index) => (
-                  <a
-                    key={index}
-                    href={file.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 hover:bg-slate-50 transition"
-                  >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                      <polyline points="14 2 14 8 20 8" />
-                    </svg>
-                    <span className="text-sm font-medium text-slate-800 flex-1 min-w-0 truncate">{file.name}</span>
-                    <span className="text-xs font-medium text-color-primary">Нээх</span>
-                  </a>
-                ))}
-              </div>
-            </div>
-          )}
+          {attachments.length > 0 && <AttachmentList attachments={attachments} />}
 
           {/* Evaluation Scores Table */}
           {evaluations.length > 0 && (

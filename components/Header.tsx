@@ -13,13 +13,39 @@ type Notification = {
   reportId: string | null;
 };
 
+// A staff member (evaluator) and a manager share the same `reviewer` company,
+// but they have separate dashboards and must never land in each other's system.
+// `role` captures the actual user role and drives all in-app navigation.
+type ViewerRole = 'sender' | 'reviewer' | 'staff' | 'admin';
+
 type Props = {
   userName: string;
   companyName: string;
+  role?: ViewerRole;
   companyType?: 'sender' | 'reviewer' | 'admin';
 };
 
-export default function Header({ userName, companyName, companyType = 'sender' }: Props) {
+// Where the logo/home link points for each role.
+const HOME_HREF: Record<ViewerRole, string> = {
+  sender: '/sender',
+  reviewer: '/reviewer',
+  staff: '/evaluator',
+  admin: '/admin',
+};
+
+// Where a notification about a report should open for each role. A staff member
+// goes straight to their own evaluation screen for that report; everyone else
+// opens the read-only detail in their own portal.
+function reportHrefFor(role: ViewerRole, reportId: string) {
+  if (role === 'staff') return `/evaluator/evaluate/${reportId}`;
+  if (role === 'sender') return `/report/${reportId}?role=sender`;
+  return `/report/${reportId}?role=reviewer`;
+}
+
+export default function Header({ userName, companyName, role, companyType = 'sender' }: Props) {
+  // Fall back to the company type when an explicit role is not supplied, so the
+  // sender/manager pages keep working unchanged.
+  const viewerRole: ViewerRole = role ?? companyType;
   const [open, setOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -29,14 +55,16 @@ export default function Header({ userName, companyName, companyType = 'sender' }
   const router = useRouter();
 
   useEffect(() => {
-    fetch(`/api/notifications?companyType=${companyType}`)
+    // Notifications are scoped to the logged-in user server-side, so no role
+    // needs to be passed here.
+    fetch('/api/notifications')
       .then((res) => res.json())
       .then((data) => {
         setNotifications(data.notifications || []);
         setUnreadCount(data.unreadCount || 0);
       })
       .catch(() => {});
-  }, [companyType]);
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -56,7 +84,7 @@ export default function Header({ userName, companyName, companyType = 'sender' }
     <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white shadow-sm">
       <div className="flex items-center justify-between px-5 h-14">
         {/* Left - Logo */}
-        <Link href={`/${companyType}`} className="flex items-center gap-3">
+        <Link href={HOME_HREF[viewerRole]} className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-color-primary flex items-center justify-center">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -124,7 +152,7 @@ export default function Header({ userName, companyName, companyType = 'sender' }
                           }
                           if (n.reportId) {
                             setNotifOpen(false);
-                            router.push(`/report/${n.reportId}?role=${companyType}`);
+                            router.push(reportHrefFor(viewerRole, n.reportId));
                           }
                         }}
                         className={`px-4 py-3 border-b border-slate-50 hover:bg-slate-50 transition ${n.reportId ? 'cursor-pointer' : ''} ${!n.isRead ? 'bg-blue-50/50' : ''}`}

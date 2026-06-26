@@ -28,7 +28,7 @@ export default async function GeographyPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header userName="Хэрэглэгч" companyName="Байгууллага" unreadCount={0} />
+      <Header userName="Хэрэглэгч" companyName="Байгууллага" />
       <div className="flex">
         <Sidebar items={[{ label: 'Буцах', href: '/' }]} />
 

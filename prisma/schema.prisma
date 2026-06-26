@@ -85,6 +85,9 @@ model Report {
   title            String
   description      String?
   fileUrl          String?
+  implementerName     String?
+  implementerRegister String?
+  approvedDate        DateTime?
   status           ReportStatus      @default(draft)
   finalScore       Float?             
   year             Int

@@ -42,8 +42,9 @@ export default function SubmitReportPage() {
     reportType: "",
     reportNumber: "",
     title: "",
-    companyName: "",
-    registerNumber: "",
+    implementerName: "",
+    implementerRegister: "",
+    approvedDate: "",
     description: "",
   });
 
@@ -101,8 +102,9 @@ export default function SubmitReportPage() {
       reportType: activeType?.label || "",
       reportNumber: "",
       title: "",
-      companyName: "",
-      registerNumber: "",
+      implementerName: "",
+      implementerRegister: "",
+      approvedDate: "",
       description: "",
     });
   };

@@ -20,7 +20,7 @@ export default async function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header userName="Систем админ" companyName="Системийн удирдлага" unreadCount={1} />
+      <Header userName="Систем админ" companyName="Системийн удирдлага" role="admin" />
       <div className="flex">
         <Sidebar
           items={[

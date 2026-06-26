@@ -14,18 +14,16 @@ async function main() {
   await prisma.user.deleteMany();
   await prisma.company.deleteMany();
 
-  const senderCompanies = [];
-  for (let i = 1; i <= 3; i += 1) {
-    senderCompanies.push(
-      await prisma.company.create({
-        data: {
-          name: `Илгээх байгууллага ${i}`,
-          registerNumber: `SND00${i}`,
-          type: 'sender',
-        },
-      }),
-    );
-  }
+  // A single sender organisation is enough for this system.
+  const senderCompanies = [
+    await prisma.company.create({
+      data: {
+        name: 'Илгээх байгууллага',
+        registerNumber: 'SND001',
+        type: 'sender',
+      },
+    }),
+  ];
 
   const reviewerCompany = await prisma.company.create({
     data: {
@@ -129,21 +127,29 @@ async function main() {
 
   const evaluators = [];
 
-  // Dedicated staff (evaluator) login that shares the review organisation
+  // Dedicated staff (evaluator) logins that share the review organisation
   // portal with the manager. Staff review and score the reports.
-  evaluators.push(
-    await prisma.user.create({
-      data: {
-        name: 'Үнэлгээний ажилтан',
-        email: 'staff@tailan.mn',
-        password: 'Staff123!',
-        role: 'evaluator',
-        companyId: reviewerCompany.id,
-        phone: '99155667',
-        position: 'Үнэлгээний ажилтан',
-      },
-    }),
-  );
+  const staffAccounts = [
+    { email: 'staff@tailan.mn', name: 'Үнэлгээний ажилтан', phone: '99155667' },
+    { email: 'staff2@tailan.mn', name: 'Үнэлгээний ажилтан 2', phone: '99155668' },
+    { email: 'staff3@tailan.mn', name: 'Үнэлгээний ажилтан 3', phone: '99155669' },
+    { email: 'staff4@tailan.mn', name: 'Үнэлгээний ажилтан 4', phone: '99155670' },
+  ];
+  for (const account of staffAccounts) {
+    evaluators.push(
+      await prisma.user.create({
+        data: {
+          name: account.name,
+          email: account.email,
+          password: 'Staff123!',
+          role: 'evaluator',
+          companyId: reviewerCompany.id,
+          phone: account.phone,
+          position: 'Үнэлгээний ажилтан',
+        },
+      }),
+    );
+  }
 
   for (let i = 1; i <= 5; i += 1) {
     evaluators.push(

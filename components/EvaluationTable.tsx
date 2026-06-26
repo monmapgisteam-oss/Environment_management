@@ -16,9 +16,10 @@ type Props = {
   reportId: string;
   savedScores?: Record<string, string> | null;
   savedComment?: string | null;
+  redirectTo?: string;
 };
 
-export default function EvaluationTable({ criteria, reportId, savedScores, savedComment }: Props) {
+export default function EvaluationTable({ criteria, reportId, savedScores, savedComment, redirectTo }: Props) {
   const [scores, setScores] = useState<Record<string, string>>(() => {
     if (savedScores) return savedScores;
     const init: Record<string, string> = {};
@@ -52,7 +53,7 @@ export default function EvaluationTable({ criteria, reportId, savedScores, saved
     setSubmitting(false);
     if (response.ok) {
       alert('Үнэлгээ амжилттай өгөгдлөө.');
-      router.push('/reviewer/reports');
+      router.push(redirectTo || '/reviewer/reports');
     } else {
       alert('Алдаа гарлаа. Дахин оролдоно уу.');
     }

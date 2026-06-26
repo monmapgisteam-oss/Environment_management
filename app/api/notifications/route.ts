@@ -1,5 +1,6 @@
 import prisma from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
+import { getCurrentUser } from '@/lib/auth';
 
 export async function PATCH(request: NextRequest) {
   try {
@@ -19,34 +20,24 @@ export async function PATCH(request: NextRequest) {
   }
 }
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url);
-    const companyType = searchParams.get('companyType') || 'sender';
-
-    const users = await prisma.user.findMany({
-      where: {
-        company: { type: companyType as any },
-      },
-      select: { id: true },
-    });
-
-    const userIds = users.map((u) => u.id);
+    // Notifications belong to the logged-in user only — a manager must not see
+    // a staff member's "Танд тайлан оноогдлоо" and vice versa.
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ notifications: [], unreadCount: 0 });
+    }
 
     const notifications = await prisma.notification.findMany({
-      where: {
-        userId: { in: userIds },
-      },
+      where: { userId: user.id },
       include: { report: true },
       orderBy: { createdAt: 'desc' },
       take: 20,
     });
 
     const unreadCount = await prisma.notification.count({
-      where: {
-        userId: { in: userIds },
-        isRead: false,
-      },
+      where: { userId: user.id, isRead: false },
     });
 
     return NextResponse.json({ notifications, unreadCount });

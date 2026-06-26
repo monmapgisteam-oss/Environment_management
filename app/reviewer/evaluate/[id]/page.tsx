@@ -2,6 +2,8 @@ import prisma from '@/lib/prisma';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import EvaluationTable from '@/components/EvaluationTable';
+import AttachmentList from '@/components/AttachmentList';
+import { parseAttachments } from '@/lib/attachments';
 
 type Props = {
   params: { id: string };
@@ -94,6 +96,9 @@ export default async function ReviewerEvaluatePage({ params }: Props) {
               </div>
             </div>
           </div>
+
+          {/* Attached documents the sender submitted */}
+          <AttachmentList attachments={parseAttachments(report.fileUrl)} />
 
           {/* Evaluation Table */}
           <EvaluationTable

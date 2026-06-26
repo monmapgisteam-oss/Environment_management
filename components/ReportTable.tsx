@@ -19,7 +19,8 @@ type Report = {
 
 type Props = {
   reports: Report[];
-  role?: 'sender' | 'reviewer';
+  role?: 'sender' | 'reviewer' | 'staff';
+  showStatusFilter?: boolean;
 };
 
 const allStatusOptions = [
@@ -33,7 +34,7 @@ const allStatusOptions = [
   { value: 'rejected', label: 'Татгалзсан' },
 ];
 
-export default function ReportTable({ reports, role = 'sender' }: Props) {
+export default function ReportTable({ reports, role = 'sender', showStatusFilter = true }: Props) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
@@ -76,22 +77,24 @@ export default function ReportTable({ reports, role = 'sender' }: Props) {
     <div className="rounded-[2rem] bg-white p-6 shadow-soft border border-slate-200">
       <div className="mb-5 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div className="grid w-full gap-3 xl:grid-cols-[1fr_auto]">
-          <div className="grid gap-3 xl:grid-cols-3">
+          <div className={`grid gap-3 ${showStatusFilter ? 'xl:grid-cols-3' : 'xl:grid-cols-2'}`}>
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Тайлангийн дугаар, төслийн нэр, байгууллага"
               className="w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"
             />
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"
-            >
-              {statusOptions.map((status) => (
-                <option key={status.value} value={status.value}>{status.label}</option>
-              ))}
-            </select>
+            {showStatusFilter && (
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"
+              >
+                {statusOptions.map((status) => (
+                  <option key={status.value} value={status.value}>{status.label}</option>
+                ))}
+              </select>
+            )}
             <select
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
@@ -138,6 +141,9 @@ export default function ReportTable({ reports, role = 'sender' }: Props) {
                     <Link href={`/report/${report.id}?role=${role ?? 'sender'}`} className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition whitespace-nowrap">Дэлгэрэнгүй</Link>
                     {role === 'reviewer' && (
                       <Link href={`/reviewer/evaluate/${report.id}`} className="inline-flex items-center justify-center rounded-lg bg-color-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-color-primary-dark transition whitespace-nowrap">Үнэлгээ өгөх</Link>
+                    )}
+                    {role === 'staff' && (
+                      <Link href={`/evaluator/evaluate/${report.id}`} className="inline-flex items-center justify-center rounded-lg bg-color-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-color-primary-dark transition whitespace-nowrap">Үнэлэх</Link>
                     )}
                   </div>
                 </td>

@@ -1,13 +1,13 @@
 import AuthForm from '@/components/AuthForm';
+import { ADMIN_ACCOUNTS, ADMIN_ROLES } from '@/lib/constants';
 
 export default function AdminLoginPage() {
   return (
     <AuthForm
       title="Системийн админ"
-      subtitle="Системийн удирдлагын самбар руу нэвтрэх."
-      defaultEmail="admin@tailan.mn"
-      defaultPassword="Admin123!"
-      allowedRoles={['admin']}
+      subtitle="Аккаунтаа сонгож нэвтэрнэ үү."
+      allowedRoles={ADMIN_ROLES}
+      accounts={ADMIN_ACCOUNTS}
     />
   );
 }

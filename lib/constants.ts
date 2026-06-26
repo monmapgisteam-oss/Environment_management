@@ -45,6 +45,36 @@ export const PROVINCES = [
   'Архангай',
 ];
 
+// Pre-defined login accounts. Since the system has no public sign-up, each
+// organisation exposes a fixed set of accounts that are picked with one click.
+export type LoginAccount = {
+  label: string;
+  email: string;
+  password: string;
+};
+
+export const SENDER_ACCOUNTS: LoginAccount[] = [
+  { label: 'Илгээгч байгууллага', email: 'sender1@tailan.mn', password: 'Sender123!' },
+];
+
+// The review organisation shares one portal between the manager and the staff
+// (evaluators); each account is routed to its own dashboard after login.
+export const REVIEWER_ACCOUNTS: LoginAccount[] = [
+  { label: 'Менежер', email: 'manager@tailan.mn', password: 'Manager123!' },
+  { label: 'Ажилтан 1', email: 'staff@tailan.mn', password: 'Staff123!' },
+  { label: 'Ажилтан 2', email: 'staff2@tailan.mn', password: 'Staff123!' },
+  { label: 'Ажилтан 3', email: 'staff3@tailan.mn', password: 'Staff123!' },
+  { label: 'Ажилтан 4', email: 'staff4@tailan.mn', password: 'Staff123!' },
+];
+
+export const ADMIN_ACCOUNTS: LoginAccount[] = [
+  { label: 'Системийн админ', email: 'admin@tailan.mn', password: 'Admin123!' },
+];
+
+export const SENDER_ROLES = ['sender'];
+export const REVIEWER_ROLES = ['review_manager', 'evaluator'];
+export const ADMIN_ROLES = ['admin'];
+
 export const EVALUATION_CRITERIA = [
   { id: 1, name: 'Сөрөг нөлөөллийг бууруулах арга хэмжээний төлөвлөгөөний биелэлт', maxScore: 20 },
   { id: 2, name: 'Орчны тохижилт, цэцэрлэгжүүлэлтийн төлөвлөгөөний биелэлт', maxScore: 15 },

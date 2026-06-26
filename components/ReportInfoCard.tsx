@@ -83,39 +83,56 @@ export default function ReportInfoCard({ formData, handleChange, lockedType }: R
         />
       </div>
 
-      {/* Row 3: Company & Register */}
+      {/* Row 3: Implementer name & register */}
       <div className="grid grid-cols-2 gap-5 mb-5">
         <div>
           <label className="block text-sm font-medium text-color-text-main mb-1.5">
-            Байгууллагын нэр <span className="text-red-500">*</span>
+            Төсөл хэрэгжүүлэгчийн нэр <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
-            name="companyName"
-            value={formData.companyName}
+            name="implementerName"
+            value={formData.implementerName}
             onChange={handleChange}
-            placeholder="Байгууллага"
+            placeholder="Төсөл хэрэгжүүлэгч байгууллага"
             required
             className={inputClass}
           />
         </div>
         <div>
           <label className="block text-sm font-medium text-color-text-main mb-1.5">
-            Регистрийн дугаар <span className="text-red-500">*</span>
+            Төсөл хэрэгжүүлэгчийн РД <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
-            name="registerNumber"
-            value={formData.registerNumber}
+            name="implementerRegister"
+            value={formData.implementerRegister}
             onChange={handleChange}
-            placeholder="REG-12345"
+            placeholder="РД-12345"
             required
             className={inputClass}
           />
         </div>
       </div>
 
-      {/* Row 4: Description */}
+      {/* Row 4: Approved date */}
+      <div className="grid grid-cols-2 gap-5 mb-5">
+        <div>
+          <label className="block text-sm font-medium text-color-text-main mb-1.5">
+            Тайлан батлагдсан огноо <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="date"
+            name="approvedDate"
+            value={formData.approvedDate}
+            onChange={handleChange}
+            required
+            className={inputClass}
+          />
+        </div>
+      </div>
+
+      {/* Row 5: Description */}
       <div>
         <label className="block text-sm font-medium text-color-text-main mb-1.5">Тайлбар</label>
         <textarea
