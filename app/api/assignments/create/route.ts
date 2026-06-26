@@ -1,6 +1,8 @@
-import prisma from '@/lib/prisma';
-import { NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth';
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+import prisma from "@/lib/prisma";
+import { NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth";
 
 export async function POST(request: Request) {
   try {
@@ -9,17 +11,26 @@ export async function POST(request: Request) {
     const evaluatorIds: string[] = data.evaluators || [];
 
     if (!reportId || evaluatorIds.length === 0) {
-      return NextResponse.json({ error: 'Тайлан болон гишүүн сонгоно уу.' }, { status: 400 });
+      return NextResponse.json(
+        { error: "Тайлан болон гишүүн сонгоно уу." },
+        { status: 400 },
+      );
     }
 
     // The distributing manager comes from the session; fall back to any review
     // manager so the flow keeps working during testing.
     const current = await getCurrentUser();
-    let assignedByUserId = current?.role === 'review_manager' ? current.id : null;
+    let assignedByUserId =
+      current?.role === "review_manager" ? current.id : null;
     if (!assignedByUserId) {
-      const manager = await prisma.user.findFirst({ where: { role: 'review_manager' } });
+      const manager = await prisma.user.findFirst({
+        where: { role: "review_manager" },
+      });
       if (!manager) {
-        return NextResponse.json({ error: 'Менежер олдсонгүй.' }, { status: 500 });
+        return NextResponse.json(
+          { error: "Менежер олдсонгүй." },
+          { status: 500 },
+        );
       }
       assignedByUserId = manager.id;
     }
@@ -42,14 +53,14 @@ export async function POST(request: Request) {
           reportId,
           evaluatorUserId,
           assignedByUserId,
-          status: 'pending',
+          status: "pending",
           deadline,
         })),
       });
 
       const report = await prisma.report.update({
         where: { id: reportId },
-        data: { status: 'assigned' },
+        data: { status: "assigned" },
       });
 
       // Let each newly assigned staff member know they have work to do.
@@ -57,7 +68,7 @@ export async function POST(request: Request) {
         data: toAssign.map((userId) => ({
           userId,
           reportId,
-          title: 'Танд тайлан оноогдлоо',
+          title: "Танд тайлан оноогдлоо",
           message: `"${report.title}" тайланд үнэлгээ хийх үүрэг даалгавар ирлээ.`,
         })),
       });
@@ -67,25 +78,31 @@ export async function POST(request: Request) {
         where: { id: { in: toAssign } },
         select: { name: true },
       });
-      const staffNames = assignedStaff.map((s) => s.name).join(', ');
+      const staffNames = assignedStaff.map((s) => s.name).join(", ");
       await prisma.notification.create({
         data: {
           userId: assignedByUserId,
           reportId,
-          title: 'Тайлан амжилттай оноогдлоо',
+          title: "Тайлан амжилттай оноогдлоо",
           message: `Та ${staffNames}-д "${report.title}" тайланг оноож өглөө.`,
         },
       });
     } else {
       await prisma.report.update({
         where: { id: reportId },
-        data: { status: 'assigned' },
+        data: { status: "assigned" },
       });
     }
 
-    return NextResponse.json({ success: true, assigned: toAssign.length }, { status: 201 });
+    return NextResponse.json(
+      { success: true, assigned: toAssign.length },
+      { status: 201 },
+    );
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: 'Failed to assign evaluators' }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to assign evaluators" },
+      { status: 500 },
+    );
   }
 }
