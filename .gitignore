@@ -37,3 +37,6 @@ lerna-debug.log*
 
 # OS
 Thumbs.db
+
+# uploaded attachments (local test files)
+/public/uploads

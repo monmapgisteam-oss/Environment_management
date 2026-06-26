@@ -6,6 +6,7 @@ import { formatDate } from '@/lib/utils';
 
 type Props = {
   params: { id: string };
+  searchParams: { role?: string };
 };
 
 async function fetchReportDetail(reportId: string) {
@@ -38,10 +39,20 @@ async function fetchCriteria() {
   });
 }
 
-export default async function ReportDetailPage({ params }: Props) {
-  const [report, criteria] = await Promise.all([
+async function fetchReportTypes() {
+  return prisma.reportType.findMany({
+    where: { isActive: true },
+    orderBy: { name: 'asc' },
+  });
+}
+
+export default async function ReportDetailPage({ params, searchParams }: Props) {
+  const isReviewer = searchParams.role === 'reviewer';
+
+  const [report, criteria, reportTypes] = await Promise.all([
     fetchReportDetail(params.id),
     fetchCriteria(),
+    isReviewer ? fetchReportTypes() : Promise.resolve([]),
   ]);
 
   if (!report) {
@@ -59,28 +70,71 @@ export default async function ReportDetailPage({ params }: Props) {
 
   const displayStatus = report.status === 'approved' ? 'completed' : report.status === 'assigned' ? 'submitted' : report.status;
 
+  // Attachments are stored as a JSON array of { url, name } so the reviewer
+  // sees the sender's original file name. Fall back to legacy plain URLs.
+  let attachments: { url: string; name: string }[] = [];
+  if (report.fileUrl) {
+    try {
+      const parsed = JSON.parse(report.fileUrl);
+      if (Array.isArray(parsed)) {
+        attachments = parsed
+          .filter((f: any) => f && f.url)
+          .map((f: any) => ({ url: f.url, name: f.name || f.url.split('/').pop() }));
+      }
+    } catch {
+      attachments = report.fileUrl
+        .split(',')
+        .map((u: string) => u.trim())
+        .filter(Boolean)
+        .map((u: string) => ({ url: u, name: decodeURIComponent(u.split('/').pop() || u) }));
+    }
+  }
+
+  const sidebarItems = isReviewer
+    ? [
+        { label: 'Хяналтын самбар', href: '/reviewer' },
+        {
+          label: 'Ирсэн тайлангууд',
+          href: '/reviewer/reports',
+          children: reportTypes.map((rt: any) => ({
+            label: rt.name,
+            href: `/reviewer/reports?type=${rt.slug}`,
+          })),
+        },
+        { label: 'Гишүүдэд оноох', href: '/reviewer/assign' },
+        { label: 'Үнэлгээний явц', href: '/reviewer/evaluation-progress' },
+        { label: 'Буцаасан тайлан', href: '/reviewer' },
+      ]
+    : [
+        { label: 'Хяналтын самбар', href: '/sender' },
+        {
+          label: 'Тайлан илгээх',
+          href: '/sender/submit',
+          children: [
+            { label: 'Жилийн төлөвлөгөө', href: '/sender/submit?type=plan' },
+            { label: 'Биелэлтийн тайлан', href: '/sender/submit?type=performance' },
+            { label: 'Дүгнэх хуудас', href: '/sender/submit?type=summary' },
+            { label: 'Хяналтын хуудас', href: '/sender/submit?type=control' },
+            { label: 'Аймаг, нийслэлийн санал', href: '/sender/submit?type=regional' },
+          ],
+        },
+        { label: 'Нэмэлт мэдээлэл', href: '/sender/submit?type=additional' },
+        { label: 'Миний тайлангууд', href: '/sender' },
+        { label: 'Ноорог', href: '/sender/drafts' },
+        { label: 'Үнэлгээний хариу', href: '/sender' },
+      ];
+
+  const backHref = isReviewer ? '/reviewer' : '/sender';
+
   return (
-    <div className="min-h-screen bg-[#EDF5FA]">
-      <Header userName="Илгээх хэрэглэгч" companyName="Илгээх байгууллага" companyType="sender" />
+    <div className="min-h-screen bg-background">
+      {isReviewer ? (
+        <Header userName="Хянах менежер" companyName="Хянах байгууллага" companyType="reviewer" />
+      ) : (
+        <Header userName="Илгээх хэрэглэгч" companyName="Илгээх байгууллага" companyType="sender" />
+      )}
       <div className="flex">
-        <Sidebar items={[
-          { label: 'Хяналтын самбар', href: '/sender' },
-          {
-            label: 'Тайлан илгээх',
-            href: '/sender/submit',
-            children: [
-              { label: 'Жилийн төлөвлөгөө', href: '/sender/submit' },
-              { label: 'Биелэлтийн тайлан', href: '/sender/submit' },
-              { label: 'Дүгнэх хуудас', href: '/sender/submit' },
-              { label: 'Хяналтын хуудас', href: '/sender/submit' },
-              { label: 'Нэмэлт мэдээлэл', href: '/sender/submit' },
-              { label: 'Аймаг, нийслэлийн санал', href: '/sender/submit' },
-            ],
-          },
-          { label: 'Миний тайлангууд', href: '/sender' },
-          { label: 'Ноорог', href: '/sender/drafts' },
-          { label: 'Үнэлгээний хариу', href: '/sender' },
-        ]} />
+        <Sidebar items={sidebarItems} />
 
         <main className="flex-1 min-w-0 p-6 space-y-5">
           {/* Report Info */}
@@ -112,6 +166,13 @@ export default async function ReportDetailPage({ params }: Props) {
               </div>
             </div>
 
+            {report.description && (
+              <div className="mt-5 pt-5 border-t border-slate-100 text-sm">
+                <p className="text-slate-500 text-xs">Тайлбар</p>
+                <p className="font-medium text-slate-800 mt-0.5 whitespace-pre-wrap">{report.description}</p>
+              </div>
+            )}
+
             {report.location && (
               <div className="mt-5 pt-5 border-t border-slate-100 grid grid-cols-3 gap-4 text-sm">
                 <div>
@@ -122,9 +183,61 @@ export default async function ReportDetailPage({ params }: Props) {
                   <p className="text-slate-500 text-xs">Сум / Дүүрэг</p>
                   <p className="font-medium text-slate-800 mt-0.5">{report.location.district}</p>
                 </div>
+                {report.location.khoroo && (
+                  <div>
+                    <p className="text-slate-500 text-xs">Баг / Хороо</p>
+                    <p className="font-medium text-slate-800 mt-0.5">{report.location.khoroo}</p>
+                  </div>
+                )}
+                {report.location.addressDetail && (
+                  <div className="col-span-3">
+                    <p className="text-slate-500 text-xs">Дэлгэрэнгүй хаяг</p>
+                    <p className="font-medium text-slate-800 mt-0.5">{report.location.addressDetail}</p>
+                  </div>
+                )}
+                {report.location.latitude != null && report.location.longitude != null && (
+                  <div className="col-span-3">
+                    <p className="text-slate-500 text-xs mb-2">
+                      Байршил ({report.location.latitude.toFixed(6)}, {report.location.longitude.toFixed(6)})
+                    </p>
+                    <div className="rounded-xl overflow-hidden border border-slate-200" style={{ height: 320 }}>
+                      <iframe
+                        title="Тайлангийн байршил"
+                        className="w-full h-full"
+                        loading="lazy"
+                        src={`https://www.openstreetmap.org/export/embed.html?bbox=${report.location.longitude - 0.01}%2C${report.location.latitude - 0.01}%2C${report.location.longitude + 0.01}%2C${report.location.latitude + 0.01}&layer=mapnik&marker=${report.location.latitude}%2C${report.location.longitude}`}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
+
+          {/* Attachments */}
+          {attachments.length > 0 && (
+            <div className="bg-white rounded-2xl border border-slate-200 p-6">
+              <h2 className="text-base font-semibold text-slate-900 mb-4">Хавсралт файл</h2>
+              <div className="space-y-2">
+                {attachments.map((file, index) => (
+                  <a
+                    key={index}
+                    href={file.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 hover:bg-slate-50 transition"
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                      <polyline points="14 2 14 8 20 8" />
+                    </svg>
+                    <span className="text-sm font-medium text-slate-800 flex-1 min-w-0 truncate">{file.name}</span>
+                    <span className="text-xs font-medium text-color-primary">Нээх</span>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Evaluation Scores Table */}
           {evaluations.length > 0 && (
@@ -205,7 +318,7 @@ export default async function ReportDetailPage({ params }: Props) {
 
           {/* Back */}
           <div className="flex justify-end">
-            <a href="/sender" className="h-10 px-5 rounded-xl border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 transition inline-flex items-center">
+            <a href={backHref} className="h-10 px-5 rounded-xl border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 transition inline-flex items-center">
               Буцах
             </a>
           </div>

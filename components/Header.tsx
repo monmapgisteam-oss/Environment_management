@@ -124,7 +124,7 @@ export default function Header({ userName, companyName, companyType = 'sender' }
                           }
                           if (n.reportId) {
                             setNotifOpen(false);
-                            router.push(`/report/${n.reportId}`);
+                            router.push(`/report/${n.reportId}?role=${companyType}`);
                           }
                         }}
                         className={`px-4 py-3 border-b border-slate-50 hover:bg-slate-50 transition ${n.reportId ? 'cursor-pointer' : ''} ${!n.isRead ? 'bg-blue-50/50' : ''}`}

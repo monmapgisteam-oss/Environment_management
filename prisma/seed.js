@@ -128,6 +128,23 @@ async function main() {
   });
 
   const evaluators = [];
+
+  // Dedicated staff (evaluator) login that shares the review organisation
+  // portal with the manager. Staff review and score the reports.
+  evaluators.push(
+    await prisma.user.create({
+      data: {
+        name: 'Үнэлгээний ажилтан',
+        email: 'staff@tailan.mn',
+        password: 'Staff123!',
+        role: 'evaluator',
+        companyId: reviewerCompany.id,
+        phone: '99155667',
+        position: 'Үнэлгээний ажилтан',
+      },
+    }),
+  );
+
   for (let i = 1; i <= 5; i += 1) {
     evaluators.push(
       await prisma.user.create({

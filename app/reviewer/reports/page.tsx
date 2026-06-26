@@ -12,7 +12,11 @@ async function fetchReportTypes() {
 
 async function fetchAllReports(typeSlug?: string) {
   return prisma.report.findMany({
-    where: typeSlug ? { reportType: { slug: typeSlug } } : undefined,
+    // Drafts belong to the sender only; never surface them to the reviewer.
+    where: {
+      status: { not: 'draft' },
+      ...(typeSlug ? { reportType: { slug: typeSlug } } : {}),
+    },
     include: {
       reportType: true,
       senderCompany: true,
@@ -48,7 +52,7 @@ export default async function ReviewerReportsPage({ searchParams }: { searchPara
               active: true,
               children: sidebarChildren,
             },
-            { label: 'Гишүүдэд оноох', href: '/reviewer' },
+            { label: 'Гишүүдэд оноох', href: '/reviewer/assign' },
             { label: 'Үнэлгээний явц', href: '/reviewer/evaluation-progress' },
             { label: 'Буцаасан тайлан', href: '/reviewer' },
           ]}

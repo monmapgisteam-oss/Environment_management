@@ -37,23 +37,48 @@ export async function POST(request: Request) {
         senderCompanyId: senderCompany.id,
         title: data.title || 'Тайлан',
         description: data.description || null,
+        fileUrl: data.fileUrl?.trim() ? data.fileUrl.trim() : null,
         status,
         year: new Date().getFullYear(),
         submittedAt: status === 'draft' ? null : new Date(),
-        ...(data.province && data.district && data.khoroo ? {
+        ...((data.latitude != null && data.longitude != null) || data.province || data.district || data.khoroo ? {
           location: {
             create: {
-              province: data.province,
-              district: data.district,
-              khoroo: data.khoroo,
+              province: data.province || 'Тодорхойгүй',
+              district: data.district || 'Тодорхойгүй',
+              khoroo: data.khoroo || 'Тодорхойгүй',
               addressDetail: data.addressDetail || null,
-              latitude: data.latitude ? parseFloat(data.latitude) : null,
-              longitude: data.longitude ? parseFloat(data.longitude) : null,
+              latitude: data.latitude != null ? parseFloat(String(data.latitude)) : null,
+              longitude: data.longitude != null ? parseFloat(String(data.longitude)) : null,
             },
           },
         } : {}),
       },
     });
+
+    // Notify the review manager(s) that a new report is waiting to be reviewed.
+    // Drafts stay private to the sender, so only notify on real submissions.
+    if (status === 'submitted') {
+      try {
+        const managers = await prisma.user.findMany({
+          where: { role: 'review_manager' },
+          select: { id: true },
+        });
+        if (managers.length > 0) {
+          await prisma.notification.createMany({
+            data: managers.map((manager) => ({
+              userId: manager.id,
+              reportId: report.id,
+              title: 'Шинэ тайлан ирлээ',
+              message: `${senderCompany.name}-аас "${report.title}" тайлан хянуулахаар ирлээ.`,
+            })),
+          });
+        }
+      } catch (notifyError) {
+        // A notification failure must not fail the submission itself.
+        console.error('Failed to create reviewer notification', notifyError);
+      }
+    }
 
     return NextResponse.json(report, { status: 201 });
   } catch (error) {

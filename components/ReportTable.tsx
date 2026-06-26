@@ -135,7 +135,7 @@ export default function ReportTable({ reports, role = 'sender' }: Props) {
                 <td className="px-4 py-4 text-slate-700">{report.finalScore ?? '-'}</td>
                 <td className="px-4 py-4">
                   <div className="flex flex-col gap-1.5">
-                    <Link href={`/report/${report.id}`} className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition whitespace-nowrap">Дэлгэрэнгүй</Link>
+                    <Link href={`/report/${report.id}?role=${role ?? 'sender'}`} className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition whitespace-nowrap">Дэлгэрэнгүй</Link>
                     {role === 'reviewer' && (
                       <Link href={`/reviewer/evaluate/${report.id}`} className="inline-flex items-center justify-center rounded-lg bg-color-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-color-primary-dark transition whitespace-nowrap">Үнэлгээ өгөх</Link>
                     )}

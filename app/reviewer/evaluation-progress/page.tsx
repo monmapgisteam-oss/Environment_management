@@ -46,7 +46,7 @@ export default async function EvaluationProgressPage() {
               href: '/reviewer/reports',
               children: sidebarChildren,
             },
-            { label: 'Гишүүдэд оноох', href: '/reviewer' },
+            { label: 'Гишүүдэд оноох', href: '/reviewer/assign' },
             { label: 'Үнэлгээний явц', href: '/reviewer/evaluation-progress', active: true },
             { label: 'Буцаасан тайлан', href: '/reviewer' },
           ]}

@@ -30,6 +30,14 @@ export default function SubmitReportPage() {
   const [submitting, setSubmitting] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+  const [location, setLocation] = useState<{
+    lat?: number;
+    lng?: number;
+    address?: string;
+    province?: string;
+    district?: string;
+    khoroo?: string;
+  } | null>(null);
   const [formData, setFormData] = useState({
     reportType: "",
     reportNumber: "",
@@ -57,6 +65,35 @@ export default function SubmitReportPage() {
     setAttachedFiles(files);
   };
 
+  // Upload each attached file and return a JSON array of { url, name } so the
+  // sender's original file names are preserved for the reviewer.
+  const uploadAttachments = async () => {
+    const uploaded: { url: string; name: string }[] = [];
+    for (const file of attachedFiles) {
+      const body = new FormData();
+      body.append("file", file);
+      const res = await fetch("/api/upload", { method: "POST", body });
+      if (res.ok) {
+        const data = await res.json();
+        uploaded.push({ url: data.url, name: data.name });
+      }
+    }
+    return uploaded.length ? JSON.stringify(uploaded) : "";
+  };
+
+  // Map the picked map location into the fields the create API expects.
+  const locationData = () =>
+    location
+      ? {
+          latitude: location.lat,
+          longitude: location.lng,
+          addressDetail: location.address,
+          province: location.province,
+          district: location.district,
+          khoroo: location.khoroo,
+        }
+      : {};
+
   const handleReset = () => {
     setSubmitted(false);
     setAttachedFiles([]);
@@ -74,10 +111,11 @@ export default function SubmitReportPage() {
     e.preventDefault();
     setSubmitting(true);
     try {
+      const fileUrl = await uploadAttachments();
       const response = await fetch("/api/reports/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...formData, status: "submitted" }),
+        body: JSON.stringify({ ...formData, ...locationData(), fileUrl, status: "submitted" }),
       });
       if (response.ok) {
         setSubmitted(true);
@@ -90,10 +128,11 @@ export default function SubmitReportPage() {
   const handleSaveDraft = async () => {
     setSavingDraft(true);
     try {
+      const fileUrl = await uploadAttachments();
       const response = await fetch("/api/reports/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...formData, status: "draft" }),
+        body: JSON.stringify({ ...formData, ...locationData(), fileUrl, status: "draft" }),
       });
       if (response.ok) {
         router.push("/sender/drafts");
@@ -225,7 +264,7 @@ export default function SubmitReportPage() {
 
                 {/* Location */}
                 <div className="mt-8">
-                  <LocationCard />
+                  <LocationCard onLocationChange={setLocation} />
                 </div>
 
                 {/* Action Buttons */}

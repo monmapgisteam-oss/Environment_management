@@ -13,6 +13,8 @@ async function fetchReportTypes() {
 
 async function fetchReviewerReports() {
   const reports = await prisma.report.findMany({
+    // Drafts belong to the sender only; never surface them to the reviewer.
+    where: { status: { not: 'draft' } },
     include: {
       reportType: true,
       senderCompany: true,
@@ -55,7 +57,7 @@ export default async function ReviewerDashboard() {
               href: '/reviewer/reports',
               children: sidebarChildren,
             },
-            { label: 'Гишүүдэд оноох', href: '/reviewer' },
+            { label: 'Гишүүдэд оноох', href: '/reviewer/assign' },
             { label: 'Үнэлгээний явц', href: '/reviewer/evaluation-progress' },
             { label: 'Буцаасан тайлан', href: '/reviewer' },
           ]}

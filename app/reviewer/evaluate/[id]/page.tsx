@@ -64,7 +64,7 @@ export default async function ReviewerEvaluatePage({ params }: Props) {
                 href: `/reviewer/reports?type=${rt.slug}`,
               })),
             },
-            { label: 'Гишүүдэд оноох', href: '/reviewer' },
+            { label: 'Гишүүдэд оноох', href: '/reviewer/assign' },
             { label: 'Үнэлгээний явц', href: '/reviewer/evaluation-progress' },
             { label: 'Буцаасан тайлан', href: '/reviewer' },
           ]}

@@ -35,7 +35,7 @@ export default async function EvaluatorDashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header userName="Үнэлэгч" companyName="Хянах байгууллага" unreadCount={1} />
+      <Header userName="Үнэлгээний ажилтан" companyName="Хянах байгууллага" companyType="reviewer" />
       <div className="flex">
         <Sidebar
           items={[
