@@ -1,5 +1,23 @@
 export type Attachment = { url: string; name: string };
 
+// Builds a URL that forces a file download (Content-Disposition: attachment)
+// instead of opening in the browser. Supabase Storage honours the `download`
+// query param and uses its value as the saved filename, so the monitoring team
+// gets the sender's original file name. Falls back to the plain URL for any
+// non-Supabase/legacy links.
+export function downloadUrl(file: Attachment): string {
+  try {
+    const u = new URL(file.url, 'http://localhost');
+    if (u.protocol === 'http:' || u.protocol === 'https:') {
+      u.searchParams.set('download', file.name || '');
+      return u.toString();
+    }
+  } catch {
+    // ignore and fall through
+  }
+  return file.url;
+}
+
 // Attachments are stored on Report.fileUrl as a JSON array of { url, name } so
 // the reviewer sees the sender's original file name. Older records may hold a
 // plain (comma-separated) list of URLs, which we still parse for compatibility.

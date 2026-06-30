@@ -32,17 +32,30 @@ async function fetchAssignedReports(evaluatorUserId: string, typeSlug?: string) 
     orderBy: { assignedAt: 'desc' },
   });
 
-  return assignments.map((assignment: any) => ({
-    id: assignment.report.id,
-    reportNumber: assignment.report.reportNumber,
-    reportType: assignment.report.reportType,
-    title: assignment.report.title,
-    submittedAt: assignment.report.submittedAt?.toISOString() || null,
-    status: assignment.status === 'submitted' ? 'completed' : 'in_review',
-    finalScore: assignment.report.finalScore,
-    senderCompany: assignment.report.senderCompany,
-    location: assignment.report.location,
-  }));
+  return assignments.map((assignment: any) => {
+    // Surface the report's own state for return flows so the staff member sees
+    // "Буцаах хүсэлт илгээгдсэн" after they ask the manager to return it (and
+    // "Засвар шаардсан" if the manager actually returned it to the sender).
+    // Otherwise derive the status from whether they have submitted their score.
+    const reportStatus = assignment.report.status;
+    const status =
+      reportStatus === 'return_requested' || reportStatus === 'needs_revision'
+        ? reportStatus
+        : assignment.status === 'submitted'
+          ? 'completed'
+          : 'in_review';
+    return {
+      id: assignment.report.id,
+      reportNumber: assignment.report.reportNumber,
+      reportType: assignment.report.reportType,
+      title: assignment.report.title,
+      submittedAt: assignment.report.submittedAt?.toISOString() || null,
+      status,
+      finalScore: assignment.report.finalScore,
+      senderCompany: assignment.report.senderCompany,
+      location: assignment.report.location,
+    };
+  });
 }
 
 export default async function EvaluatorDashboard({ searchParams }: { searchParams: { type?: string } }) {
@@ -57,58 +70,52 @@ export default async function EvaluatorDashboard({ searchParams }: { searchParam
     fetchAssignedReports(user.id, searchParams.type),
   ]);
 
-  const sidebarChildren = reportTypes.map((rt: any) => ({
-    label: rt.name,
-    href: `/evaluator?type=${rt.slug}`,
-    active: searchParams.type === rt.slug,
-  }));
+  // "Нэмэлт мэдээлэл" is shown as its own top-level menu item (below
+  // "Үнэлгээ өгсөн тайлангууд"), so it is excluded from the report-type submenu.
+  const additionalType = reportTypes.find((rt: any) => rt.name.includes('Нэмэлт'));
+  const isAdditional = !!additionalType && searchParams.type === additionalType.slug;
+
+  const sidebarChildren = reportTypes
+    .filter((rt: any) => !rt.name.includes('Нэмэлт'))
+    .map((rt: any) => ({
+      label: rt.name,
+      href: `/evaluator?type=${rt.slug}`,
+      active: searchParams.type === rt.slug,
+    }));
 
   const activeTypeName = searchParams.type
     ? reportTypes.find((rt: any) => rt.slug === searchParams.type)?.name
     : null;
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header userName={user.name} companyName="Хянах байгууллага" role="staff" />
-      <div className="flex">
-        <Sidebar
+    <div className="flex min-h-screen bg-background">
+      <Sidebar
           items={[
             { label: 'Удирдлагын хуудас', href: '/evaluator' },
             {
               label: 'Надад оноогдсон тайлангууд',
               href: '/evaluator',
-              active: true,
+              active: !isAdditional,
               children: sidebarChildren,
             },
             { label: 'Үнэлгээ өгсөн тайлангууд', href: '/evaluator/evaluated' },
+            ...(additionalType
+              ? [{ label: 'Нэмэлт мэдээлэл', href: `/evaluator?type=${additionalType.slug}`, active: isAdditional }]
+              : []),
           ]}
         />
 
+        <div className="flex min-w-0 flex-1 flex-col">
+        <Header userName={user.name} companyName="Хянах байгууллага" role="staff" />
         <main className="flex-1 min-w-0 space-y-6 p-6">
           <div className="space-y-1">
-            <h2 className="text-2xl font-semibold tracking-tight text-slate-900">Надад оноогдсон тайлангууд</h2>
-            <p className="text-sm text-slate-600">
-              {activeTypeName ? `${activeTypeName} төрлийн тайлангууд.` : 'Танд оноогдсон бүх тайлан.'}
-            </p>
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-3">
-            <div className="rounded-3xl bg-white p-6 shadow-soft border border-sky-100">
-              <p className="text-sm text-slate-500">Надад оноогдсон тайлан</p>
-              <p className="mt-4 text-3xl font-semibold text-navy">{reports.length}</p>
-            </div>
-            <div className="rounded-3xl bg-white p-6 shadow-soft border border-sky-100">
-              <p className="text-sm text-slate-500">Үнэлгээ өгөөгүй тайлан</p>
-              <p className="mt-4 text-3xl font-semibold text-navy">{reports.filter((r: any) => r.status === 'in_review').length}</p>
-            </div>
-            <div className="rounded-3xl bg-white p-6 shadow-soft border border-sky-100">
-              <p className="text-sm text-slate-500">Үнэлгээ өгсөн тайлан</p>
-              <p className="mt-4 text-3xl font-semibold text-navy">{reports.filter((r: any) => r.status === 'completed').length}</p>
-            </div>
+            <h2 className="text-2xl font-semibold tracking-tight text-slate-900">
+              {isAdditional ? 'Нэмэлт мэдээлэл' : 'Надад оноогдсон тайлангууд'}
+            </h2>
           </div>
 
           {reports.length === 0 ? (
-            <div className="rounded-3xl bg-white px-6 py-16 text-center shadow-soft border border-sky-100">
+            <div className="rounded-3xl bg-white px-6 py-16 text-center shadow-soft border border-slate-200">
               <p className="text-sm text-slate-400">
                 {activeTypeName
                   ? `${activeTypeName} төрлийн оноогдсон тайлан алга байна.`

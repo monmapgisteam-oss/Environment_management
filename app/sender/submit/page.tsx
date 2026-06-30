@@ -9,6 +9,7 @@ import ReportInfoCard from "@/components/ReportInfoCard";
 import LocationCard from "@/components/LocationCard";
 import AttachmentCard from "@/components/AttachmentCard";
 import { HiCheckCircle } from "react-icons/hi";
+import { parseAttachments, type Attachment } from "@/lib/attachments";
 
 const SUBMIT_TYPES = [
   { label: "Жилийн төлөвлөгөө", slug: "plan" },
@@ -23,13 +24,28 @@ export default function SubmitReportPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const typeSlug = searchParams.get("type");
+  // When present, the sender is fixing a returned report instead of creating one.
+  const editId = searchParams.get("edit");
+  const isEdit = !!editId;
   const activeType = SUBMIT_TYPES.find((t) => t.slug === typeSlug);
-  const pageTitle = activeType?.label || "Тайлан илгээх";
+  // "Нэмэлт мэдээлэл" is not a full report — it only needs a short writing area.
+  const isAdditional = typeSlug === "additional";
+  const pageTitle = isEdit ? "Тайлан засах" : activeType?.label || "Тайлан илгээх";
 
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+  // Attachments already saved on the report being edited (kept unless removed).
+  const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
+  const [initialLocation, setInitialLocation] = useState<{
+    lat?: number;
+    lng?: number;
+    address?: string;
+    province?: string;
+    district?: string;
+    khoroo?: string;
+  } | null>(null);
   const [location, setLocation] = useState<{
     lat?: number;
     lng?: number;
@@ -48,10 +64,42 @@ export default function SubmitReportPage() {
     description: "",
   });
 
-  // Keep report type locked to the selected sidebar type
+  // Keep report type locked to the selected sidebar type (create mode only).
   useEffect(() => {
+    if (isEdit) return;
     setFormData((prev) => ({ ...prev, reportType: activeType?.label || "" }));
-  }, [activeType?.label]);
+  }, [activeType?.label, isEdit]);
+
+  // Load the existing report so the sender can edit and resubmit it with their
+  // previously filled information pre-populated.
+  useEffect(() => {
+    if (!editId) return;
+    (async () => {
+      const res = await fetch(`/api/reports/${editId}`);
+      if (!res.ok) return;
+      const r = await res.json();
+      setFormData({
+        reportType: r.reportType?.name || "",
+        reportNumber: r.reportNumber || "",
+        title: r.title || "",
+        implementerName: r.implementerName || "",
+        implementerRegister: r.implementerRegister || "",
+        approvedDate: r.approvedDate ? String(r.approvedDate).slice(0, 10) : "",
+        description: r.description || "",
+      });
+      if (r.location) {
+        setInitialLocation({
+          lat: r.location.latitude ?? undefined,
+          lng: r.location.longitude ?? undefined,
+          address: r.location.addressDetail ?? undefined,
+          province: r.location.province ?? undefined,
+          district: r.location.district ?? undefined,
+          khoroo: r.location.khoroo ?? undefined,
+        });
+      }
+      setExistingAttachments(parseAttachments(r.fileUrl));
+    })();
+  }, [editId]);
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -66,8 +114,7 @@ export default function SubmitReportPage() {
     setAttachedFiles(files);
   };
 
-  // Upload each attached file and return a JSON array of { url, name } so the
-  // sender's original file names are preserved for the reviewer.
+  // Upload newly picked files and return them as { url, name } entries.
   const uploadAttachments = async () => {
     const uploaded: { url: string; name: string }[] = [];
     for (const file of attachedFiles) {
@@ -79,7 +126,16 @@ export default function SubmitReportPage() {
         uploaded.push({ url: data.url, name: data.name });
       }
     }
-    return uploaded.length ? JSON.stringify(uploaded) : "";
+    return uploaded;
+  };
+
+  // Combine the kept existing attachments with any newly uploaded files into the
+  // JSON string stored on the report. Preserves the sender's original files when
+  // editing, while letting them add more.
+  const buildFileUrl = async () => {
+    const uploaded = await uploadAttachments();
+    const combined = [...existingAttachments, ...uploaded];
+    return combined.length ? JSON.stringify(combined) : "";
   };
 
   // Map the picked map location into the fields the create API expects.
@@ -113,9 +169,9 @@ export default function SubmitReportPage() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      const fileUrl = await uploadAttachments();
-      const response = await fetch("/api/reports/create", {
-        method: "POST",
+      const fileUrl = await buildFileUrl();
+      const response = await fetch(isEdit ? `/api/reports/${editId}` : "/api/reports/create", {
+        method: isEdit ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...formData, ...locationData(), fileUrl, status: "submitted" }),
       });
@@ -130,9 +186,9 @@ export default function SubmitReportPage() {
   const handleSaveDraft = async () => {
     setSavingDraft(true);
     try {
-      const fileUrl = await uploadAttachments();
-      const response = await fetch("/api/reports/create", {
-        method: "POST",
+      const fileUrl = await buildFileUrl();
+      const response = await fetch(isEdit ? `/api/reports/${editId}` : "/api/reports/create", {
+        method: isEdit ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...formData, ...locationData(), fileUrl, status: "draft" }),
       });
@@ -145,15 +201,8 @@ export default function SubmitReportPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header
-        userName="Илгээх хэрэглэгч"
-        companyName="Илгээх байгууллага"
-        companyType="sender"
-      />
-
-      <div className="flex">
-        <Sidebar
+    <div className="flex min-h-screen bg-background">
+      <Sidebar
           items={[
             { label: "Хяналтын самбар", href: "/sender" },
             {
@@ -175,10 +224,15 @@ export default function SubmitReportPage() {
             },
             { label: "Миний тайлангууд", href: "/sender" },
             { label: "Ноорог", href: "/sender/drafts" },
-            { label: "Үнэлгээний хариу", href: "/sender" },
           ]}
         />
 
+        <div className="flex min-w-0 flex-1 flex-col">
+        <Header
+          userName="Илгээх хэрэглэгч"
+          companyName="Илгээх байгууллага"
+          companyType="sender"
+        />
         <main className="flex-1 min-w-0 p-6">
           {submitted ? (
             <div
@@ -197,13 +251,23 @@ export default function SubmitReportPage() {
                 Хянах байгууллага таны тайланг хянаж үнэлгээ өгөх болно.
               </p>
               <div className="flex items-center justify-center mt-8">
-                <button
-                  type="button"
-                  onClick={handleReset}
-                  className="h-11 px-6 rounded-xl bg-color-primary text-white text-sm font-semibold hover:bg-color-primary-dark transition inline-flex items-center"
-                >
-                  Дахин тайлан илгээх
-                </button>
+                {isEdit ? (
+                  <button
+                    type="button"
+                    onClick={() => router.push("/sender")}
+                    className="h-11 px-6 rounded-xl bg-color-primary text-white text-sm font-semibold hover:bg-color-primary-dark transition inline-flex items-center"
+                  >
+                    Миний тайлангууд руу буцах
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleReset}
+                    className="h-11 px-6 rounded-xl bg-color-primary text-white text-sm font-semibold hover:bg-color-primary-dark transition inline-flex items-center"
+                  >
+                    Дахин тайлан илгээх
+                  </button>
+                )}
               </div>
             </div>
           ) : (
@@ -237,7 +301,9 @@ export default function SubmitReportPage() {
                         {pageTitle}
                       </h1>
                       <p className="text-sm text-color-text-muted mt-0.5">
-                        Тайлангийн мэдээлэл болон байршлын хаягийг оруулна уу.
+                        {isAdditional
+                          ? "Нэмэлт мэдээллээ бичнэ үү."
+                          : "Тайлангийн мэдээлэл болон байршлын хаягийг оруулна уу."}
                       </p>
                     </div>
                   </div>
@@ -246,30 +312,95 @@ export default function SubmitReportPage() {
 
               {/* Card Body */}
               <form onSubmit={handleSubmit} className="p-10">
-                <div className="grid grid-cols-3 gap-8">
-                  {/* Left: Report Info */}
-                  <div className="col-span-2">
-                    <ReportInfoCard
-                      formData={formData}
-                      handleChange={handleChange}
-                      lockedType={activeType?.label}
-                    />
+                {isAdditional ? (
+                  /* Нэмэлт мэдээлэл — writing only, not a full report. */
+                  <div className="border border-[#E8F0FE] rounded-2xl p-6">
+                    <div className="mb-5">
+                      <label className="block text-sm font-medium text-color-text-main mb-1.5">
+                        Гарчиг <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="title"
+                        value={formData.title}
+                        onChange={handleChange}
+                        placeholder="Нэмэлт мэдээллийн гарчиг"
+                        required
+                        className="w-full h-11 rounded-xl border border-[#D9E4F0] bg-white px-4 text-sm text-color-text-main placeholder:text-color-text-muted focus:outline-none focus:border-color-primary focus:ring-2 focus:ring-color-primary/10 transition"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-color-text-main mb-1.5">
+                        Агуулга <span className="text-red-500">*</span>
+                      </label>
+                      <textarea
+                        name="description"
+                        value={formData.description}
+                        onChange={handleChange}
+                        placeholder="Нэмэлт мэдээллээ энд бичнэ үү..."
+                        rows={10}
+                        required
+                        className="w-full rounded-xl border border-[#D9E4F0] bg-white px-4 py-3 text-sm text-color-text-main placeholder:text-color-text-muted focus:outline-none focus:border-color-primary focus:ring-2 focus:ring-color-primary/10 transition resize-y"
+                      />
+                    </div>
                   </div>
-                  {/* Right: Attachment */}
-                  <div className="col-span-1">
-                    <AttachmentCard
-                      attachedFiles={attachedFiles}
-                      onFileChange={handleFileChange}
-                    />
-                  </div>
-                </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-3 gap-8">
+                      {/* Left: Report Info */}
+                      <div className="col-span-2">
+                        <ReportInfoCard
+                          formData={formData}
+                          handleChange={handleChange}
+                          lockedType={activeType?.label}
+                        />
+                      </div>
+                      {/* Right: Attachment */}
+                      <div className="col-span-1 space-y-3">
+                        {isEdit && existingAttachments.length > 0 && (
+                          <div className="border border-[#E8F0FE] rounded-2xl p-4">
+                            <p className="text-sm font-semibold text-color-text-main mb-2">
+                              Хадгалагдсан файл
+                            </p>
+                            <div className="space-y-2">
+                              {existingAttachments.map((file, index) => (
+                                <div
+                                  key={index}
+                                  className="flex items-center gap-2 p-2 rounded-lg bg-[#F8FBFF] border border-[#E8F0FE]"
+                                >
+                                  <span className="text-sm text-color-text-main flex-1 min-w-0 truncate">
+                                    {file.name}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setExistingAttachments((prev) => prev.filter((_, i) => i !== index))
+                                    }
+                                    className="text-color-text-muted hover:text-red-500 transition text-xs p-1"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        <AttachmentCard
+                          attachedFiles={attachedFiles}
+                          onFileChange={handleFileChange}
+                        />
+                      </div>
+                    </div>
 
-                {/* Location */}
-                <div className="mt-8">
-                  <LocationCard onLocationChange={setLocation} />
-                </div>
+                    {/* Location */}
+                    <div className="mt-8">
+                      <LocationCard onLocationChange={setLocation} initialLocation={initialLocation} />
+                    </div>
+                  </>
+                )}
 
-                {/* Action Buttons */}
+                {/* Action Buttons — Нэмэлт мэдээлэл has no submit action. */}
+                {!isAdditional && (
                 <div className="flex justify-end gap-3 mt-10 pt-6 border-t border-[#E8F0FE]">
                   <button
                     type="button"
@@ -323,6 +454,7 @@ export default function SubmitReportPage() {
                     {submitting ? "Илгээж байна..." : "Тайлан илгээх"}
                   </button>
                 </div>
+                )}
               </form>
             </div>
           )}

@@ -3,6 +3,7 @@ export const STATUS_LABELS: { [key: string]: string } = {
   submitted: 'Илгээгдсэн',
   assigned: 'Гишүүдэд оноосон',
   in_review: 'Хянагдаж байна',
+  return_requested: 'Буцаах хүсэлт илгээгдсэн',
   needs_revision: 'Засвар шаардсан',
   completed: 'Үнэлгээ дууссан',
   approved: 'Батлагдсан',
@@ -16,11 +17,12 @@ export const ASSIGNMENT_STATUS_LABELS: { [key: string]: string } = {
 
 export const STATUS_BADGE_COLORS: { [key: string]: string } = {
   draft: 'badge-gray',
-  submitted: 'badge-blue',
+  submitted: 'badge-blue',       // Илгээгдсэн — light blue
   assigned: 'badge-cyan',
-  in_review: 'badge-yellow',
-  needs_revision: 'badge-orange',
-  completed: 'badge-green',
+  in_review: 'badge-orange',     // Хянагдаж байгаа — orange
+  return_requested: 'badge-purple',
+  needs_revision: 'badge-red',   // Засвар шаардсан — red
+  completed: 'badge-green',      // Үнэлгээ дууссан — green/teal
   approved: 'badge-green',
   rejected: 'badge-red',
 };
@@ -64,12 +66,16 @@ export const REVIEWER_ACCOUNTS: LoginAccount[] = [
   { label: 'Ажилтан 1', email: 'staff@tailan.mn', password: 'Staff123!' },
   { label: 'Ажилтан 2', email: 'staff2@tailan.mn', password: 'Staff123!' },
   { label: 'Ажилтан 3', email: 'staff3@tailan.mn', password: 'Staff123!' },
-  { label: 'Ажилтан 4', email: 'staff4@tailan.mn', password: 'Staff123!' },
 ];
 
 export const ADMIN_ACCOUNTS: LoginAccount[] = [
   { label: 'Системийн админ', email: 'admin@tailan.mn', password: 'Admin123!' },
 ];
+
+// The review organisation has exactly three evaluation staff. Other evaluator
+// accounts may exist in the database (test/seed data), but only these three are
+// shown for assignment.
+export const STAFF_EMAILS = ['staff@tailan.mn', 'staff2@tailan.mn', 'staff3@tailan.mn'];
 
 export const SENDER_ROLES = ['sender'];
 export const REVIEWER_ROLES = ['review_manager', 'evaluator'];

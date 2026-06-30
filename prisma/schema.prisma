@@ -25,6 +25,7 @@ enum ReportStatus {
   submitted
   assigned
   in_review
+  return_requested
   needs_revision
   completed
   approved
@@ -89,7 +90,12 @@ model Report {
   implementerRegister String?
   approvedDate        DateTime?
   status           ReportStatus      @default(draft)
-  finalScore       Float?             
+  finalScore       Float?
+  // Reason captured when a report is returned — first by a staff member to the
+  // manager, then (optionally edited) by the manager back to the sender.
+  returnReason     String?
+  // Name of the staff member who asked the manager to return the report.
+  returnRequestedBy String?
   year             Int
   submittedAt      DateTime?
   location         ReportLocation?

@@ -46,17 +46,18 @@ export default async function EvaluatedReportsPage() {
   const reports = await fetchEvaluatedReports(user.id);
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header userName={user.name} companyName="Хянах байгууллага" role="staff" />
-      <div className="flex">
-        <Sidebar
+    <div className="flex min-h-screen bg-background">
+      <Sidebar
           items={[
             { label: 'Удирдлагын хуудас', href: '/evaluator' },
             { label: 'Надад оноогдсон тайлангууд', href: '/evaluator' },
             { label: 'Үнэлгээ өгсөн тайлангууд', href: '/evaluator/evaluated', active: true },
+            { label: 'Нэмэлт мэдээлэл', href: '/evaluator?type=type-5' },
           ]}
         />
 
+        <div className="flex min-w-0 flex-1 flex-col">
+        <Header userName={user.name} companyName="Хянах байгууллага" role="staff" />
         <main className="flex-1 min-w-0 space-y-6 p-6">
           <div className="space-y-1">
             <h2 className="text-2xl font-semibold tracking-tight text-slate-900">Үнэлгээ өгсөн тайлангууд</h2>
@@ -64,7 +65,7 @@ export default async function EvaluatedReportsPage() {
           </div>
 
           {reports.length === 0 ? (
-            <div className="rounded-3xl bg-white px-6 py-16 text-center shadow-soft border border-sky-100">
+            <div className="rounded-3xl bg-white px-6 py-16 text-center shadow-soft border border-slate-200">
               <p className="text-sm text-slate-400">Та одоогоор ямар ч тайланд үнэлгээ өгөөгүй байна.</p>
             </div>
           ) : (

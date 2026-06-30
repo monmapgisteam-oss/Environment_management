@@ -81,21 +81,22 @@ export default function Header({ userName, companyName, role, companyType = 'sen
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white shadow-sm">
-      <div className="flex items-center justify-between px-5 h-14">
-        {/* Left - Logo */}
-        <Link href={HOME_HREF[viewerRole]} className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-color-primary flex items-center justify-center">
+    <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
+      <div className="flex items-center justify-between px-4 sm:px-6 h-16">
+        {/* Left - brand (shown on mobile where the sidebar is hidden) */}
+        <Link href={HOME_HREF[viewerRole]} className="flex items-center gap-2.5 md:hidden">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
               <polyline points="14 2 14 8 20 8" />
             </svg>
           </div>
-          <span className="text-sm font-bold tracking-widest text-color-text-main uppercase">Тайлангийн систем</span>
+          <span className="text-xs font-bold tracking-widest text-color-text-main uppercase">Тайлангийн систем</span>
         </Link>
+        <div className="hidden md:block" />
 
         {/* Right */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2">
           {/* Notification Bell */}
           <div className="relative" ref={notifRef}>
             <button
@@ -113,7 +114,7 @@ export default function Header({ userName, companyName, role, companyType = 'sen
                   setUnreadCount(0);
                 }
               }}
-              className="relative w-9 h-9 rounded-full flex items-center justify-center hover:bg-slate-100 transition"
+              className="relative flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white shadow-sm transition hover:bg-slate-50"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
@@ -171,14 +172,17 @@ export default function Header({ userName, companyName, role, companyType = 'sen
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setOpen(!open)}
-              className="flex items-center gap-2.5 rounded-full hover:bg-slate-50 transition pl-1 pr-3 py-1"
+              className="flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-2 py-1.5 shadow-sm transition hover:bg-slate-50"
             >
-              <div className="w-8 h-8 rounded-full bg-color-primary flex items-center justify-center text-xs font-bold text-white">
-                {userName?.charAt(0) ?? 'U'}
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-400">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
               </div>
-              <div className="text-left leading-tight">
-                <p className="text-xs font-semibold text-color-text-main">{userName}</p>
-                <p className="text-[10px] text-color-text-muted">{companyName}</p>
+              <div className="hidden text-left leading-tight sm:block">
+                <p className="text-[13px] font-semibold text-color-text-main">{userName}</p>
+                <p className="text-[11px] text-color-text-muted">{companyName}</p>
               </div>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform ${open ? 'rotate-180' : ''}`}>
                 <polyline points="6 9 12 15 18 9" />

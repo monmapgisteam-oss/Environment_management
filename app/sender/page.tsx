@@ -27,72 +27,54 @@ export default async function SenderDashboard() {
     ? (reports.filter((r: any) => r.finalScore != null).reduce((sum: number, r: any) => sum + (r.finalScore ?? 0), 0) / reports.filter((r: any) => r.finalScore != null).length).toFixed(1)
     : '-';
 
-  return (
-    <div className="min-h-screen bg-background">
-      <Header userName="Илгээх хэрэглэгч" companyName="Илгээх байгууллага" companyType="sender" />
-      <div className="flex">
-        <Sidebar
-          items={[
-            { label: 'Хяналтын самбар', href: '/sender', active: true },
-            {
-              label: 'Тайлан илгээх',
-              href: '/sender/submit',
-              children: [
-                { label: 'Жилийн төлөвлөгөө', href: '/sender/submit?type=plan' },
-                { label: 'Биелэлтийн тайлан', href: '/sender/submit?type=performance' },
-                { label: 'Дүгнэх хуудас', href: '/sender/submit?type=summary' },
-                { label: 'Хяналтын хуудас', href: '/sender/submit?type=control' },
-                { label: 'Аймаг, нийслэлийн санал', href: '/sender/submit?type=regional' },
-              ],
-            },
-            { label: 'Нэмэлт мэдээлэл', href: '/sender/submit?type=additional' },
-            { label: 'Миний тайлангууд', href: '/sender' },
-            { label: 'Ноорог', href: '/sender/drafts' },
-            { label: 'Үнэлгээний хариу', href: '/sender' },
-          ]}
-        />
+  const stats = [
+    { label: 'Нийт илгээсэн', value: totalCount, icon: <HiPaperAirplane size={20} />, card: 'border-emerald-100 bg-emerald-50/70', chip: 'bg-emerald-100 text-emerald-600', num: 'text-emerald-600' },
+    { label: 'Хянагдаж байгаа', value: inReviewCount, icon: <HiClock size={20} />, card: 'border-orange-100 bg-orange-50/70', chip: 'bg-orange-100 text-orange-500', num: 'text-orange-500' },
+    { label: 'Засвар шаардсан', value: revisionCount, icon: <HiPencil size={20} />, card: 'border-red-100 bg-red-50/70', chip: 'bg-red-100 text-red-500', num: 'text-red-500' },
+    { label: 'Үнэлгээ дууссан', value: completedCount, icon: <HiCheckCircle size={20} />, card: 'border-violet-100 bg-violet-50/70', chip: 'bg-violet-100 text-violet-600', num: 'text-violet-600' },
+    { label: 'Дундаж үнэлгээ', value: averageScore, icon: <HiStar size={20} />, card: 'border-blue-100 bg-blue-50/70', chip: 'bg-blue-100 text-blue-600', num: 'text-blue-600' },
+  ];
 
-        <main className="flex-1 min-w-0 space-y-6 p-6">
+  return (
+    <div className="flex min-h-screen bg-background">
+      <Sidebar
+        items={[
+          { label: 'Хяналтын самбар', href: '/sender', active: true },
+          {
+            label: 'Тайлан илгээх',
+            href: '/sender/submit',
+            children: [
+              { label: 'Жилийн төлөвлөгөө', href: '/sender/submit?type=plan' },
+              { label: 'Биелэлтийн тайлан', href: '/sender/submit?type=performance' },
+              { label: 'Дүгнэх хуудас', href: '/sender/submit?type=summary' },
+              { label: 'Хяналтын хуудас', href: '/sender/submit?type=control' },
+              { label: 'Аймаг, нийслэлийн санал', href: '/sender/submit?type=regional' },
+            ],
+          },
+          { label: 'Нэмэлт мэдээлэл', href: '/sender/submit?type=additional' },
+          { label: 'Миний тайлангууд', href: '/sender' },
+          { label: 'Ноорог', href: '/sender/drafts' },
+        ]}
+      />
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        <Header userName="Илгээх хэрэглэгч" companyName="Илгээх байгууллага" companyType="sender" />
+
+        <main className="flex-1 min-w-0 space-y-8 p-5 sm:p-6 lg:p-8">
           <div>
-            <h2 className="text-2xl font-semibold tracking-tight text-slate-900">Хяналтын самбар</h2>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 lg:text-3xl">Хяналтын самбар</h1>
           </div>
 
-          <section className="grid gap-3 grid-cols-3 xl:grid-cols-5">
-            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-soft">
-              <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-cyan-50 text-cyan-600"><HiPaperAirplane size={16} /></div>
-                <span className="text-xs text-slate-500">Нийт илгээсэн</span>
+          <section className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-5">
+            {stats.map((stat) => (
+              <div key={stat.label} className={`rounded-2xl border p-5 shadow-soft transition hover:shadow-card ${stat.card}`}>
+                <div className="flex items-center gap-3">
+                  <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${stat.chip}`}>{stat.icon}</div>
+                  <span className="text-sm font-medium text-slate-600">{stat.label}</span>
+                </div>
+                <p className={`mt-3 text-3xl font-bold tracking-tight ${stat.num}`}>{stat.value}</p>
               </div>
-              <p className="mt-2 text-2xl font-semibold text-slate-900">{totalCount}</p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-soft">
-              <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-50 text-amber-600"><HiClock size={16} /></div>
-                <span className="text-xs text-slate-500">Хянагдаж байгаа</span>
-              </div>
-              <p className="mt-2 text-2xl font-semibold text-slate-900">{inReviewCount}</p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-soft">
-              <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-red-50 text-red-500"><HiPencil size={16} /></div>
-                <span className="text-xs text-slate-500">Засвар шаардсан</span>
-              </div>
-              <p className="mt-2 text-2xl font-semibold text-slate-900">{revisionCount}</p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-soft">
-              <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600"><HiCheckCircle size={16} /></div>
-                <span className="text-xs text-slate-500">Үнэлгээ дууссан</span>
-              </div>
-              <p className="mt-2 text-2xl font-semibold text-slate-900">{completedCount}</p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-soft">
-              <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-violet-50 text-violet-600"><HiStar size={16} /></div>
-                <span className="text-xs text-slate-500">Дундаж үнэлгээ</span>
-              </div>
-              <p className="mt-2 text-2xl font-semibold text-slate-900">{averageScore}</p>
-            </div>
+            ))}
           </section>
 
           <ReportTable

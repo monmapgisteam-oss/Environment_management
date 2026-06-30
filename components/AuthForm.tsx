@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { LuShieldCheck, LuArrowRight } from 'react-icons/lu';
 
 type Account = {
@@ -18,7 +17,6 @@ type Props = {
 };
 
 export default function AuthForm({ title, subtitle, accounts, allowedRoles }: Props) {
-  const router = useRouter();
   const [loadingEmail, setLoadingEmail] = useState<string | null>(null);
   const [error, setError] = useState('');
 
@@ -35,7 +33,10 @@ export default function AuthForm({ title, subtitle, accounts, allowedRoles }: Pr
       });
       const data = await response.json().catch(() => ({}));
       if (response.ok) {
-        router.push(data.redirect || '/');
+        // Full navigation (not router.push) so the new session's data is fetched
+        // fresh — the App Router client cache would otherwise show the previously
+        // logged-in user's dashboard.
+        window.location.href = data.redirect || '/';
       } else {
         setError(data.error || 'Нэвтрэхэд алдаа гарлаа.');
         setLoadingEmail(null);

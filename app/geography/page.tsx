@@ -27,14 +27,14 @@ export default async function GeographyPage() {
   );
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header userName="Хэрэглэгч" companyName="Байгууллага" />
-      <div className="flex">
-        <Sidebar items={[{ label: 'Буцах', href: '/' }]} />
+    <div className="flex min-h-screen bg-background">
+      <Sidebar items={[{ label: 'Буцах', href: '/' }]} />
 
+        <div className="flex min-w-0 flex-1 flex-col">
+        <Header userName="Хэрэглэгч" companyName="Байгууллага" />
         <main className="w-full p-6 lg:pl-0">
-          <div className="rounded-3xl bg-white p-8 shadow-soft border border-sky-100">
-            <h1 className="mb-2 text-2xl font-semibold text-navy">Газарзүйн мэдээлэл</h1>
+          <div className="rounded-3xl bg-white p-8 shadow-soft border border-slate-200">
+            <h1 className="mb-2 text-2xl font-semibold text-slate-900">Газарзүйн мэдээлэл</h1>
             <p className="mb-6 text-sm text-slate-600">Байршилаар ангилагдсан тайлангууд</p>
 
             <div className="space-y-6">
@@ -42,13 +42,13 @@ export default async function GeographyPage() {
                 <div key={location} className="border-l-4 border-primary pl-4">
                   <h2 className="font-semibold text-slate-800 mb-3">{location}</h2>
                   <div className="grid gap-4 md:grid-cols-2">
-                    <div className="bg-sky-50 rounded-3xl p-4">
+                    <div className="bg-teal-50 rounded-3xl p-4">
                       <p className="text-sm text-slate-600">Тайлангийн тоо</p>
-                      <p className="text-2xl font-semibold text-navy">{reports.length}</p>
+                      <p className="text-2xl font-semibold text-slate-900">{reports.length}</p>
                     </div>
-                    <div className="bg-sky-50 rounded-3xl p-4">
+                    <div className="bg-teal-50 rounded-3xl p-4">
                       <p className="text-sm text-slate-600">Дундаж оноо</p>
-                      <p className="text-2xl font-semibold text-navy">
+                      <p className="text-2xl font-semibold text-slate-900">
                         {reports.filter((r: any) => r.report.finalScore !== null).length > 0
                           ? (reports.filter((r: any) => r.report.finalScore !== null).reduce((sum: number, r: any) => sum + (r.report.finalScore ?? 0), 0) / reports.filter((r: any) => r.report.finalScore !== null).length).toFixed(1)
                           : '-'}

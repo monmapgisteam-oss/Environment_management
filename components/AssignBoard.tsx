@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import StatusBadge from './StatusBadge';
 import { HiUserGroup } from 'react-icons/hi';
 
@@ -24,6 +24,7 @@ type Report = {
 
 export default function AssignBoard({ reports, staff }: { reports: Report[]; staff: Staff[] }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [activeReport, setActiveReport] = useState<Report | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
   const [deadline, setDeadline] = useState('');
@@ -34,6 +35,23 @@ export default function AssignBoard({ reports, staff }: { reports: Report[]; sta
     setSelected(report.assignees.map((a) => a.id));
     setDeadline('');
   };
+
+  // When the manager arrives from the dashboard's "Гишүүдэд оноох" button
+  // (/reviewer/assign?report=<id>), open the assign modal for that report once.
+  const requestedReportId = searchParams.get('report');
+  const autoOpenedRef = useRef(false);
+  useEffect(() => {
+    if (!requestedReportId || autoOpenedRef.current) return;
+    const target = reports.find((r) => r.id === requestedReportId);
+    if (target) {
+      autoOpenedRef.current = true;
+      openAssign(target);
+      // Strip the ?report= param so a later refresh (e.g. after assigning)
+      // doesn't reopen the modal on the screen over and over.
+      router.replace('/reviewer/assign', { scroll: false });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requestedReportId, reports]);
 
   const toggle = (id: string) =>
     setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));

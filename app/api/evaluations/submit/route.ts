@@ -85,27 +85,45 @@ export async function POST(request: Request) {
       });
     }
 
-    // Report final score = average across all submitted evaluations.
-    const allEvaluations = await prisma.evaluation.findMany({ where: { reportId } });
-    const avgScore = allEvaluations.reduce((sum, e) => sum + e.totalScore, 0) / (allEvaluations.length || 1);
+    // The report is only finished once EVERY assigned staff member has scored
+    // it. The final score (эцсийн оноо) is the arithmetic mean of each
+    // evaluator's total score, matching the official scoring sheet.
+    const assignments = await prisma.reportAssignment.findMany({
+      where: { reportId },
+      include: { evaluation: true },
+    });
+    const submitted = assignments.filter((a) => a.evaluation);
+    const allDone = assignments.length > 0 && submitted.length === assignments.length;
+    const rawAvg = submitted.length
+      ? submitted.reduce((sum, a) => sum + (a.evaluation?.totalScore ?? 0), 0) / submitted.length
+      : 0;
+    // Round to a single decimal so the stored final score reads cleanly
+    // (e.g. 90.6666… → 90.7) everywhere it is displayed.
+    const avgScore = Math.round(rawAvg * 10) / 10;
 
     const updatedReport = await prisma.report.update({
       where: { id: reportId },
-      data: { finalScore: avgScore, status: 'completed' },
+      data: {
+        // Hold the final score back until all evaluators have weighed in.
+        finalScore: allDone ? avgScore : null,
+        status: allDone ? 'completed' : 'in_review',
+      },
       include: { senderCompany: { include: { users: true } } },
     });
 
-    // Notify the sender company that the report has been scored.
-    const senderUsers = updatedReport.senderCompany.users;
-    if (senderUsers.length > 0) {
-      await prisma.notification.createMany({
-        data: senderUsers.map((user) => ({
-          userId: user.id,
-          reportId,
-          title: 'Үнэлгээ дууссан',
-          message: `${updatedReport.reportNumber} тайлангийн үнэлгээ дууссан. Нийт оноо: ${totalScore}`,
-        })),
-      });
+    // Notify the sender only when the whole evaluation is complete.
+    if (allDone) {
+      const senderUsers = updatedReport.senderCompany.users;
+      if (senderUsers.length > 0) {
+        await prisma.notification.createMany({
+          data: senderUsers.map((u) => ({
+            userId: u.id,
+            reportId,
+            title: 'Үнэлгээ дууссан',
+            message: `${updatedReport.reportNumber} тайлангийн үнэлгээ дууссан. Эцсийн оноо: ${avgScore.toFixed(1)}`,
+          })),
+        });
+      }
     }
 
     return NextResponse.json({ success: true }, { status: 201 });

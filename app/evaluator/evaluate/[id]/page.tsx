@@ -5,7 +5,10 @@ import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import EvaluationTable from '@/components/EvaluationTable';
 import AttachmentList from '@/components/AttachmentList';
+import StaffReturnButton from '@/components/StaffReturnButton';
 import { parseAttachments } from '@/lib/attachments';
+import { signAttachments } from '@/lib/supabase';
+import { formatDate } from '@/lib/utils';
 
 type Props = {
   params: { id: string };
@@ -28,7 +31,7 @@ export default async function StaffEvaluatePage({ params }: Props) {
   const assignment = await prisma.reportAssignment.findFirst({
     where: { reportId: params.id, evaluatorUserId: user.id },
     include: {
-      report: { include: { reportType: true, senderCompany: true } },
+      report: { include: { reportType: true, senderCompany: true, location: true } },
       evaluation: { include: { scores: true } },
     },
   });
@@ -45,6 +48,22 @@ export default async function StaffEvaluatePage({ params }: Props) {
   const report = assignment.report;
   const criteria = await fetchCriteria();
 
+  // Scores other staff already submitted for this report, shown read-only so the
+  // current staff can see their colleagues' evaluations.
+  const otherAssignments = await prisma.reportAssignment.findMany({
+    where: {
+      reportId: report.id,
+      evaluatorUserId: { not: user.id },
+      evaluation: { isNot: null },
+    },
+    include: { evaluator: true, evaluation: { include: { scores: true } } },
+  });
+  const otherEvaluations = otherAssignments.map((a: any) => ({
+    evaluatorName: a.evaluator.name,
+    totalScore: a.evaluation.totalScore,
+    scores: a.evaluation.scores,
+  }));
+
   const savedScores =
     assignment.evaluation?.scores?.reduce((acc: Record<string, string>, s: any) => {
       acc[s.criterionId] = String(s.score);
@@ -52,17 +71,18 @@ export default async function StaffEvaluatePage({ params }: Props) {
     }, {}) || null;
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header userName={user.name} companyName="Хянах байгууллага" companyType="reviewer" />
-      <div className="flex">
-        <Sidebar
+    <div className="flex min-h-screen bg-background">
+      <Sidebar
           items={[
             { label: 'Удирдлагын хуудас', href: '/evaluator' },
             { label: 'Надад оноогдсон тайлангууд', href: '/evaluator', active: true },
             { label: 'Үнэлгээ өгсөн тайлангууд', href: '/evaluator/evaluated' },
+            { label: 'Нэмэлт мэдээлэл', href: '/evaluator?type=type-5' },
           ]}
         />
 
+        <div className="flex min-w-0 flex-1 flex-col">
+        <Header userName={user.name} companyName="Хянах байгууллага" companyType="reviewer" />
         <main className="flex-1 min-w-0 p-6 space-y-6">
           {/* Report info */}
           <div className="bg-white rounded-2xl border border-slate-200 p-6">
@@ -76,22 +96,80 @@ export default async function StaffEvaluatePage({ params }: Props) {
                 <p className="text-sm font-semibold text-slate-700">{report.reportType.name}</p>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4 text-sm">
+
+            {/* Deadline the manager set when distributing this report */}
+            {assignment.deadline && (
+              <div className="mb-4 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+                <span className="text-sm text-amber-800">
+                  <span className="font-medium">Хүлээлгэх хугацаа:</span> {formatDate(assignment.deadline)}
+                </span>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
               <div>
                 <span className="text-slate-500">Төслийн нэр: </span>
                 <span className="font-medium text-slate-800">{report.title}</span>
               </div>
               <div>
                 <span className="text-slate-500">Байгууллага: </span>
-                <span className="font-medium text-slate-800">{report.senderCompany?.name}</span>
+                <span className="font-medium text-slate-800">{report.senderCompany?.name || '-'}</span>
               </div>
+              <div>
+                <span className="text-slate-500">Байгууллагын РД: </span>
+                <span className="font-medium text-slate-800">{report.senderCompany?.registerNumber || '-'}</span>
+              </div>
+              <div>
+                <span className="text-slate-500">Хэрэгжүүлэгч: </span>
+                <span className="font-medium text-slate-800">{report.implementerName || '-'}</span>
+              </div>
+              <div>
+                <span className="text-slate-500">Хэрэгжүүлэгчийн РД: </span>
+                <span className="font-medium text-slate-800">{report.implementerRegister || '-'}</span>
+              </div>
+              <div>
+                <span className="text-slate-500">Батлагдсан огноо: </span>
+                <span className="font-medium text-slate-800">{formatDate(report.approvedDate)}</span>
+              </div>
+              <div>
+                <span className="text-slate-500">Илгээсэн огноо: </span>
+                <span className="font-medium text-slate-800">{formatDate(report.submittedAt)}</span>
+              </div>
+              <div>
+                <span className="text-slate-500">Тайлангийн он: </span>
+                <span className="font-medium text-slate-800">{report.year || '-'}</span>
+              </div>
+              <div>
+                <span className="text-slate-500">Байршил: </span>
+                <span className="font-medium text-slate-800">
+                  {report.location
+                    ? [report.location.province, report.location.district, report.location.khoroo].filter(Boolean).join(', ')
+                    : '-'}
+                </span>
+              </div>
+              {report.location?.addressDetail && (
+                <div>
+                  <span className="text-slate-500">Дэлгэрэнгүй хаяг: </span>
+                  <span className="font-medium text-slate-800">{report.location.addressDetail}</span>
+                </div>
+              )}
+              {report.description && (
+                <div className="col-span-2">
+                  <span className="text-slate-500">Тайлбар: </span>
+                  <span className="font-medium text-slate-800">{report.description}</span>
+                </div>
+              )}
             </div>
           </div>
 
           {/* Attached documents the sender submitted */}
-          <AttachmentList attachments={parseAttachments(report.fileUrl)} />
+          <AttachmentList attachments={await signAttachments(parseAttachments(report.fileUrl))} />
 
-          {/* Scoring */}
+          {/* Scoring — current staff's column on the left, other staff to the right */}
           <EvaluationTable
             criteria={criteria.map((c: any) => ({
               id: c.id,
@@ -103,6 +181,14 @@ export default async function StaffEvaluatePage({ params }: Props) {
             savedScores={savedScores}
             savedComment={assignment.evaluation?.comment || null}
             redirectTo="/evaluator"
+            selfName={user.name}
+            otherEvaluations={otherEvaluations}
+            leftAction={
+              <div className="flex flex-col items-start gap-1">
+                <StaffReturnButton reportId={report.id} />
+                <p className="text-sm text-slate-500">Менежерт буцаах хүсэлт илгээнэ үү.</p>
+              </div>
+            }
           />
         </main>
       </div>

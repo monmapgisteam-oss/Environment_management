@@ -1,20 +1,31 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
   color-scheme: light;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: Inter, 'Noto Sans Mongolian', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  --color-primary: #0F766E;
+  --color-primary-dark: #115E59;
+  --color-bg: #F8FAFC;
+  --color-sidebar: #053B40;
+  --color-text: #0F172A;
+  --color-muted: #64748B;
+  --color-border: #E2E8F0;
 }
 
 html {
-  background: #F1F5F9;
+  background: var(--color-bg);
 }
 
 body {
   min-height: 100vh;
-  background: #F1F5F9;
-  color: #102A43;
+  background: var(--color-bg);
+  color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
 }
 
 body, input, button, textarea, select {
@@ -26,26 +37,39 @@ button {
 }
 
 button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
-  outline: 2px solid rgba(34, 211, 238, 0.8);
+  outline: 2px solid rgba(15, 118, 110, 0.55);
   outline-offset: 2px;
 }
 
+/* Decorative gradients (teal) */
 .gradient-bg {
-  background: linear-gradient(135deg, #22D3EE 0%, #0F4C81 100%);
+  background: linear-gradient(135deg, #10B981 0%, #14B8A6 100%);
+}
+
+.sidebar-active {
+  background: linear-gradient(135deg, #10B981 0%, #14B8A6 100%);
+  box-shadow: 0 8px 18px rgba(16, 185, 129, 0.30);
 }
 
 .card-surface {
   background: #FFFFFF;
-  border: 1px solid #CFFAFE;
-  box-shadow: 0 18px 40px rgba(11, 42, 74, 0.08);
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 10px 30px rgba(15, 23, 42, 0.05);
 }
 
-.badge-gray { background: #64748b; color: white; }
-.badge-blue { background: #0F4C81; color: white; }
-.badge-cyan { background: #22D3EE; color: #0B2A4A; }
-.badge-yellow { background: #F59E0B; color: #102A43; }
-.badge-orange { background: #F97316; color: white; }
-.badge-green { background: #22C55E; color: white; }
-.badge-red { background: #EF4444; color: white; }
+/* Status badges — soft pills with a subtle ring */
+.badge-gray   { background: #F1F5F9; color: #475569; box-shadow: inset 0 0 0 1px #E2E8F0; }
+.badge-blue   { background: #EFF6FF; color: #2563EB; box-shadow: inset 0 0 0 1px #DBEAFE; }
+.badge-cyan   { background: #ECFEFF; color: #0E7490; box-shadow: inset 0 0 0 1px #CFFAFE; }
+.badge-yellow { background: #FFFBEB; color: #B45309; box-shadow: inset 0 0 0 1px #FDE68A; }
+.badge-orange { background: #FFF7ED; color: #C2410C; box-shadow: inset 0 0 0 1px #FED7AA; }
+.badge-purple { background: #F5F3FF; color: #7C3AED; box-shadow: inset 0 0 0 1px #DDD6FE; }
+.badge-green  { background: #ECFDF5; color: #047857; box-shadow: inset 0 0 0 1px #A7F3D0; }
+.badge-red    { background: #FEF2F2; color: #DC2626; box-shadow: inset 0 0 0 1px #FECACA; }
 
-.shadow-soft { box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06); }
+.shadow-soft { box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 16px rgba(15, 23, 42, 0.05); }
+
+/* Thin, unobtrusive scrollbar for the sidebar */
+.sidebar-scroll::-webkit-scrollbar { width: 6px; }
+.sidebar-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.14); border-radius: 9999px; }
+.sidebar-scroll::-webkit-scrollbar-track { background: transparent; }

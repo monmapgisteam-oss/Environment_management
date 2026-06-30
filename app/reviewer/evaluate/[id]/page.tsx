@@ -4,6 +4,7 @@ import Sidebar from '@/components/Sidebar';
 import EvaluationTable from '@/components/EvaluationTable';
 import AttachmentList from '@/components/AttachmentList';
 import { parseAttachments } from '@/lib/attachments';
+import { signAttachments } from '@/lib/supabase';
 
 type Props = {
   params: { id: string };
@@ -52,10 +53,8 @@ export default async function ReviewerEvaluatePage({ params }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header userName="Хянах менежер" companyName="Хянах байгууллага" companyType="reviewer" />
-      <div className="flex">
-        <Sidebar
+    <div className="flex min-h-screen bg-background">
+      <Sidebar
           items={[
             { label: 'Хяналтын самбар', href: '/reviewer' },
             {
@@ -66,12 +65,13 @@ export default async function ReviewerEvaluatePage({ params }: Props) {
                 href: `/reviewer/reports?type=${rt.slug}`,
               })),
             },
-            { label: 'Гишүүдэд оноох', href: '/reviewer/assign' },
             { label: 'Үнэлгээний явц', href: '/reviewer/evaluation-progress' },
             { label: 'Буцаасан тайлан', href: '/reviewer' },
           ]}
         />
 
+        <div className="flex min-w-0 flex-1 flex-col">
+        <Header userName="Хянах менежер" companyName="Хянах байгууллага" companyType="reviewer" />
         <main className="flex-1 min-w-0 p-6 space-y-6">
           {/* Report Info */}
           <div className="bg-white rounded-2xl border border-slate-200 p-6">
@@ -98,7 +98,7 @@ export default async function ReviewerEvaluatePage({ params }: Props) {
           </div>
 
           {/* Attached documents the sender submitted */}
-          <AttachmentList attachments={parseAttachments(report.fileUrl)} />
+          <AttachmentList attachments={await signAttachments(parseAttachments(report.fileUrl))} />
 
           {/* Evaluation Table */}
           <EvaluationTable

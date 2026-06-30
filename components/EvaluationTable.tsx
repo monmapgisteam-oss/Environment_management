@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import type { ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -17,9 +18,19 @@ type Props = {
   savedScores?: Record<string, string> | null;
   savedComment?: string | null;
   redirectTo?: string;
+  // Optional content rendered on the left of the action row (e.g. the staff
+  // "return report" button), opposite the submit button.
+  leftAction?: ReactNode;
+  // Scores other staff already submitted — shown as extra read-only columns to
+  // the right of the current user's input column, so the whole evaluation lives
+  // in one table.
+  otherEvaluations?: { evaluatorName: string; totalScore: number; scores: { criterionId: string; score: number }[] }[];
+  // Label for the current user's input column (their own name). Falls back to a
+  // generic header on pages where there is no single "self" evaluator.
+  selfName?: string;
 };
 
-export default function EvaluationTable({ criteria, reportId, savedScores, savedComment, redirectTo }: Props) {
+export default function EvaluationTable({ criteria, reportId, savedScores, savedComment, redirectTo, leftAction, otherEvaluations = [], selfName }: Props) {
   const [scores, setScores] = useState<Record<string, string>>(() => {
     if (savedScores) return savedScores;
     const init: Record<string, string> = {};
@@ -72,7 +83,10 @@ export default function EvaluationTable({ criteria, reportId, savedScores, saved
               <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase w-12">№</th>
               <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase">Шалгуур</th>
               <th className="text-center py-3 px-4 text-xs font-semibold text-slate-500 uppercase w-32">Авбал зохих оноо</th>
-              <th className="text-center py-3 px-4 text-xs font-semibold text-slate-500 uppercase w-32">Өгөх оноо</th>
+              {otherEvaluations.map((ev, i) => (
+                <th key={i} className="text-center py-3 px-4 text-xs font-semibold text-slate-500 uppercase w-28">{ev.evaluatorName}</th>
+              ))}
+              <th className="text-center py-3 px-4 text-xs font-semibold text-color-primary uppercase w-32 bg-blue-50">{selfName || 'Өгөх оноо'}</th>
             </tr>
           </thead>
           <tbody>
@@ -81,7 +95,15 @@ export default function EvaluationTable({ criteria, reportId, savedScores, saved
                 <td className="py-3 px-4 text-slate-600">{index + 1}</td>
                 <td className="py-3 px-4 text-slate-800">{criterion.name}</td>
                 <td className="py-3 px-4 text-center font-semibold text-slate-700">{criterion.maxScore}</td>
-                <td className="py-3 px-4 text-center">
+                {otherEvaluations.map((ev, i) => {
+                  const s = ev.scores.find((x) => x.criterionId === criterion.id);
+                  return (
+                    <td key={i} className="py-3 px-4 text-center font-medium text-slate-500">
+                      {s ? s.score : '-'}
+                    </td>
+                  );
+                })}
+                <td className="py-3 px-4 text-center bg-blue-50/40">
                   <input
                     type="number"
                     min={0}
@@ -99,7 +121,10 @@ export default function EvaluationTable({ criteria, reportId, savedScores, saved
               <td className="py-3 px-4"></td>
               <td className="py-3 px-4 font-bold text-slate-900">Нийт оноо</td>
               <td className="py-3 px-4 text-center font-bold text-slate-900">{maxTotal}</td>
-              <td className="py-3 px-4 text-center font-bold text-color-primary text-lg">{totalScore}</td>
+              {otherEvaluations.map((ev, i) => (
+                <td key={i} className="py-3 px-4 text-center font-bold text-slate-600 text-lg">{ev.totalScore}</td>
+              ))}
+              <td className="py-3 px-4 text-center font-bold text-color-primary text-lg bg-blue-50">{totalScore}</td>
             </tr>
           </tbody>
         </table>
@@ -118,11 +143,12 @@ export default function EvaluationTable({ criteria, reportId, savedScores, saved
       </div>
 
       {/* Actions */}
-      <div className="mt-6 flex justify-end">
+      <div className={`mt-6 flex flex-col-reverse gap-4 sm:flex-row sm:items-start ${leftAction ? 'sm:justify-between' : 'sm:justify-end'}`}>
+        {leftAction}
         <button
           onClick={handleSubmit}
           disabled={submitting}
-          className="h-10 px-6 rounded-xl bg-color-primary text-white text-sm font-semibold hover:bg-color-primary-dark transition inline-flex items-center disabled:opacity-50"
+          className="h-10 px-6 rounded-xl bg-color-primary text-white text-sm font-semibold hover:bg-color-primary-dark transition inline-flex items-center justify-center disabled:opacity-50"
         >
           {submitting ? 'Илгээж байна...' : 'Үнэлгээ өгөх'}
         </button>

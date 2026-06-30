@@ -40,10 +40,8 @@ export default async function ReviewerReportsPage({ searchParams }: { searchPara
   }));
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header userName="Хянах менежер" companyName="Хянах байгууллага" companyType="reviewer" />
-      <div className="flex">
-        <Sidebar
+    <div className="flex min-h-screen bg-background">
+      <Sidebar
           items={[
             { label: 'Хяналтын самбар', href: '/reviewer' },
             {
@@ -52,12 +50,13 @@ export default async function ReviewerReportsPage({ searchParams }: { searchPara
               active: true,
               children: sidebarChildren,
             },
-            { label: 'Гишүүдэд оноох', href: '/reviewer/assign' },
             { label: 'Үнэлгээний явц', href: '/reviewer/evaluation-progress' },
             { label: 'Буцаасан тайлан', href: '/reviewer' },
           ]}
         />
 
+        <div className="flex min-w-0 flex-1 flex-col">
+        <Header userName="Хянах менежер" companyName="Хянах байгууллага" companyType="reviewer" />
         <main className="flex-1 min-w-0 space-y-6 p-6">
           <div className="space-y-1">
             <h2 className="text-2xl font-semibold tracking-tight text-slate-900">Ирсэн тайлангууд</h2>

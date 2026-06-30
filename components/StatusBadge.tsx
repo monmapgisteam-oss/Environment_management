@@ -8,7 +8,7 @@ type Props = {
 export default function StatusBadge({ status, label }: Props) {
   const displayLabel = label || getStatusLabel(status);
   return (
-    <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${getStatusBadgeClass(status)}`}>
+    <span className={`inline-flex items-center whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold ${getStatusBadgeClass(status)}`}>
       {displayLabel}
     </span>
   );

@@ -2,6 +2,7 @@ import prisma from '@/lib/prisma';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import AssignBoard from '@/components/AssignBoard';
+import { STAFF_EMAILS } from '@/lib/constants';
 
 async function fetchReportTypes() {
   return prisma.reportType.findMany({
@@ -12,7 +13,7 @@ async function fetchReportTypes() {
 
 async function fetchStaff() {
   const staff = await prisma.user.findMany({
-    where: { role: 'evaluator' },
+    where: { role: 'evaluator', email: { in: STAFF_EMAILS } },
     select: {
       id: true,
       name: true,
@@ -63,19 +64,18 @@ export default async function AssignPage() {
   }));
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header userName="Хянах менежер" companyName="Хянах байгууллага" companyType="reviewer" />
-      <div className="flex">
-        <Sidebar
+    <div className="flex min-h-screen bg-background">
+      <Sidebar
           items={[
             { label: 'Хяналтын самбар', href: '/reviewer' },
             { label: 'Ирсэн тайлангууд', href: '/reviewer/reports', children: sidebarChildren },
-            { label: 'Гишүүдэд оноох', href: '/reviewer/assign', active: true },
             { label: 'Үнэлгээний явц', href: '/reviewer/evaluation-progress' },
             { label: 'Буцаасан тайлан', href: '/reviewer' },
           ]}
         />
 
+        <div className="flex min-w-0 flex-1 flex-col">
+        <Header userName="Хянах менежер" companyName="Хянах байгууллага" companyType="reviewer" />
         <main className="flex-1 min-w-0 space-y-6 p-6">
           <div className="space-y-1">
             <h2 className="text-2xl font-semibold tracking-tight text-slate-900">Гишүүдэд оноох</h2>

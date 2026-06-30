@@ -19,10 +19,8 @@ export default async function DraftsPage() {
   const reports = await fetchDraftReports();
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header userName="Илгээх хэрэглэгч" companyName="Илгээх байгууллага" companyType="sender" />
-      <div className="flex">
-        <Sidebar
+    <div className="flex min-h-screen bg-background">
+      <Sidebar
           items={[
             { label: 'Хяналтын самбар', href: '/sender' },
             {
@@ -39,10 +37,11 @@ export default async function DraftsPage() {
             { label: 'Нэмэлт мэдээлэл', href: '/sender/submit?type=additional' },
             { label: 'Миний тайлангууд', href: '/sender' },
             { label: 'Ноорог', href: '/sender/drafts', active: true },
-            { label: 'Үнэлгээний хариу', href: '/sender' },
           ]}
         />
 
+        <div className="flex min-w-0 flex-1 flex-col">
+        <Header userName="Илгээх хэрэглэгч" companyName="Илгээх байгууллага" companyType="sender" />
         <main className="flex-1 min-w-0 space-y-6 p-6">
           <div>
             <h2 className="text-2xl font-semibold tracking-tight text-slate-900">Ноорог</h2>

@@ -43,19 +43,14 @@ export default function OrgLoginCard({ title, subtitle, icon, accounts, allowedR
   };
 
   return (
-    <div className="relative flex flex-col rounded-[28px] border border-sky-100 bg-gradient-to-b from-white to-sky-50/40 px-8 py-10 text-center shadow-[0_8px_30px_rgba(2,132,199,0.08)]">
-      <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-cyan-400 text-white shadow-lg shadow-blue-500/25">
+    <div className="group/card relative flex flex-col rounded-[20px] border border-slate-200 bg-white px-8 py-10 text-center shadow-soft transition-all duration-300 hover:-translate-y-0.5 hover:border-teal-300 hover:shadow-[0_18px_45px_rgba(15,23,42,0.10)]">
+      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-teal-50 text-teal-600 ring-1 ring-teal-100">
         {icon}
       </div>
 
-      <h3 className="mt-6 text-xl font-bold text-[#08264A]">{title}</h3>
+      <h3 className="mt-6 text-xl font-bold text-slate-900">{title}</h3>
 
-      <div className="mt-3 flex items-center justify-center gap-1.5">
-        <span className="h-1 w-8 rounded-full bg-gradient-to-r from-blue-500 to-cyan-400" />
-        <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
-      </div>
-
-      <p className="mt-4 text-sm text-slate-500">{subtitle}</p>
+      <p className="mt-2 text-sm text-slate-500">{subtitle}</p>
 
       <div className="mt-6 space-y-3">
         {accounts.map((account) => (
@@ -64,7 +59,7 @@ export default function OrgLoginCard({ title, subtitle, icon, accounts, allowedR
             type="button"
             onClick={() => loginAs(account)}
             disabled={loadingEmail !== null}
-            className="group flex w-full items-center justify-between gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition-all duration-300 hover:from-blue-500 hover:to-cyan-400 hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-60 disabled:hover:translate-y-0"
+            className="group flex h-12 w-full items-center justify-between gap-2 rounded-xl bg-[#0F766E] px-5 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#115E59] disabled:opacity-60"
           >
             <span>{account.label}</span>
             {loadingEmail === account.email ? (

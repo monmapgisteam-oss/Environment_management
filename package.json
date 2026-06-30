@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@prisma/client": "^5.12.0",
+    "@supabase/supabase-js": "^2.108.2",
     "@types/leaflet": "^1.9.21",
     "jsonwebtoken": "^9.0.2",
     "leaflet": "^1.9.4",
