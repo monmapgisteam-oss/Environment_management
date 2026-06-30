@@ -75,30 +75,59 @@ function epoch(d: Date | null | undefined): number | null {
   return d ? new Date(d).getTime() : null;
 }
 
+// Find an existing Layer 0 survey feature by register number (the company may
+// have already filled the Survey123 form). Returns its GlobalID, or null.
+async function findReportFeatureByRegister(register: string): Promise<string | null> {
+  if (!register) return null;
+  const where = encodeURIComponent(`Register='${register.replace(/'/g, "''")}'`);
+  try {
+    const res = await fetch(
+      `${SERVICE_URL}/${SURVEY_LAYER_ID}/query?where=${where}&outFields=globalid&returnGeometry=false&f=json`,
+      { cache: 'no-store' },
+    );
+    const json: any = await res.json();
+    const attrs = (json.features || [])[0]?.attributes;
+    return attrs?.globalid ?? attrs?.GlobalID ?? null;
+  } catch {
+    return null;
+  }
+}
+
 // Ensure the report exists as a feature in Layer 0; returns its GlobalID.
+// The register the user typed (implementerRegister) is the key, so reports tie
+// to the company's own survey record rather than the fixed sender account.
 async function ensureReportFeature(report: any): Promise<string | null> {
   if (report.arcgisGlobalId) return report.arcgisGlobalId;
 
-  const attributes: Record<string, any> = {
-    Report_type: report.reportType?.name ?? null,
-    project_name: report.title ?? null,
-    Organization: report.senderCompany?.name ?? null,
-    Register: report.senderCompany?.registerNumber ?? null,
-    Project_date: epoch(report.approvedDate ?? report.submittedAt),
-    Description: report.description ?? null,
-  };
+  const register = (report.implementerRegister || report.senderCompany?.registerNumber || '').trim();
 
-  const feature: any = { attributes };
-  if (report.location?.latitude != null && report.location?.longitude != null) {
-    feature.geometry = {
-      x: report.location.longitude,
-      y: report.location.latitude,
-      spatialReference: { wkid: 4326 },
+  // 1) Reuse the company's existing survey row when the register matches.
+  let globalId = await findReportFeatureByRegister(register);
+
+  // 2) Otherwise create a new feature from the report's own details.
+  if (!globalId) {
+    const attributes: Record<string, any> = {
+      Report_type: report.reportType?.name ?? null,
+      project_name: report.title ?? null,
+      Organization: report.implementerName ?? report.senderCompany?.name ?? null,
+      Register: register || null,
+      Project_date: epoch(report.approvedDate ?? report.submittedAt),
+      Description: report.description ?? null,
     };
+
+    const feature: any = { attributes };
+    if (report.location?.latitude != null && report.location?.longitude != null) {
+      feature.geometry = {
+        x: report.location.longitude,
+        y: report.location.latitude,
+        spatialReference: { wkid: 4326 },
+      };
+    }
+
+    const result = await postFeatures(SURVEY_LAYER_ID, 'addFeatures', [feature]);
+    globalId = result?.globalId ?? null;
   }
 
-  const result = await postFeatures(SURVEY_LAYER_ID, 'addFeatures', [feature]);
-  const globalId = result?.globalId;
   if (!globalId) return null;
 
   await prisma.report.update({

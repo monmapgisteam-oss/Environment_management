@@ -48,22 +48,8 @@ export default async function StaffEvaluatePage({ params }: Props) {
   const report = assignment.report;
   const criteria = await fetchCriteria();
 
-  // Scores other staff already submitted for this report, shown read-only so the
-  // current staff can see their colleagues' evaluations.
-  const otherAssignments = await prisma.reportAssignment.findMany({
-    where: {
-      reportId: report.id,
-      evaluatorUserId: { not: user.id },
-      evaluation: { isNot: null },
-    },
-    include: { evaluator: true, evaluation: { include: { scores: true } } },
-  });
-  const otherEvaluations = otherAssignments.map((a: any) => ({
-    evaluatorName: a.evaluator.name,
-    totalScore: a.evaluation.totalScore,
-    scores: a.evaluation.scores,
-  }));
-
+  // Each staff member only ever sees their own scoring — other evaluators'
+  // scores are deliberately not loaded here.
   const savedScores =
     assignment.evaluation?.scores?.reduce((acc: Record<string, string>, s: any) => {
       acc[s.criterionId] = String(s.score);
@@ -77,6 +63,7 @@ export default async function StaffEvaluatePage({ params }: Props) {
             { label: 'Удирдлагын хуудас', href: '/evaluator' },
             { label: 'Надад оноогдсон тайлангууд', href: '/evaluator', active: true },
             { label: 'Үнэлгээ өгсөн тайлангууд', href: '/evaluator/evaluated' },
+            { label: 'Газарзүйн мэдээлэл', href: '/evaluator/geography' },
             { label: 'Нэмэлт мэдээлэл', href: '/evaluator?type=type-5' },
           ]}
         />
@@ -146,8 +133,8 @@ export default async function StaffEvaluatePage({ params }: Props) {
               <div>
                 <span className="text-slate-500">Байршил: </span>
                 <span className="font-medium text-slate-800">
-                  {report.location
-                    ? [report.location.province, report.location.district, report.location.khoroo].filter(Boolean).join(', ')
+                  {report.location?.latitude != null && report.location?.longitude != null
+                    ? `${report.location.latitude.toFixed(6)}, ${report.location.longitude.toFixed(6)}`
                     : '-'}
                 </span>
               </div>
@@ -169,7 +156,7 @@ export default async function StaffEvaluatePage({ params }: Props) {
           {/* Attached documents the sender submitted */}
           <AttachmentList attachments={await signAttachments(parseAttachments(report.fileUrl))} />
 
-          {/* Scoring — current staff's column on the left, other staff to the right */}
+          {/* Scoring — staff see only their own column, never other evaluators'. */}
           <EvaluationTable
             criteria={criteria.map((c: any) => ({
               id: c.id,
@@ -183,7 +170,6 @@ export default async function StaffEvaluatePage({ params }: Props) {
             savedSignature={assignment.evaluation?.signature || null}
             redirectTo="/evaluator"
             selfName={user.name}
-            otherEvaluations={otherEvaluations}
             leftAction={
               <div className="flex flex-col items-start gap-1">
                 <StaffReturnButton reportId={report.id} />

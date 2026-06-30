@@ -56,6 +56,7 @@ export default async function ReviewerDashboard() {
               children: sidebarChildren,
             },
             { label: 'Үнэлгээний явц', href: '/reviewer/evaluation-progress' },
+            { label: 'Газарзүйн мэдээлэл', href: '/reviewer/geography' },
             { label: 'Буцаасан тайлан', href: '/reviewer' },
           ]}
         />

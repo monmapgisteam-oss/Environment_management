@@ -51,6 +51,7 @@ export default async function ReviewerReportsPage({ searchParams }: { searchPara
               children: sidebarChildren,
             },
             { label: 'Үнэлгээний явц', href: '/reviewer/evaluation-progress' },
+            { label: 'Газарзүйн мэдээлэл', href: '/reviewer/geography' },
             { label: 'Буцаасан тайлан', href: '/reviewer' },
           ]}
         />

@@ -27,7 +27,7 @@ export default async function AdminMapPage() {
     register: loc.report?.senderCompany?.registerNumber ?? '-',
     reportNumber: loc.report?.reportNumber ?? '-',
     reportType: loc.report?.reportType?.name ?? '-',
-    location: [loc.province, loc.district, loc.khoroo].filter(Boolean).join(', '),
+    location: loc.addressDetail ?? '',
   }));
 
   const companyByRegister: Record<string, string> = {};

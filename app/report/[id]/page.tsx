@@ -7,6 +7,7 @@ import ManagerReturnPanel from '@/components/ManagerReturnPanel';
 import { parseAttachments } from '@/lib/attachments';
 import { signAttachments } from '@/lib/supabase';
 import { formatDate, formatScore } from '@/lib/utils';
+import { getCurrentUser } from '@/lib/auth';
 
 type Props = {
   params: { id: string };
@@ -64,8 +65,13 @@ export default async function ReportDetailPage({ params, searchParams }: Props) 
     return <div className="p-8 text-center text-slate-500">Тайлан олдсонгүй.</div>;
   }
 
+  // A staff member viewing the report may only see their OWN evaluation, never
+  // their colleagues'. Managers and the sender see every evaluator's scores.
+  const currentUser = isStaff ? await getCurrentUser() : null;
+
   const evaluations = report.assignments
     .filter((a: any) => a.evaluation)
+    .filter((a: any) => !isStaff || a.evaluator?.id === currentUser?.id)
     .map((a: any) => ({
       evaluatorName: a.evaluator.name,
       totalScore: a.evaluation.totalScore,
@@ -100,6 +106,7 @@ export default async function ReportDetailPage({ params, searchParams }: Props) 
           })),
         },
         { label: 'Үнэлгээний явц', href: '/reviewer/evaluation-progress' },
+        { label: 'Газарзүйн мэдээлэл', href: '/reviewer/geography' },
         { label: 'Буцаасан тайлан', href: '/reviewer' },
       ]
     : isStaff
@@ -107,6 +114,7 @@ export default async function ReportDetailPage({ params, searchParams }: Props) 
         { label: 'Удирдлагын хуудас', href: '/evaluator' },
         { label: 'Надад оноогдсон тайлангууд', href: '/evaluator' },
         { label: 'Үнэлгээ өгсөн тайлангууд', href: '/evaluator/evaluated' },
+        { label: 'Газарзүйн мэдээлэл', href: '/evaluator/geography' },
       ]
     : [
         { label: 'Хяналтын самбар', href: '/sender' },
@@ -227,22 +235,8 @@ export default async function ReportDetailPage({ params, searchParams }: Props) 
               </div>
             )}
 
-            {report.location && (
+            {report.location && (report.location.addressDetail || (report.location.latitude != null && report.location.longitude != null)) && (
               <div className="mt-5 pt-5 border-t border-slate-100 grid grid-cols-3 gap-4 text-sm">
-                <div>
-                  <p className="text-slate-500 text-xs">Аймаг</p>
-                  <p className="font-medium text-slate-800 mt-0.5">{report.location.province}</p>
-                </div>
-                <div>
-                  <p className="text-slate-500 text-xs">Сум / Дүүрэг</p>
-                  <p className="font-medium text-slate-800 mt-0.5">{report.location.district}</p>
-                </div>
-                {report.location.khoroo && (
-                  <div>
-                    <p className="text-slate-500 text-xs">Баг / Хороо</p>
-                    <p className="font-medium text-slate-800 mt-0.5">{report.location.khoroo}</p>
-                  </div>
-                )}
                 {report.location.addressDetail && (
                   <div className="col-span-3">
                     <p className="text-slate-500 text-xs">Дэлгэрэнгүй хаяг</p>

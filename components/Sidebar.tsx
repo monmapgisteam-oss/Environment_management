@@ -59,6 +59,7 @@ const iconMap: Record<string, ReactNode> = {
   "Бүх тайлан": <HiClipboardList size={18} />,
   "Бүх үнэлгээ": <HiChartBar size={18} />,
   "Газрын зураг": <HiMap size={18} />,
+  "Газарзүйн мэдээлэл": <HiMap size={18} />,
   "Тайлангийн төрөл": <HiBookmark size={18} />,
   "Үнэлгээний шалгуур": <HiCog size={18} />,
   Тохиргоо: <HiCog size={18} />,

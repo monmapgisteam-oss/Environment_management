@@ -66,6 +66,7 @@ export default async function ReviewerEvaluatePage({ params }: Props) {
               })),
             },
             { label: 'Үнэлгээний явц', href: '/reviewer/evaluation-progress' },
+            { label: 'Газарзүйн мэдээлэл', href: '/reviewer/geography' },
             { label: 'Буцаасан тайлан', href: '/reviewer' },
           ]}
         />

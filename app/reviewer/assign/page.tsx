@@ -70,6 +70,7 @@ export default async function AssignPage() {
             { label: 'Хяналтын самбар', href: '/reviewer' },
             { label: 'Ирсэн тайлангууд', href: '/reviewer/reports', children: sidebarChildren },
             { label: 'Үнэлгээний явц', href: '/reviewer/evaluation-progress' },
+            { label: 'Газарзүйн мэдээлэл', href: '/reviewer/geography' },
             { label: 'Буцаасан тайлан', href: '/reviewer' },
           ]}
         />
