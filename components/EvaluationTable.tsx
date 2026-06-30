@@ -17,6 +17,7 @@ type Props = {
   reportId: string;
   savedScores?: Record<string, string> | null;
   savedComment?: string | null;
+  savedSignature?: string | null;
   redirectTo?: string;
   // Optional content rendered on the left of the action row (e.g. the staff
   // "return report" button), opposite the submit button.
@@ -30,7 +31,7 @@ type Props = {
   selfName?: string;
 };
 
-export default function EvaluationTable({ criteria, reportId, savedScores, savedComment, redirectTo, leftAction, otherEvaluations = [], selfName }: Props) {
+export default function EvaluationTable({ criteria, reportId, savedScores, savedComment, savedSignature, redirectTo, leftAction, otherEvaluations = [], selfName }: Props) {
   const [scores, setScores] = useState<Record<string, string>>(() => {
     if (savedScores) return savedScores;
     const init: Record<string, string> = {};
@@ -38,6 +39,7 @@ export default function EvaluationTable({ criteria, reportId, savedScores, saved
     return init;
   });
   const [comment, setComment] = useState(savedComment || '');
+  const [signature, setSignature] = useState(savedSignature || '');
   const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
 
@@ -55,11 +57,15 @@ export default function EvaluationTable({ criteria, reportId, savedScores, saved
   };
 
   const handleSubmit = async () => {
+    if (!signature.trim()) {
+      alert('Тоон гарын үсгээ оруулна уу.');
+      return;
+    }
     setSubmitting(true);
     const response = await fetch('/api/evaluations/submit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ reportId, scores, comment, totalScore }),
+      body: JSON.stringify({ reportId, scores, comment, signature, totalScore }),
     });
     setSubmitting(false);
     if (response.ok) {
@@ -139,6 +145,20 @@ export default function EvaluationTable({ criteria, reportId, savedScores, saved
           placeholder="Үнэлгээний сэтгэгдэл бичнэ үү..."
           rows={3}
           className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-color-primary focus:ring-2 focus:ring-color-primary/10 transition resize-y"
+        />
+      </div>
+
+      {/* Digital (numeric) signature — the evaluator signs off on their scoring */}
+      <div className="mt-6">
+        <label className="block text-sm font-medium text-slate-700 mb-1.5">
+          Тоон гарын үсэг <span className="text-red-500">*</span>
+        </label>
+        <input
+          type="text"
+          value={signature}
+          onChange={(e) => setSignature(e.target.value)}
+          placeholder="Тоон гарын үсгээ оруулна уу"
+          className="w-full max-w-xs rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-color-primary focus:ring-2 focus:ring-color-primary/10 transition"
         />
       </div>
 

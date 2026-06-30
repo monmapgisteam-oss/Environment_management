@@ -180,6 +180,7 @@ export default async function StaffEvaluatePage({ params }: Props) {
             reportId={report.id}
             savedScores={savedScores}
             savedComment={assignment.evaluation?.comment || null}
+            savedSignature={assignment.evaluation?.signature || null}
             redirectTo="/evaluator"
             selfName={user.name}
             otherEvaluations={otherEvaluations}

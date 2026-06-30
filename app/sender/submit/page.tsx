@@ -391,7 +391,11 @@ export default function SubmitReportPage() {
 
                     {/* Location */}
                     <div className="mt-8">
-                      <LocationCard onLocationChange={setLocation} initialLocation={initialLocation} />
+                      <LocationCard
+                        onLocationChange={setLocation}
+                        initialLocation={initialLocation}
+                        register={formData.implementerRegister}
+                      />
                     </div>
                   </>
                 )}

@@ -98,6 +98,9 @@ model Report {
   returnRequestedBy String?
   year             Int
   submittedAt      DateTime?
+  // GlobalID of the parent feature created in the ArcGIS/Survey123 service
+  // (Layer 0) for this report, so each evaluator's scores attach to one record.
+  arcgisGlobalId   String?
   location         ReportLocation?
   assignments      ReportAssignment[]
   evaluations      Evaluation[]       @relation("reportEvaluations")
@@ -157,6 +160,10 @@ model Evaluation {
   reportId     String
   totalScore   Int
   comment      String?
+  signature    String?
+  // GlobalID of this evaluator's row in the ArcGIS repeat_1 table, so a
+  // re-submitted score updates the same row instead of creating a duplicate.
+  arcgisGlobalId String?
   submittedAt  DateTime           @default(now())
   scores       EvaluationScore[]
   createdAt    DateTime           @default(now())

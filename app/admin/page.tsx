@@ -27,6 +27,7 @@ export default async function AdminDashboard() {
             { label: 'Хэрэглэгчид', href: '/admin' },
             { label: 'Бүх тайлан', href: '/admin' },
             { label: 'Бүх үнэлгээ', href: '/admin' },
+            { label: 'Газрын зураг', href: '/admin/map' },
             { label: 'Тайлангийн төрөл', href: '/admin' },
             { label: 'Үнэлгээний шалгуур', href: '/admin' },
             { label: 'Тохиргоо', href: '/admin' },

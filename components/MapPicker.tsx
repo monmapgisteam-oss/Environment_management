@@ -11,6 +11,27 @@ interface MapPickerProps {
   onMapClick: (lat: number, lng: number) => void;
 }
 
+// ArcGIS / Survey123 FeatureServer (point layer) shown as a toggleable overlay
+// so users can see existing surveyed report locations on the map.
+const SURVEY_LAYER_URL =
+  'https://services.arcgis.com/HJzgwvlNIXssnQar/arcgis/rest/services/survey123_2d1e2fe0e49a4623a57f6536b6a6f7c1/FeatureServer/0/query?where=1%3D1&outFields=*&f=geojson';
+
+function surveyPopup(props: Record<string, any>): string {
+  const rows: [string, any][] = [
+    ['Төслийн нэр', props.project_name],
+    ['Байгууллага', props.Organization],
+    ['Тайлангийн төрөл', props.Report_type],
+    ['Регистр', props.Register],
+    ['Огноо', props.Project_date],
+    ['Тайлбар', props.Description],
+  ];
+  const body = rows
+    .filter(([, v]) => v !== null && v !== undefined && v !== '')
+    .map(([label, v]) => `<div><span style="color:#64748b">${label}:</span> <b>${String(v)}</b></div>`)
+    .join('');
+  return `<div style="font-size:12px;line-height:1.5;min-width:160px">${body || 'Мэдээлэл байхгүй'}</div>`;
+}
+
 export default function MapPicker({ lat, lng, hasMarker, onMapClick }: MapPickerProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
@@ -25,9 +46,45 @@ export default function MapPicker({ lat, lng, hasMarker, onMapClick }: MapPicker
       zoomControl: true,
     });
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    const baseLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap',
     }).addTo(map);
+
+    // Survey123 point overlay — fetched as GeoJSON and rendered with popups.
+    const surveyLayer = L.geoJSON(undefined, {
+      pointToLayer: (_feature, latlng) =>
+        L.circleMarker(latlng, {
+          radius: 7,
+          color: '#0d9488',
+          weight: 2,
+          fillColor: '#14b8a6',
+          fillOpacity: 0.7,
+        }),
+      onEachFeature: (feature, layer) => {
+        layer.bindPopup(surveyPopup(feature.properties || {}));
+      },
+    }).addTo(map);
+
+    let cancelled = false;
+    fetch(SURVEY_LAYER_URL)
+      .then((res) => res.json())
+      .then((geojson) => {
+        if (cancelled || !mapInstanceRef.current) return;
+        if (geojson && Array.isArray(geojson.features)) {
+          surveyLayer.addData(geojson);
+        }
+      })
+      .catch(() => {
+        /* overlay is optional — ignore fetch/network errors */
+      });
+
+    L.control
+      .layers(
+        { 'Газрын зураг': baseLayer },
+        { 'Судалгааны цэгүүд': surveyLayer },
+        { collapsed: false },
+      )
+      .addTo(map);
 
     const icon = L.icon({
       iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
@@ -52,6 +109,7 @@ export default function MapPicker({ lat, lng, hasMarker, onMapClick }: MapPicker
     mapInstanceRef.current = map;
 
     return () => {
+      cancelled = true;
       map.remove();
       mapInstanceRef.current = null;
       markerRef.current = null;

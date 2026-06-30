@@ -116,6 +116,7 @@ export default async function ReviewerEvaluatePage({ params }: Props) {
               }, {}) || null
             }
             savedComment={report.evaluations?.[0]?.comment || null}
+            savedSignature={report.evaluations?.[0]?.signature || null}
           />
         </main>
       </div>

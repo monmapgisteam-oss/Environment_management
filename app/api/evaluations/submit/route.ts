@@ -1,14 +1,20 @@
 import prisma from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
+import { syncEvaluationToSurvey } from '@/lib/arcgis';
 
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    const { reportId, scores, comment } = data;
+    const { reportId, scores, comment, signature } = data;
 
     if (!reportId) {
       return NextResponse.json({ error: 'reportId is required' }, { status: 400 });
+    }
+
+    const signatureValue = typeof signature === 'string' ? signature.trim() : '';
+    if (!signatureValue) {
+      return NextResponse.json({ error: 'Тоон гарын үсэг оруулна уу.' }, { status: 400 });
     }
 
     const scoreEntries = Object.entries(scores || {})
@@ -61,6 +67,7 @@ export async function POST(request: Request) {
     });
 
     // Re-scoring updates the existing evaluation; otherwise create a new one.
+    let evaluationId: string;
     if (assignment.evaluation) {
       await prisma.evaluationScore.deleteMany({ where: { evaluationId: assignment.evaluation.id } });
       await prisma.evaluation.update({
@@ -68,21 +75,25 @@ export async function POST(request: Request) {
         data: {
           totalScore,
           comment: comment || null,
+          signature: signatureValue,
           submittedAt: new Date(),
           scores: { create: scoreEntries },
         },
       });
+      evaluationId = assignment.evaluation.id;
     } else {
-      await prisma.evaluation.create({
+      const created = await prisma.evaluation.create({
         data: {
           assignmentId: assignment.id,
           reportId,
           totalScore,
           comment: comment || null,
+          signature: signatureValue,
           submittedAt: new Date(),
           scores: { create: scoreEntries },
         },
       });
+      evaluationId = created.id;
     }
 
     // The report is only finished once EVERY assigned staff member has scored
@@ -125,6 +136,15 @@ export async function POST(request: Request) {
         });
       }
     }
+
+    // Mirror this evaluator's scores into the Survey123 service. Self-contained
+    // and failure-tolerant: it no-ops without an API key and never throws, so a
+    // problem here can't break score submission.
+    await syncEvaluationToSurvey({
+      reportId,
+      evaluationId,
+      evaluatorName: current?.name || 'Үнэлгээ',
+    });
 
     return NextResponse.json({ success: true }, { status: 201 });
   } catch (error) {
