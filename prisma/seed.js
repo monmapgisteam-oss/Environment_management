@@ -42,16 +42,10 @@ async function main() {
   });
 
   const reportTypes = [
-    'Жилийн төлөвлөгөө',
-    'Биелэлтийн тайлан',
-    'Дүгнэх хуудас',
-    'Хяналтын хуудас',
-    'Нэмэлт мэдээ',
-    'Аймаг, нийслэлийн санал',
-  ].map((name, index) => ({
-    name,
-    slug: `type-${index + 1}`,
-  }));
+    { name: 'Жилийн төлөвлөгөө', slug: 'type-1' },
+    { name: 'Биелэлтийн тайлан', slug: 'type-2' },
+    { name: 'Нэмэлт мэдээ', slug: 'type-5' },
+  ];
 
   const createdTypes = [];
   for (const type of reportTypes) {

@@ -30,10 +30,7 @@ export const STATUS_BADGE_COLORS: { [key: string]: string } = {
 export const REPORT_TYPES = [
   { id: 'type-1', name: 'Жилийн төлөвлөгөө' },
   { id: 'type-2', name: 'Биелэлтийн тайлан' },
-  { id: 'type-3', name: 'Дүгнэх хуудас' },
-  { id: 'type-4', name: 'Хяналтын хуудас' },
   { id: 'type-5', name: 'Нэмэлт мэдээ' },
-  { id: 'type-6', name: 'Аймаг, нийслэлийн санал' },
 ];
 
 export const PROVINCES = [

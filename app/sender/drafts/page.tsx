@@ -29,9 +29,6 @@ export default async function DraftsPage() {
               children: [
                 { label: 'Жилийн төлөвлөгөө', href: '/sender/submit?type=plan' },
                 { label: 'Биелэлтийн тайлан', href: '/sender/submit?type=performance' },
-                { label: 'Дүгнэх хуудас', href: '/sender/submit?type=summary' },
-                { label: 'Хяналтын хуудас', href: '/sender/submit?type=control' },
-                { label: 'Аймаг, нийслэлийн санал', href: '/sender/submit?type=regional' },
               ],
             },
             { label: 'Нэмэлт мэдээлэл', href: '/sender/submit?type=additional' },

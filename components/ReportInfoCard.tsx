@@ -44,10 +44,7 @@ export default function ReportInfoCard({ formData, handleChange, lockedType }: R
               <option value="">Сонгоно уу</option>
               <option value="Жилийн төлөвлөгөө">Жилийн төлөвлөгөө</option>
               <option value="Биелэлтийн тайлан">Биелэлтийн тайлан</option>
-              <option value="Дүгнэх хуудас">Дүгнэх хуудас</option>
-              <option value="Хяналтын хуудас">Хяналтын хуудас</option>
               <option value="Нэмэлт мэдээлэл">Нэмэлт мэдээлэл</option>
-              <option value="Аймаг, нийслэлийн санал">Аймаг, нийслэлийн санал</option>
             </select>
           )}
         </div>

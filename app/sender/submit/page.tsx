@@ -14,10 +14,7 @@ import { parseAttachments, type Attachment } from "@/lib/attachments";
 const SUBMIT_TYPES = [
   { label: "Жилийн төлөвлөгөө", slug: "plan" },
   { label: "Биелэлтийн тайлан", slug: "performance" },
-  { label: "Дүгнэх хуудас", slug: "summary" },
-  { label: "Хяналтын хуудас", slug: "control" },
   { label: "Нэмэлт мэдээлэл", slug: "additional" },
-  { label: "Аймаг, нийслэлийн санал", slug: "regional" },
 ];
 
 export default function SubmitReportPage() {
