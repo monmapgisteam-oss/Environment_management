@@ -3,8 +3,10 @@ import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import EvaluationTable from '@/components/EvaluationTable';
 import AttachmentList from '@/components/AttachmentList';
+import SurveyInfoCard from '@/components/SurveyInfoCard';
 import { parseAttachments } from '@/lib/attachments';
 import { signAttachments } from '@/lib/supabase';
+import { fetchSurveyInfoByRegister } from '@/lib/arcgis';
 
 type Props = {
   params: { id: string };
@@ -52,6 +54,9 @@ export default async function ReviewerEvaluatePage({ params }: Props) {
     return <div className="p-8 text-center text-slate-500">Тайлан олдсонгүй.</div>;
   }
 
+  const surveyRegister = report.implementerRegister || report.senderCompany?.registerNumber || '';
+  const surveyInfo = await fetchSurveyInfoByRegister(surveyRegister);
+
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar
@@ -69,6 +74,7 @@ export default async function ReviewerEvaluatePage({ params }: Props) {
             },
             { label: 'Үнэлгээний явц', href: '/reviewer/evaluation-progress' },
             { label: 'Газарзүйн мэдээлэл', href: '/reviewer/geography' },
+            { label: 'Судалгаа хайх', href: '/reviewer/survey' },
             { label: 'Буцаасан тайлан', href: '/reviewer' },
             { label: 'Нэмэлт мэдээ', href: '/reviewer/reports?type=type-5' },
           ]}
@@ -77,6 +83,9 @@ export default async function ReviewerEvaluatePage({ params }: Props) {
         <div className="flex min-w-0 flex-1 flex-col">
         <Header userName="Хянах менежер" companyName="Хянах байгууллага" companyType="reviewer" />
         <main className="flex-1 min-w-0 p-6 space-y-6">
+          {/* Company's own Survey123 submission — auto-matched by register number, top of screen. */}
+          <SurveyInfoCard info={surveyInfo} />
+
           {/* Report Info */}
           <div className="bg-white rounded-2xl border border-slate-200 p-6">
             <div className="flex items-center justify-between mb-4">

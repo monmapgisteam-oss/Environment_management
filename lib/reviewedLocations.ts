@@ -1,5 +1,6 @@
 import prisma from '@/lib/prisma';
 import type { CompanyPoint } from '@/components/CompanyMap';
+import { SURVEY_EXCLUDED_OBJECT_IDS } from '@/lib/constants';
 
 // Survey123 Layer 0 query endpoint — used only as a coordinate fallback when a
 // report's own picked location is missing; the survey point is often more
@@ -12,8 +13,9 @@ type SurveyRecord = { coords?: [number, number] };
 // Build a register -> coordinates map from the live survey service.
 async function fetchSurveyCoordsByRegister(): Promise<Record<string, SurveyRecord>> {
   try {
+    const where = encodeURIComponent(`OBJECTID NOT IN (${SURVEY_EXCLUDED_OBJECT_IDS.join(',')})`);
     const res = await fetch(
-      `${SURVEY_QUERY_URL}?where=1%3D1&outFields=Register&returnGeometry=true&f=geojson`,
+      `${SURVEY_QUERY_URL}?where=${where}&outFields=Register&returnGeometry=true&f=geojson`,
       { cache: 'no-store' },
     );
     const json: any = await res.json();

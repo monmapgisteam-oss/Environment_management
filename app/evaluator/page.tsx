@@ -100,6 +100,7 @@ export default async function EvaluatorDashboard({ searchParams }: { searchParam
             },
             { label: 'Үнэлгээ өгсөн тайлангууд', href: '/evaluator/evaluated' },
             { label: 'Газарзүйн мэдээлэл', href: '/evaluator/geography' },
+            { label: 'Судалгаа хайх', href: '/evaluator/survey' },
             ...(additionalType
               ? [{ label: 'Нэмэлт мэдээлэл', href: `/evaluator?type=${additionalType.slug}`, active: isAdditional }]
               : []),

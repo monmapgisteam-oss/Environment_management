@@ -6,9 +6,11 @@ import Sidebar from '@/components/Sidebar';
 import EvaluationTable from '@/components/EvaluationTable';
 import AttachmentList from '@/components/AttachmentList';
 import StaffReturnButton from '@/components/StaffReturnButton';
+import SurveyInfoCard from '@/components/SurveyInfoCard';
 import { parseAttachments } from '@/lib/attachments';
 import { signAttachments } from '@/lib/supabase';
 import { formatDate } from '@/lib/utils';
+import { fetchSurveyInfoByRegister } from '@/lib/arcgis';
 
 type Props = {
   params: { id: string };
@@ -47,6 +49,8 @@ export default async function StaffEvaluatePage({ params }: Props) {
 
   const report = assignment.report;
   const criteria = await fetchCriteria();
+  const surveyRegister = report.implementerRegister || report.senderCompany?.registerNumber || '';
+  const surveyInfo = await fetchSurveyInfoByRegister(surveyRegister);
 
   // Each staff member only ever sees their own scoring — other evaluators'
   // scores are deliberately not loaded here.
@@ -64,6 +68,7 @@ export default async function StaffEvaluatePage({ params }: Props) {
             { label: 'Надад оноогдсон тайлангууд', href: '/evaluator', active: true },
             { label: 'Үнэлгээ өгсөн тайлангууд', href: '/evaluator/evaluated' },
             { label: 'Газарзүйн мэдээлэл', href: '/evaluator/geography' },
+            { label: 'Судалгаа хайх', href: '/evaluator/survey' },
             { label: 'Нэмэлт мэдээлэл', href: '/evaluator?type=type-5' },
           ]}
         />
@@ -71,6 +76,9 @@ export default async function StaffEvaluatePage({ params }: Props) {
         <div className="flex min-w-0 flex-1 flex-col">
         <Header userName={user.name} companyName="Хянах байгууллага" companyType="reviewer" />
         <main className="flex-1 min-w-0 p-6 space-y-6">
+          {/* Company's own Survey123 submission — auto-matched by register number, top of screen. */}
+          <SurveyInfoCard info={surveyInfo} />
+
           {/* Report info */}
           <div className="bg-white rounded-2xl border border-slate-200 p-6">
             <div className="flex items-center justify-between mb-4">

@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma';
+import { SURVEY_EXCLUDED_OBJECT_IDS } from '@/lib/constants';
 
 // ---------------------------------------------------------------------------
 // ArcGIS / Survey123 write-back integration.
@@ -75,11 +76,55 @@ function epoch(d: Date | null | undefined): number | null {
   return d ? new Date(d).getTime() : null;
 }
 
+// Appended to every Layer 0 WHERE clause to hide test/junk rows we can't
+// delete from the shared service (see SURVEY_EXCLUDED_OBJECT_IDS).
+function excludeJunkClause(): string {
+  return ` AND OBJECTID NOT IN (${SURVEY_EXCLUDED_OBJECT_IDS.join(',')})`;
+}
+
+export type SurveyInfo = {
+  projectName: string | null;
+  organization: string | null;
+  reportType: string | null;
+  register: string | null;
+  projectDate: number | null;
+  description: string | null;
+};
+
+// The company may have filled in the Survey123 field app directly (independent
+// of our own web app); when their register number matches, surface that
+// submission's details on the report page automatically.
+export async function fetchSurveyInfoByRegister(register: string): Promise<SurveyInfo | null> {
+  const reg = (register || '').trim();
+  if (!reg) return null;
+  try {
+    const safe = reg.replace(/'/g, "''");
+    const where = encodeURIComponent(`UPPER(Register)=UPPER('${safe}')${excludeJunkClause()}`);
+    const res = await fetch(
+      `${SERVICE_URL}/${SURVEY_LAYER_ID}/query?where=${where}&outFields=*&returnGeometry=false&f=json`,
+      { cache: 'no-store' },
+    );
+    const json: any = await res.json();
+    const attrs = (json.features || [])[0]?.attributes;
+    if (!attrs) return null;
+    return {
+      projectName: attrs.project_name ?? null,
+      organization: attrs.Organization ?? null,
+      reportType: attrs.Report_type ?? null,
+      register: attrs.Register ?? null,
+      projectDate: attrs.Project_date ?? null,
+      description: attrs.Description ?? null,
+    };
+  } catch {
+    return null;
+  }
+}
+
 // Find an existing Layer 0 survey feature by register number (the company may
 // have already filled the Survey123 form). Returns its GlobalID, or null.
 async function findReportFeatureByRegister(register: string): Promise<string | null> {
   if (!register) return null;
-  const where = encodeURIComponent(`Register='${register.replace(/'/g, "''")}'`);
+  const where = encodeURIComponent(`Register='${register.replace(/'/g, "''")}'${excludeJunkClause()}`);
   try {
     const res = await fetch(
       `${SERVICE_URL}/${SURVEY_LAYER_ID}/query?where=${where}&outFields=globalid&returnGeometry=false&f=json`,

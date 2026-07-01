@@ -21,6 +21,7 @@ export default async function EvaluatorGeographyPage() {
           { label: 'Надад оноогдсон тайлангууд', href: '/evaluator' },
           { label: 'Үнэлгээ өгсөн тайлангууд', href: '/evaluator/evaluated' },
           { label: 'Газарзүйн мэдээлэл', href: '/evaluator/geography', active: true },
+          { label: 'Судалгаа хайх', href: '/evaluator/survey' },
           { label: 'Нэмэлт мэдээлэл', href: '/evaluator?type=type-5' },
         ]}
       />

@@ -25,6 +25,7 @@ import {
   HiCog,
   HiChevronDown,
   HiDocumentDuplicate,
+  HiSearch,
 } from "react-icons/hi";
 import SupportButton from "./SupportButton";
 import { HiOutlineQuestionMarkCircle } from "react-icons/hi";
@@ -65,6 +66,7 @@ const iconMap: Record<string, ReactNode> = {
   "Бүх үнэлгээ": <HiChartBar size={18} />,
   "Газрын зураг": <HiMap size={18} />,
   "Газарзүйн мэдээлэл": <HiMap size={18} />,
+  "Судалгаа хайх": <HiSearch size={18} />,
   "Тайлангийн төрөл": <HiBookmark size={18} />,
   "Үнэлгээний шалгуур": <HiCog size={18} />,
   Тохиргоо: <HiCog size={18} />,

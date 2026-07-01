@@ -4,10 +4,12 @@ import Sidebar from '@/components/Sidebar';
 import StatusBadge from '@/components/StatusBadge';
 import AttachmentList from '@/components/AttachmentList';
 import ManagerReturnPanel from '@/components/ManagerReturnPanel';
+import SurveyInfoCard from '@/components/SurveyInfoCard';
 import { parseAttachments } from '@/lib/attachments';
 import { signAttachments } from '@/lib/supabase';
 import { formatDate, formatScore } from '@/lib/utils';
 import { getCurrentUser } from '@/lib/auth';
+import { fetchSurveyInfoByRegister } from '@/lib/arcgis';
 
 type Props = {
   params: { id: string };
@@ -65,6 +67,12 @@ export default async function ReportDetailPage({ params, searchParams }: Props) 
     return <div className="p-8 text-center text-slate-500">Тайлан олдсонгүй.</div>;
   }
 
+  // Surface the company's own Survey123 submission, matched by register
+  // number — reviewer-side only (manager + staff), since the sender already
+  // knows their own information and shouldn't see it echoed back.
+  const surveyRegister = report.implementerRegister || report.senderCompany?.registerNumber || '';
+  const surveyInfo = (isReviewer || isStaff) ? await fetchSurveyInfoByRegister(surveyRegister) : null;
+
   // A staff member viewing the report may only see their OWN evaluation, never
   // their colleagues'. Managers and the sender see every evaluator's scores.
   const currentUser = isStaff ? await getCurrentUser() : null;
@@ -109,6 +117,7 @@ export default async function ReportDetailPage({ params, searchParams }: Props) 
         },
         { label: 'Үнэлгээний явц', href: '/reviewer/evaluation-progress' },
         { label: 'Газарзүйн мэдээлэл', href: '/reviewer/geography' },
+        { label: 'Судалгаа хайх', href: '/reviewer/survey' },
         { label: 'Буцаасан тайлан', href: '/reviewer' },
         { label: 'Нэмэлт мэдээ', href: '/reviewer/reports?type=type-5' },
       ]
@@ -118,6 +127,7 @@ export default async function ReportDetailPage({ params, searchParams }: Props) 
         { label: 'Надад оноогдсон тайлангууд', href: '/evaluator' },
         { label: 'Үнэлгээ өгсөн тайлангууд', href: '/evaluator/evaluated' },
         { label: 'Газарзүйн мэдээлэл', href: '/evaluator/geography' },
+        { label: 'Судалгаа хайх', href: '/evaluator/survey' },
       ]
     : [
         { label: 'Хяналтын самбар', href: '/sender' },
@@ -147,6 +157,9 @@ export default async function ReportDetailPage({ params, searchParams }: Props) 
           <Header userName="Илгээх хэрэглэгч" companyName="Илгээх байгууллага" companyType="sender" />
         )}
         <main className="flex-1 min-w-0 p-6 space-y-5">
+          {/* Company's own Survey123 submission — auto-matched by register number, top of screen. */}
+          <SurveyInfoCard info={surveyInfo} />
+
           {/* Manager sees which staff this report was distributed to (top). */}
           {isReviewer && (
             <div className="bg-white rounded-2xl border border-slate-200 p-6">

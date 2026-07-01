@@ -56,6 +56,7 @@ export default async function ReviewerReportsPage({ searchParams }: { searchPara
             },
             { label: 'Үнэлгээний явц', href: '/reviewer/evaluation-progress' },
             { label: 'Газарзүйн мэдээлэл', href: '/reviewer/geography' },
+            { label: 'Судалгаа хайх', href: '/reviewer/survey' },
             { label: 'Буцаасан тайлан', href: '/reviewer' },
             { label: 'Нэмэлт мэдээ', href: '/reviewer/reports?type=type-5', active: searchParams.type === 'type-5' },
           ]}

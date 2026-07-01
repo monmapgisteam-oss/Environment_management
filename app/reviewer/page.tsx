@@ -59,6 +59,7 @@ export default async function ReviewerDashboard() {
             },
             { label: 'Үнэлгээний явц', href: '/reviewer/evaluation-progress' },
             { label: 'Газарзүйн мэдээлэл', href: '/reviewer/geography' },
+            { label: 'Судалгаа хайх', href: '/reviewer/survey' },
             { label: 'Буцаасан тайлан', href: '/reviewer' },
             { label: 'Нэмэлт мэдээ', href: '/reviewer/reports?type=type-5' },
           ]}

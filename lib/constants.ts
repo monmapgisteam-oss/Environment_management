@@ -44,6 +44,13 @@ export const PROVINCES = [
   'Архангай',
 ];
 
+// Test/junk rows left in the shared ArcGIS Survey123 layer (Test, test2,
+// hello, hi...) that our API key has no permission to delete there (owner
+// mismatch — anonymous edits can add but not remove). Excluded from every
+// query against that layer until someone deletes them in ArcGIS Online
+// directly.
+export const SURVEY_EXCLUDED_OBJECT_IDS = [1, 2, 4, 5, 7];
+
 // Seed accounts used to prefill each login form's email/password for now,
 // since there is no public sign-up yet. Once real workers get their own
 // accounts, they'll clear these and type their own credentials.

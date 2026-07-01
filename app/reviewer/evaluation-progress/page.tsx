@@ -48,6 +48,7 @@ export default async function EvaluationProgressPage() {
             },
             { label: 'Үнэлгээний явц', href: '/reviewer/evaluation-progress', active: true },
             { label: 'Газарзүйн мэдээлэл', href: '/reviewer/geography' },
+            { label: 'Судалгаа хайх', href: '/reviewer/survey' },
             { label: 'Буцаасан тайлан', href: '/reviewer' },
             { label: 'Нэмэлт мэдээ', href: '/reviewer/reports?type=type-5' },
           ]}

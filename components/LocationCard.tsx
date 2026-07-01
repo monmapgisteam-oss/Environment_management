@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
+import { SURVEY_EXCLUDED_OBJECT_IDS } from "@/lib/constants";
 
 const MapPicker = dynamic(() => import("./MapPicker"), {
   ssr: false,
@@ -84,7 +85,9 @@ export default function LocationCard({ onLocationChange, initialLocation, regist
     const handle = setTimeout(async () => {
       try {
         const safe = reg.replace(/'/g, "''");
-        const where = encodeURIComponent(`UPPER(Register)=UPPER('${safe}')`);
+        const where = encodeURIComponent(
+          `UPPER(Register)=UPPER('${safe}') AND OBJECTID NOT IN (${SURVEY_EXCLUDED_OBJECT_IDS.join(',')})`,
+        );
         const res = await fetch(
           `${SURVEY_QUERY_URL}?where=${where}&outFields=*&returnGeometry=true&f=geojson`,
         );
