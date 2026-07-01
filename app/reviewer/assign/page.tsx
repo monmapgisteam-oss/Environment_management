@@ -58,10 +58,12 @@ export default async function AssignPage() {
     fetchDistributableReports(),
   ]);
 
-  const sidebarChildren = reportTypes.map((rt: any) => ({
-    label: rt.name,
-    href: `/reviewer/reports?type=${rt.slug}`,
-  }));
+  const sidebarChildren = reportTypes
+    .filter((rt: any) => rt.slug !== 'type-5')
+    .map((rt: any) => ({
+      label: rt.name,
+      href: `/reviewer/reports?type=${rt.slug}`,
+    }));
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -72,6 +74,7 @@ export default async function AssignPage() {
             { label: 'Үнэлгээний явц', href: '/reviewer/evaluation-progress' },
             { label: 'Газарзүйн мэдээлэл', href: '/reviewer/geography' },
             { label: 'Буцаасан тайлан', href: '/reviewer' },
+            { label: 'Нэмэлт мэдээ', href: '/reviewer/reports?type=type-5' },
           ]}
         />
 

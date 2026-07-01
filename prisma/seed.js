@@ -19,7 +19,7 @@ async function main() {
     await prisma.company.create({
       data: {
         name: 'Илгээх байгууллага',
-        registerNumber: 'SND001',
+        registerNumber: '2036479',
         type: 'sender',
       },
     }),
@@ -85,7 +85,7 @@ async function main() {
         data: {
           name: `Илгээх хэрэглэгч ${i + 1}`,
           email: `sender${i + 1}@tailan.mn`,
-          password: 'Sender123!',
+          password: '123',
           role: 'sender',
           companyId: senderCompanies[i].id,
           phone: `99${200000 + i}`,
@@ -99,7 +99,7 @@ async function main() {
     data: {
       name: 'Админ Хэрэглэгч',
       email: 'admin@tailan.mn',
-      password: 'Admin123!',
+      password: '123',
       role: 'admin',
       companyId: adminCompany.id,
       phone: '99111222',
@@ -111,7 +111,7 @@ async function main() {
     data: {
       name: 'Хяналтын менежер',
       email: 'manager@tailan.mn',
-      password: 'Manager123!',
+      password: '123',
       role: 'review_manager',
       companyId: reviewerCompany.id,
       phone: '99122334',
@@ -127,7 +127,6 @@ async function main() {
     { email: 'staff@tailan.mn', name: 'Үнэлгээний ажилтан', phone: '99155667' },
     { email: 'staff2@tailan.mn', name: 'Үнэлгээний ажилтан 2', phone: '99155668' },
     { email: 'staff3@tailan.mn', name: 'Үнэлгээний ажилтан 3', phone: '99155669' },
-    { email: 'staff4@tailan.mn', name: 'Үнэлгээний ажилтан 4', phone: '99155670' },
   ];
   for (const account of staffAccounts) {
     evaluators.push(
@@ -135,27 +134,11 @@ async function main() {
         data: {
           name: account.name,
           email: account.email,
-          password: 'Staff123!',
+          password: '123',
           role: 'evaluator',
           companyId: reviewerCompany.id,
           phone: account.phone,
           position: 'Үнэлгээний ажилтан',
-        },
-      }),
-    );
-  }
-
-  for (let i = 1; i <= 5; i += 1) {
-    evaluators.push(
-      await prisma.user.create({
-        data: {
-          name: `Үнэлэгч ${i}`,
-          email: `evaluator${i}@tailan.mn`,
-          password: `Eval123!${i}`,
-          role: 'evaluator',
-          companyId: reviewerCompany.id,
-          phone: `99${100000 + i}`,
-          position: 'Үнэлэгч',
         },
       }),
     );

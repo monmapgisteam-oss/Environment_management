@@ -100,14 +100,17 @@ export default async function ReportDetailPage({ params, searchParams }: Props) 
         {
           label: 'Ирсэн тайлангууд',
           href: '/reviewer/reports',
-          children: reportTypes.map((rt: any) => ({
-            label: rt.name,
-            href: `/reviewer/reports?type=${rt.slug}`,
-          })),
+          children: reportTypes
+            .filter((rt: any) => rt.slug !== 'type-5')
+            .map((rt: any) => ({
+              label: rt.name,
+              href: `/reviewer/reports?type=${rt.slug}`,
+            })),
         },
         { label: 'Үнэлгээний явц', href: '/reviewer/evaluation-progress' },
         { label: 'Газарзүйн мэдээлэл', href: '/reviewer/geography' },
         { label: 'Буцаасан тайлан', href: '/reviewer' },
+        { label: 'Нэмэлт мэдээ', href: '/reviewer/reports?type=type-5' },
       ]
     : isStaff
     ? [

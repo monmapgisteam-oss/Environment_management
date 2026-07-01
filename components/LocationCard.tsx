@@ -3,7 +3,18 @@
 import { useState, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 
-const MapPicker = dynamic(() => import("./MapPicker"), { ssr: false });
+const MapPicker = dynamic(() => import("./MapPicker"), {
+  ssr: false,
+  loading: () => <MapPlaceholder />,
+});
+
+function MapPlaceholder() {
+  return (
+    <div className="flex h-full w-full items-center justify-center text-sm text-color-text-muted">
+      Газрын зураг ачааллаж байна...
+    </div>
+  );
+}
 
 // Survey123 service — used to resolve a company's location from its register
 // number, so entering РД drops the marker on the map automatically.

@@ -3,6 +3,8 @@
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { addBasemap } from '@/lib/basemap';
+import { createPinIcon, popupCard } from '@/lib/mapMarkers';
 
 interface MapPickerProps {
   lat: number;
@@ -17,19 +19,19 @@ const SURVEY_LAYER_URL =
   'https://services.arcgis.com/HJzgwvlNIXssnQar/arcgis/rest/services/survey123_2d1e2fe0e49a4623a57f6536b6a6f7c1/FeatureServer/0/query?where=1%3D1&outFields=*&f=geojson';
 
 function surveyPopup(props: Record<string, any>): string {
-  const rows: [string, any][] = [
-    ['Төслийн нэр', props.project_name],
-    ['Байгууллага', props.Organization],
-    ['Тайлангийн төрөл', props.Report_type],
-    ['Регистр', props.Register],
-    ['Огноо', props.Project_date],
-    ['Тайлбар', props.Description],
-  ];
-  const body = rows
-    .filter(([, v]) => v !== null && v !== undefined && v !== '')
-    .map(([label, v]) => `<div><span style="color:#64748b">${label}:</span> <b>${String(v)}</b></div>`)
-    .join('');
-  return `<div style="font-size:12px;line-height:1.5;min-width:160px">${body || 'Мэдээлэл байхгүй'}</div>`;
+  return popupCard({
+    title: props.Organization || props.project_name || 'Судалгааны цэг',
+    accent: '#D97706',
+    badge: 'Survey123',
+    rows: [
+      ['Төслийн нэр', props.project_name],
+      ['Байгууллага', props.Organization],
+      ['Тайлангийн төрөл', props.Report_type],
+      ['Регистр', props.Register],
+      ['Огноо', props.Project_date],
+      ['Тайлбар', props.Description],
+    ],
+  });
 }
 
 export default function MapPicker({ lat, lng, hasMarker, onMapClick }: MapPickerProps) {
@@ -46,20 +48,12 @@ export default function MapPicker({ lat, lng, hasMarker, onMapClick }: MapPicker
       zoomControl: true,
     });
 
-    const baseLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap',
-    }).addTo(map);
+    const baseLayer = addBasemap(map);
 
     // Survey123 point overlay — fetched as GeoJSON and rendered with popups.
+    const surveyIcon = createPinIcon('#D97706');
     const surveyLayer = L.geoJSON(undefined, {
-      pointToLayer: (_feature, latlng) =>
-        L.circleMarker(latlng, {
-          radius: 7,
-          color: '#0d9488',
-          weight: 2,
-          fillColor: '#14b8a6',
-          fillOpacity: 0.7,
-        }),
+      pointToLayer: (_feature, latlng) => L.marker(latlng, { icon: surveyIcon }),
       onEachFeature: (feature, layer) => {
         layer.bindPopup(surveyPopup(feature.properties || {}));
       },
@@ -86,13 +80,7 @@ export default function MapPicker({ lat, lng, hasMarker, onMapClick }: MapPicker
       )
       .addTo(map);
 
-    const icon = L.icon({
-      iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-      iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-      shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-      iconSize: [25, 41],
-      iconAnchor: [12, 41],
-    });
+    const icon = createPinIcon('#0F766E', 'lg');
 
     map.on('click', (e: L.LeafletMouseEvent) => {
       const { lat: clickLat, lng: clickLng } = e.latlng;
@@ -120,13 +108,7 @@ export default function MapPicker({ lat, lng, hasMarker, onMapClick }: MapPicker
     if (!mapInstanceRef.current) return;
 
     if (hasMarker) {
-      const icon = L.icon({
-        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-        iconSize: [25, 41],
-        iconAnchor: [12, 41],
-      });
+      const icon = createPinIcon('#0F766E', 'lg');
 
       if (markerRef.current) {
         markerRef.current.setLatLng([lat, lng]);

@@ -1,12 +1,6 @@
 import Link from 'next/link';
 import { LuShieldCheck, LuSend, LuFileSearch, LuUserCog } from 'react-icons/lu';
 import OrgLoginCard from '@/components/OrgLoginCard';
-import {
-  SENDER_ACCOUNTS,
-  REVIEWER_ACCOUNTS,
-  SENDER_ROLES,
-  REVIEWER_ROLES,
-} from '@/lib/constants';
 
 export default function HomePage() {
   return (
@@ -85,21 +79,19 @@ export default function HomePage() {
           <p className="mt-3 text-base text-slate-500">Та нэвтрэх төрлөө сонгоно уу</p>
         </div>
 
-        {/* Cards — each organisation lists its accounts; one click logs in. */}
+        {/* Cards — each organisation links to its own email/password login page. */}
         <div className="mx-auto mt-12 grid max-w-3xl items-start gap-6 md:grid-cols-2">
           <OrgLoginCard
             title="Тайлан илгээх байгууллага"
-            subtitle="Байгууллагаа сонгож нэвтэрнэ үү."
+            subtitle="Имэйл, нууц үгээрээ нэвтэрнэ үү."
             icon={<LuSend size={30} />}
-            accounts={SENDER_ACCOUNTS}
-            allowedRoles={SENDER_ROLES}
+            href="/login/sender"
           />
           <OrgLoginCard
             title="Тайлан хянах байгууллага"
-            subtitle="Аккаунтаа сонгож нэвтэрнэ үү."
+            subtitle="Имэйл, нууц үгээрээ нэвтэрнэ үү."
             icon={<LuFileSearch size={30} />}
-            accounts={REVIEWER_ACCOUNTS}
-            allowedRoles={REVIEWER_ROLES}
+            href="/login/reviewer"
           />
         </div>
 

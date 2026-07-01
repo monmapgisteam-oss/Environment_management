@@ -107,10 +107,6 @@ export default async function StaffEvaluatePage({ params }: Props) {
                 <span className="font-medium text-slate-800">{report.senderCompany?.name || '-'}</span>
               </div>
               <div>
-                <span className="text-slate-500">Байгууллагын РД: </span>
-                <span className="font-medium text-slate-800">{report.senderCompany?.registerNumber || '-'}</span>
-              </div>
-              <div>
                 <span className="text-slate-500">Хэрэгжүүлэгч: </span>
                 <span className="font-medium text-slate-800">{report.implementerName || '-'}</span>
               </div>

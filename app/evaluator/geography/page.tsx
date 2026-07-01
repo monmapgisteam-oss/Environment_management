@@ -2,8 +2,7 @@ import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
-import GeographyMapSection from '@/components/GeographyMapSection';
-import ArcgisWebMap from '@/components/ArcgisWebMap';
+import CompanyMapSection from '@/components/CompanyMapSection';
 import { fetchReviewedCompanyPoints } from '@/lib/reviewedLocations';
 
 export default async function EvaluatorGeographyPage() {
@@ -32,24 +31,15 @@ export default async function EvaluatorGeographyPage() {
           <div className="space-y-1">
             <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Газарзүйн мэдээлэл</h1>
             <p className="text-sm text-slate-500">
-              Хянагдсан байгууллагуудын байршил. Цэг дээр дарж тухайн байгууллагын судалгааны
-              мэдээллийг харна уу.
+              Хянагдсан байгууллагуудын байршил, хяналтын үнэлгээгээр өнгөөр ялгасан.
             </p>
           </div>
 
           <div
-            className="overflow-hidden rounded-2xl border border-slate-200 bg-white"
-            style={{ height: 460 }}
+            className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft"
+            style={{ height: 'calc(100vh - 200px)', minHeight: 480 }}
           >
-            <GeographyMapSection points={points} />
-          </div>
-
-          <div className="space-y-1 pt-2">
-            <h2 className="text-lg font-semibold tracking-tight text-slate-900">ArcGIS газрын зураг</h2>
-            <p className="text-sm text-slate-500">ArcGIS Online дээр үүсгэсэн вэб газрын зураг.</p>
-          </div>
-          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white" style={{ height: 560 }}>
-            <ArcgisWebMap webmapId={process.env.NEXT_PUBLIC_ARCGIS_WEBMAP_ID} />
+            <CompanyMapSection points={points} detailRole="staff" />
           </div>
         </main>
       </div>

@@ -5,9 +5,10 @@ export default function SenderLoginPage() {
   return (
     <AuthForm
       title="Тайлан илгээх байгууллага"
-      subtitle="Байгууллагаа сонгож нэвтэрнэ үү."
+      subtitle="Имэйл, нууц үгээ оруулж нэвтэрнэ үү."
       allowedRoles={SENDER_ROLES}
-      accounts={SENDER_ACCOUNTS}
+      exampleEmail={SENDER_ACCOUNTS[0].email}
+      examplePassword={SENDER_ACCOUNTS[0].password}
     />
   );
 }

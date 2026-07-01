@@ -5,9 +5,10 @@ export default function ReviewerLoginPage() {
   return (
     <AuthForm
       title="Тайлан хянах байгууллага"
-      subtitle="Аккаунтаа сонгож нэвтэрнэ үү."
+      subtitle="Имэйл, нууц үгээ оруулж нэвтэрнэ үү."
       allowedRoles={REVIEWER_ROLES}
-      accounts={REVIEWER_ACCOUNTS}
+      exampleEmail={REVIEWER_ACCOUNTS[0].email}
+      examplePassword={REVIEWER_ACCOUNTS[0].password}
     />
   );
 }

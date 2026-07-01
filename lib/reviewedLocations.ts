@@ -1,33 +1,19 @@
 import prisma from '@/lib/prisma';
+import type { CompanyPoint } from '@/components/CompanyMap';
 
-// Survey123 Layer 0 query endpoint — the source of each company's submitted
-// survey information, matched back to our reports by register number.
+// Survey123 Layer 0 query endpoint — used only as a coordinate fallback when a
+// report's own picked location is missing; the survey point is often more
+// precisely field-verified than a manually dropped pin.
 const SURVEY_QUERY_URL =
   'https://services.arcgis.com/HJzgwvlNIXssnQar/arcgis/rest/services/survey123_2d1e2fe0e49a4623a57f6536b6a6f7c1/FeatureServer/0/query';
 
-export type GeoPoint = {
-  lat: number;
-  lng: number;
-  title: string;
-  // label/value pairs shown in the marker popup (the survey information).
-  rows: [string, string][];
-};
+type SurveyRecord = { coords?: [number, number] };
 
-function fmtDate(v: any): string {
-  if (v == null || v === '') return '';
-  const n = Number(v);
-  // ArcGIS dates come back as epoch milliseconds.
-  if (!Number.isNaN(n) && n > 1_000_000_000_000) return new Date(n).toISOString().slice(0, 10);
-  return String(v);
-}
-
-type SurveyRecord = { props: Record<string, any>; coords?: [number, number] };
-
-// Build a register -> survey-record map from the live survey service.
-async function fetchSurveyByRegister(): Promise<Record<string, SurveyRecord>> {
+// Build a register -> coordinates map from the live survey service.
+async function fetchSurveyCoordsByRegister(): Promise<Record<string, SurveyRecord>> {
   try {
     const res = await fetch(
-      `${SURVEY_QUERY_URL}?where=1%3D1&outFields=*&returnGeometry=true&f=geojson`,
+      `${SURVEY_QUERY_URL}?where=1%3D1&outFields=Register&returnGeometry=true&f=geojson`,
       { cache: 'no-store' },
     );
     const json: any = await res.json();
@@ -35,7 +21,7 @@ async function fetchSurveyByRegister(): Promise<Record<string, SurveyRecord>> {
     (json.features || []).forEach((f: any) => {
       const reg = (f.properties?.Register ?? '').toString().trim();
       if (!reg) return;
-      map[reg.toUpperCase()] = { props: f.properties || {}, coords: f.geometry?.coordinates };
+      map[reg.toUpperCase()] = { coords: f.geometry?.coordinates };
     });
     return map;
   } catch {
@@ -44,30 +30,30 @@ async function fetchSurveyByRegister(): Promise<Record<string, SurveyRecord>> {
 }
 
 /**
- * Every company the review organisation has reviewed (reports that were assigned
- * to staff), de-duplicated by register, with that company's survey information
- * for the map popup. Survey geometry is preferred; otherwise the report's own
- * coordinates are used. Companies without any coordinates are omitted.
+ * Every company the review organisation has reviewed (reports that were
+ * assigned to staff), de-duplicated by register, in the same shape the
+ * admin dashboard map uses — so the manager and staff "Газарзүйн мэдээлэл"
+ * pages render the identical search/filter/cluster/score-color map.
  */
-export async function fetchReviewedCompanyPoints(): Promise<GeoPoint[]> {
-  const [reports, survey] = await Promise.all([
+export async function fetchReviewedCompanyPoints(): Promise<CompanyPoint[]> {
+  const [reports, surveyCoords] = await Promise.all([
     prisma.report.findMany({
       where: { assignments: { some: {} } },
       include: { senderCompany: true, reportType: true, location: true },
       orderBy: { submittedAt: 'desc' },
     }),
-    fetchSurveyByRegister(),
+    fetchSurveyCoordsByRegister(),
   ]);
 
   const seen = new Set<string>();
-  const points: GeoPoint[] = [];
+  const points: CompanyPoint[] = [];
 
   for (const r of reports as any[]) {
     const register = (r.implementerRegister || r.senderCompany?.registerNumber || '').trim();
     const key = register ? register.toUpperCase() : `report:${r.id}`;
     if (seen.has(key)) continue;
 
-    const s = register ? survey[register.toUpperCase()] : undefined;
+    const s = register ? surveyCoords[register.toUpperCase()] : undefined;
 
     let lat: number | undefined;
     let lng: number | undefined;
@@ -82,31 +68,17 @@ export async function fetchReviewedCompanyPoints(): Promise<GeoPoint[]> {
 
     seen.add(key);
 
-    const rows: [string, string][] = s
-      ? [
-          ['Байгууллага', s.props.Organization],
-          ['Регистрийн дугаар', s.props.Register],
-          ['Төслийн нэр', s.props.project_name],
-          ['Тайлангийн төрөл', s.props.Report_type],
-          ['Огноо', fmtDate(s.props.Project_date)],
-          ['Тайлбар', s.props.Description],
-        ]
-      : [
-          ['Байгууллага', r.implementerName || r.senderCompany?.name || ''],
-          ['Регистрийн дугаар', register],
-          ['Төслийн нэр', r.title],
-          ['Тайлангийн төрөл', r.reportType?.name || ''],
-          ['Тэмдэглэл', 'Судалгаанд бүртгэгдээгүй'],
-        ];
-
-    const title =
-      s?.props.Organization || r.implementerName || r.senderCompany?.name || register || 'Байгууллага';
-
     points.push({
+      id: r.id,
       lat,
       lng,
-      title,
-      rows: rows.filter(([, v]) => v != null && String(v).trim() !== '') as [string, string][],
+      company: r.implementerName || r.senderCompany?.name || register || 'Байгууллага',
+      register,
+      reportNumber: r.reportNumber,
+      reportType: r.reportType?.name || '',
+      location: r.location?.addressDetail || '',
+      status: r.status,
+      score: r.finalScore,
     });
   }
 

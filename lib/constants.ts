@@ -44,8 +44,9 @@ export const PROVINCES = [
   'Архангай',
 ];
 
-// Pre-defined login accounts. Since the system has no public sign-up, each
-// organisation exposes a fixed set of accounts that are picked with one click.
+// Seed accounts used to prefill each login form's email/password for now,
+// since there is no public sign-up yet. Once real workers get their own
+// accounts, they'll clear these and type their own credentials.
 export type LoginAccount = {
   label: string;
   email: string;
@@ -53,20 +54,20 @@ export type LoginAccount = {
 };
 
 export const SENDER_ACCOUNTS: LoginAccount[] = [
-  { label: 'Илгээгч байгууллага', email: 'sender1@tailan.mn', password: 'Sender123!' },
+  { label: 'Илгээгч байгууллага', email: 'sender1@tailan.mn', password: '123' },
 ];
 
 // The review organisation shares one portal between the manager and the staff
 // (evaluators); each account is routed to its own dashboard after login.
 export const REVIEWER_ACCOUNTS: LoginAccount[] = [
-  { label: 'Менежер', email: 'manager@tailan.mn', password: 'Manager123!' },
-  { label: 'Ажилтан 1', email: 'staff@tailan.mn', password: 'Staff123!' },
-  { label: 'Ажилтан 2', email: 'staff2@tailan.mn', password: 'Staff123!' },
-  { label: 'Ажилтан 3', email: 'staff3@tailan.mn', password: 'Staff123!' },
+  { label: 'Менежер', email: 'manager@tailan.mn', password: '123' },
+  { label: 'Ажилтан 1', email: 'staff@tailan.mn', password: '123' },
+  { label: 'Ажилтан 2', email: 'staff2@tailan.mn', password: '123' },
+  { label: 'Ажилтан 3', email: 'staff3@tailan.mn', password: '123' },
 ];
 
 export const ADMIN_ACCOUNTS: LoginAccount[] = [
-  { label: 'Системийн админ', email: 'admin@tailan.mn', password: 'Admin123!' },
+  { label: 'Системийн админ', email: 'admin@tailan.mn', password: '123' },
 ];
 
 // The review organisation has exactly three evaluation staff. Other evaluator

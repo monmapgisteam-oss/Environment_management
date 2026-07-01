@@ -15,14 +15,14 @@ async function main() {
     await prisma.user.upsert({
       where: { email: `sender${i}@tailan.mn` },
       update: {
-        password: 'Sender123!',
+        password: '123',
         role: 'sender',
         companyId: senderCompanies[i - 1].id,
       },
       create: {
         name: `Илгээгч ${i}`,
         email: `sender${i}@tailan.mn`,
-        password: 'Sender123!',
+        password: '123',
         role: 'sender',
         companyId: senderCompanies[i - 1].id,
         phone: `9900000${i}`,

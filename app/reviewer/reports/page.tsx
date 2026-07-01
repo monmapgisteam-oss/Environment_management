@@ -33,11 +33,15 @@ export default async function ReviewerReportsPage({ searchParams }: { searchPara
     fetchAllReports(searchParams.type),
   ]);
 
-  const sidebarChildren = reportTypes.map((rt: any) => ({
-    label: rt.name,
-    href: `/reviewer/reports?type=${rt.slug}`,
-    active: searchParams.type === rt.slug,
-  }));
+  const isAdditional = searchParams.type === 'type-5';
+
+  const sidebarChildren = reportTypes
+    .filter((rt: any) => rt.slug !== 'type-5')
+    .map((rt: any) => ({
+      label: rt.name,
+      href: `/reviewer/reports?type=${rt.slug}`,
+      active: searchParams.type === rt.slug,
+    }));
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -53,6 +57,7 @@ export default async function ReviewerReportsPage({ searchParams }: { searchPara
             { label: 'Үнэлгээний явц', href: '/reviewer/evaluation-progress' },
             { label: 'Газарзүйн мэдээлэл', href: '/reviewer/geography' },
             { label: 'Буцаасан тайлан', href: '/reviewer' },
+            { label: 'Нэмэлт мэдээ', href: '/reviewer/reports?type=type-5', active: searchParams.type === 'type-5' },
           ]}
         />
 
@@ -60,28 +65,39 @@ export default async function ReviewerReportsPage({ searchParams }: { searchPara
         <Header userName="Хянах менежер" companyName="Хянах байгууллага" companyType="reviewer" />
         <main className="flex-1 min-w-0 space-y-6 p-6">
           <div className="space-y-1">
-            <h2 className="text-2xl font-semibold tracking-tight text-slate-900">Ирсэн тайлангууд</h2>
-            <p className="text-sm text-slate-600">
-              {searchParams.type
-                ? reportTypes.find((rt: any) => rt.slug === searchParams.type)?.name + ' төрлийн тайлангууд'
-                : 'Бүх ирсэн тайлангуудын жагсаалт.'}
-            </p>
+            <h2 className="text-2xl font-semibold tracking-tight text-slate-900">
+              {isAdditional ? 'Нэмэлт мэдээ' : 'Ирсэн тайлангууд'}
+            </h2>
+            {!isAdditional && (
+              <p className="text-sm text-slate-600">
+                {searchParams.type
+                  ? reportTypes.find((rt: any) => rt.slug === searchParams.type)?.name + ' төрлийн тайлангууд'
+                  : 'Бүх ирсэн тайлангуудын жагсаалт.'}
+              </p>
+            )}
           </div>
 
-          <ReportTable
-            role="reviewer"
-            reports={reports.map((report: any) => ({
-              id: report.id,
-              reportNumber: report.reportNumber,
-              reportType: report.reportType,
-              title: report.title,
-              submittedAt: report.submittedAt?.toISOString() || null,
-              status: report.status,
-              finalScore: report.finalScore,
-              senderCompany: report.senderCompany,
-              location: report.location,
-            }))}
-          />
+          {isAdditional && reports.length === 0 ? (
+            <div className="rounded-3xl bg-white px-6 py-16 text-center shadow-soft border border-slate-200">
+              <p className="text-sm text-slate-400">Шинэ мэдээлэл ирээгүй байна.</p>
+            </div>
+          ) : (
+            <ReportTable
+              role="reviewer"
+              showStatusFilter={!isAdditional}
+              reports={reports.map((report: any) => ({
+                id: report.id,
+                reportNumber: report.reportNumber,
+                reportType: report.reportType,
+                title: report.title,
+                submittedAt: report.submittedAt?.toISOString() || null,
+                status: report.status,
+                finalScore: report.finalScore,
+                senderCompany: report.senderCompany,
+                location: report.location,
+              }))}
+            />
+          )}
         </main>
       </div>
     </div>

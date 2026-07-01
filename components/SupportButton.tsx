@@ -4,7 +4,7 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { HiOutlineQuestionMarkCircle, HiX } from "react-icons/hi";
 
-// Sidebar "Тусламж, дэмжлэг" action. Opens a small dialog where the logged-in
+// Sidebar "Санал хүсэлт" action. Opens a small dialog where the logged-in
 // user can write a message that is delivered to the system admin(s) via the
 // notification system (POST /api/support).
 export default function SupportButton() {
@@ -54,7 +54,7 @@ export default function SupportButton() {
         className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium text-slate-200 transition-colors hover:bg-white/5 hover:text-white"
       >
         <HiOutlineQuestionMarkCircle size={18} className="flex-shrink-0" />
-        <span className="truncate">Тусламж, дэмжлэг</span>
+        <span className="truncate">Санал хүсэлт</span>
       </button>
 
       {open && typeof document !== "undefined" && createPortal(
@@ -68,7 +68,7 @@ export default function SupportButton() {
           >
             <div className="flex items-start justify-between">
               <div>
-                <h3 className="text-lg font-semibold text-slate-900">Тусламж, дэмжлэг</h3>
+                <h3 className="text-lg font-semibold text-slate-900">Санал хүсэлт</h3>
                 <p className="mt-1 text-sm text-slate-500">
                   Системийн админд зурвас илгээнэ үү.
                 </p>

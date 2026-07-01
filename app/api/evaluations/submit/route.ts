@@ -122,12 +122,14 @@ export async function POST(request: Request) {
       include: { senderCompany: { include: { users: true } } },
     });
 
-    // Notify the sender only when the whole evaluation is complete.
+    // Notify the sender and every review manager only when the whole evaluation is complete.
     if (allDone) {
       const senderUsers = updatedReport.senderCompany.users;
-      if (senderUsers.length > 0) {
+      const managers = await prisma.user.findMany({ where: { role: 'review_manager' } });
+      const recipients = [...senderUsers, ...managers];
+      if (recipients.length > 0) {
         await prisma.notification.createMany({
-          data: senderUsers.map((u) => ({
+          data: recipients.map((u) => ({
             userId: u.id,
             reportId,
             title: 'Үнэлгээ дууссан',

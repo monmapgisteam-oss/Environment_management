@@ -73,3 +73,149 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .sidebar-scroll::-webkit-scrollbar { width: 6px; }
 .sidebar-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.14); border-radius: 9999px; }
 .sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
+
+/* Branded Leaflet markers + popups — see lib/mapMarkers.ts */
+.leaflet-container {
+  font-family: inherit;
+  /* Contain Leaflet's internal z-index (controls sit at 1000) inside its own
+     stacking context so it can never render above sticky headers/dropdowns. */
+  isolation: isolate;
+}
+
+.map-pin-icon {
+  background: transparent;
+  border: none;
+}
+
+.leaflet-popup-content-wrapper {
+  padding: 0;
+  border-radius: 14px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 10px 30px rgba(15, 23, 42, 0.12);
+  overflow: hidden;
+}
+
+.leaflet-popup-content {
+  margin: 0;
+  width: auto !important;
+  min-width: 168px;
+}
+
+.leaflet-popup-tip {
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+.map-popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 7px 9px;
+  background: #F8FAFC;
+  border-left: 3px solid #0F766E;
+  border-bottom: 1px solid #E2E8F0;
+}
+
+.map-popup-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #0F172A;
+  line-height: 1.25;
+}
+
+.map-popup-badge {
+  flex-shrink: 0;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #0F766E;
+  background: #ECFDF5;
+  box-shadow: inset 0 0 0 1px #A7F3D0;
+  border-radius: 9999px;
+  padding: 1px 6px;
+  white-space: nowrap;
+}
+
+.map-popup-body {
+  padding: 7px 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.map-popup-row {
+  display: flex;
+  gap: 6px;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.map-popup-label {
+  flex-shrink: 0;
+  color: #64748B;
+  min-width: 68px;
+}
+
+.map-popup-value {
+  color: #0F172A;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.map-popup-empty {
+  color: #94A3B8;
+  font-size: 11px;
+}
+
+.map-popup-link {
+  display: block;
+  margin: 2px 9px 9px;
+  padding: 5px 8px;
+  border-radius: 7px;
+  background: #0F766E;
+  color: #ffffff !important;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none !important;
+  transition: background-color 0.15s ease;
+}
+
+.map-popup-link:hover {
+  background: #115E59;
+}
+
+/* Company monitoring map — clustering, floating control panel, zoom control */
+.company-cluster-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 9999px;
+  background: #0F172A;
+  color: #ffffff;
+  font-size: 12.5px;
+  font-weight: 700;
+  box-shadow: 0 0 0 4px rgba(15, 23, 42, 0.12), 0 3px 8px rgba(15, 23, 42, 0.3);
+}
+
+.leaflet-control-zoom.map-zoom-control {
+  border: 1px solid #E2E8F0 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 10px 24px rgba(15, 23, 42, 0.1) !important;
+  overflow: hidden;
+}
+
+.leaflet-control-zoom.map-zoom-control a {
+  width: 34px !important;
+  height: 34px !important;
+  line-height: 34px !important;
+  color: #0F172A !important;
+  background: #ffffff !important;
+  border: none !important;
+}
+
+.leaflet-control-zoom.map-zoom-control a:hover {
+  background: #F0FDFA !important;
+  color: #0F766E !important;
+}

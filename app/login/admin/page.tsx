@@ -5,9 +5,10 @@ export default function AdminLoginPage() {
   return (
     <AuthForm
       title="Системийн админ"
-      subtitle="Аккаунтаа сонгож нэвтэрнэ үү."
+      subtitle="Имэйл, нууц үгээ оруулж нэвтэрнэ үү."
       allowedRoles={ADMIN_ROLES}
-      accounts={ADMIN_ACCOUNTS}
+      exampleEmail={ADMIN_ACCOUNTS[0].email}
+      examplePassword={ADMIN_ACCOUNTS[0].password}
     />
   );
 }

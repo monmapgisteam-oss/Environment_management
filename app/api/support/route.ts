@@ -2,9 +2,9 @@ import prisma from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 
-// A logged-in user sends a help/support message to the system admin(s). The
+// A logged-in user sends feedback ("Санал хүсэлт") to the system admin(s). The
 // message is delivered through the existing notification system, so each admin
-// sees it in their notification bell.
+// sees it in their notification bell and on /admin/feedback.
 export async function POST(request: NextRequest) {
   try {
     const user = await getCurrentUser();
@@ -27,13 +27,14 @@ export async function POST(request: NextRequest) {
     }
 
     const companyName = user.company?.name ? ` (${user.company.name})` : '';
-    const title = `Тусламжийн хүсэлт — ${user.name}${companyName}`;
+    const title = 'Санал хүсэлт';
+    const fullMessage = `${user.name}${companyName}: ${message}`;
 
     await prisma.notification.createMany({
       data: admins.map((admin) => ({
         userId: admin.id,
         title,
-        message,
+        message: fullMessage,
       })),
     });
 

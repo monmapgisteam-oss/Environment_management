@@ -27,6 +27,7 @@ import {
   HiDocumentDuplicate,
 } from "react-icons/hi";
 import SupportButton from "./SupportButton";
+import { HiOutlineQuestionMarkCircle } from "react-icons/hi";
 
 type Item = {
   label: string;
@@ -37,6 +38,9 @@ type Item = {
 
 type Props = {
   items: Item[];
+  // Admins receive feedback rather than send it, so their sidebar links
+  // straight to the inbox instead of opening the "send feedback" dialog.
+  role?: string;
 };
 
 const iconMap: Record<string, ReactNode> = {
@@ -46,6 +50,7 @@ const iconMap: Record<string, ReactNode> = {
   "Жилийн төлөвлөгөө": <HiCalendar size={18} />,
   "Биелэлтийн тайлан": <HiTrendingUp size={18} />,
   "Нэмэлт мэдээлэл": <HiPencilAlt size={18} />,
+  "Нэмэлт мэдээ": <HiPencilAlt size={18} />,
   "Миний тайлангууд": <HiFolder size={18} />,
   "Засвар шаардсан тайлан": <HiExclamation size={18} />,
   Ноорог: <HiDocumentDuplicate size={18} />,
@@ -129,7 +134,7 @@ function SidebarItem({ item }: { item: Item }) {
   );
 }
 
-export default function Sidebar({ items }: Props) {
+export default function Sidebar({ items, role }: Props) {
   return (
     <aside
       className="hidden md:flex md:flex-col sticky top-0 h-screen w-[250px] shrink-0 text-white"
@@ -149,9 +154,19 @@ export default function Sidebar({ items }: Props) {
         ))}
       </nav>
 
-      {/* Bottom — help / support */}
+      {/* Bottom — feedback: admins read it, everyone else sends it */}
       <div className="border-t border-white/10 px-3 py-4">
-        <SupportButton />
+        {role === "admin" ? (
+          <Link
+            href="/admin/feedback"
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium text-slate-200 transition-colors hover:bg-white/5 hover:text-white"
+          >
+            <HiOutlineQuestionMarkCircle size={18} className="flex-shrink-0" />
+            <span className="truncate">Санал хүсэлт</span>
+          </Link>
+        ) : (
+          <SupportButton />
+        )}
       </div>
     </aside>
   );
