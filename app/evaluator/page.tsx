@@ -58,7 +58,8 @@ async function fetchAssignedReports(evaluatorUserId: string, typeSlug?: string) 
   });
 }
 
-export default async function EvaluatorDashboard({ searchParams }: { searchParams: { type?: string } }) {
+export default async function EvaluatorDashboard(props: { searchParams: Promise<{ type?: string }> }) {
+  const searchParams = await props.searchParams;
   const user = await getCurrentUser();
   // A staff member must be logged in to see their assigned reports.
   if (!user || user.role !== 'evaluator') {

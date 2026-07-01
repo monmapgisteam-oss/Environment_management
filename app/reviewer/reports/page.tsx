@@ -27,7 +27,8 @@ async function fetchAllReports(typeSlug?: string) {
   });
 }
 
-export default async function ReviewerReportsPage({ searchParams }: { searchParams: { type?: string } }) {
+export default async function ReviewerReportsPage(props: { searchParams: Promise<{ type?: string }> }) {
+  const searchParams = await props.searchParams;
   const [reportTypes, reports] = await Promise.all([
     fetchReportTypes(),
     fetchAllReports(searchParams.type),

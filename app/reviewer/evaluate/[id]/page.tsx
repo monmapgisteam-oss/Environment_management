@@ -9,7 +9,7 @@ import { signAttachments } from '@/lib/supabase';
 import { fetchSurveyInfoByRegister } from '@/lib/arcgis';
 
 type Props = {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 };
 
 async function fetchReport(id: string) {
@@ -43,7 +43,8 @@ async function fetchReportTypes() {
   });
 }
 
-export default async function ReviewerEvaluatePage({ params }: Props) {
+export default async function ReviewerEvaluatePage(props: Props) {
+  const params = await props.params;
   const [report, criteria, reportTypes] = await Promise.all([
     fetchReport(params.id),
     fetchCriteria(),

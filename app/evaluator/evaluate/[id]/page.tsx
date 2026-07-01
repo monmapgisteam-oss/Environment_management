@@ -13,7 +13,7 @@ import { formatDate } from '@/lib/utils';
 import { fetchSurveyInfoByRegister } from '@/lib/arcgis';
 
 type Props = {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 };
 
 async function fetchCriteria() {
@@ -23,7 +23,8 @@ async function fetchCriteria() {
   });
 }
 
-export default async function StaffEvaluatePage({ params }: Props) {
+export default async function StaffEvaluatePage(props: Props) {
+  const params = await props.params;
   const user = await getCurrentUser();
   if (!user || user.role !== 'evaluator') {
     redirect('/login/reviewer');

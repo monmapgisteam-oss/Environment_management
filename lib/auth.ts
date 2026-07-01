@@ -25,7 +25,7 @@ export function verifyToken(token: string) {
 }
 
 export async function getCurrentUser() {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const token = cookieStore.get(COOKIE_NAME)?.value;
   if (!token) return null;
   const payload = verifyToken(token);

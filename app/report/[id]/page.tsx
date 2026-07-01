@@ -12,8 +12,8 @@ import { getCurrentUser } from '@/lib/auth';
 import { fetchSurveyInfoByRegister } from '@/lib/arcgis';
 
 type Props = {
-  params: { id: string };
-  searchParams: { role?: string };
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ role?: string }>;
 };
 
 async function fetchReportDetail(reportId: string) {
@@ -53,7 +53,9 @@ async function fetchReportTypes() {
   });
 }
 
-export default async function ReportDetailPage({ params, searchParams }: Props) {
+export default async function ReportDetailPage(props: Props) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const isReviewer = searchParams.role === 'reviewer';
   const isStaff = searchParams.role === 'staff';
 

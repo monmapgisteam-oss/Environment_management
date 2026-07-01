@@ -3,7 +3,8 @@ import prisma from '@/lib/prisma';
 
 // Returns a single report with everything the sender's edit form needs to
 // pre-fill (type, location, attachments).
-export async function GET(_request: Request, { params }: { params: { id: string } }) {
+export async function GET(_request: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const report = await prisma.report.findUnique({
     where: { id: params.id },
     include: { reportType: true, location: true },
@@ -16,7 +17,8 @@ export async function GET(_request: Request, { params }: { params: { id: string 
 
 // Updates a returned/draft report when the sender fixes it and resubmits. Clears
 // the return flags and notifies the review manager(s) of the resubmission.
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(request: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const data = await request.json();
 
