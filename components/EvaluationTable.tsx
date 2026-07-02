@@ -79,7 +79,7 @@ export default function EvaluationTable({ criteria, reportId, savedScores, saved
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-6">
       <h2 className="text-base font-semibold text-slate-900 mb-5">
-        Тухайн жилийн байгаль орчны менежментийн төлөвлөгөөний бүрэлдэхүүн хэсгүүд
+        Дүгнэх хуудас
       </h2>
 
       <div className="overflow-x-auto">

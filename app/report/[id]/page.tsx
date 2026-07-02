@@ -6,8 +6,9 @@ import AttachmentList from '@/components/AttachmentList';
 import ManagerReturnPanel from '@/components/ManagerReturnPanel';
 import SurveyInfoCard from '@/components/SurveyInfoCard';
 import LocationMap from '@/components/LocationMapClient';
-import { parseAttachments } from '@/lib/attachments';
-import { signAttachments } from '@/lib/supabase';
+import ScanPrintPanel from '@/components/ScanPrintPanel';
+import { parseAttachments, downloadUrl } from '@/lib/attachments';
+import { signAttachments, createSignedUrl } from '@/lib/supabase';
 import { formatDate, formatScore } from '@/lib/utils';
 import { getCurrentUser } from '@/lib/auth';
 import { fetchSurveyInfoByRegister } from '@/lib/arcgis';
@@ -104,6 +105,15 @@ export default async function ReportDetailPage(props: Props) {
   if (isSenderView && report.status === 'return_requested') displayStatus = 'in_review';
 
   const attachments = await signAttachments(parseAttachments(report.fileUrl));
+  const signedScanDownloadUrl = report.signedScanUrl ? await createSignedUrl(report.signedScanUrl) : null;
+
+  // Manager only sees the print/scan panel once every assigned staff member
+  // has actually submitted a score — nothing to sign before that.
+  const allEvaluatorsDone = assignedStaff.length > 0 && assignedStaff.every((m: any) => m.submitted);
+
+  const locationLabel = [report.location?.province, report.location?.district, report.location?.khoroo, report.location?.addressDetail]
+    .filter((v) => v && v !== 'Тодорхойгүй')
+    .join(', ');
 
   const sidebarItems = isReviewer
     ? [
@@ -160,6 +170,36 @@ export default async function ReportDetailPage(props: Props) {
           <Header userName="Илгээх хэрэглэгч" companyName="Илгээх байгууллага" companyType="sender" />
         )}
         <main className="flex-1 min-w-0 p-6 space-y-5">
+          {/* Sender downloads the manager's scanned, physically-signed copy — top of screen. */}
+          {isSenderView && signedScanDownloadUrl && (
+            <div className="bg-white rounded-2xl border border-slate-200 p-6">
+              <h2 className="text-base font-semibold text-slate-900 mb-4">Гарын үсэгтэй хуулбар</h2>
+              <div className="flex items-center gap-3 rounded-xl border border-slate-200 p-3">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                </svg>
+                <span className="text-sm font-medium text-slate-800 flex-1 min-w-0 truncate">
+                  {report.signedScanName || 'Гарын үсэгтэй хуулбар'}
+                </span>
+                <a
+                  href={signedScanDownloadUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs font-medium text-color-primary hover:underline"
+                >
+                  Нээх
+                </a>
+                <a
+                  href={downloadUrl({ url: signedScanDownloadUrl, name: report.signedScanName || 'signed-scan' })}
+                  className="inline-flex items-center gap-1 rounded-lg bg-color-primary px-3 py-1.5 text-xs font-medium text-white hover:opacity-90 transition"
+                >
+                  Татах
+                </a>
+              </div>
+            </div>
+          )}
+
           {/* Company's own Survey123 submission — auto-matched by register number, top of screen. */}
           <SurveyInfoCard info={surveyInfo} />
 
@@ -301,7 +341,24 @@ export default async function ReportDetailPage(props: Props) {
           {/* Evaluation Scores Table */}
           {evaluations.length > 0 && (
             <div className="bg-white rounded-2xl border border-slate-200 p-6">
-              <h2 className="text-base font-semibold text-slate-900 mb-5">Үнэлгээний дүн</h2>
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+                <h2 className="text-base font-semibold text-slate-900">Үнэлгээний дүн</h2>
+                {isReviewer && allEvaluatorsDone && (
+                  <ScanPrintPanel
+                    reportId={report.id}
+                    signedScanName={report.signedScanName}
+                    signedScanUploadedAt={report.signedScanUploadedAt ? report.signedScanUploadedAt.toISOString() : null}
+                    reportNumber={report.reportNumber}
+                    title={report.title}
+                    senderCompanyName={report.senderCompany?.name || ''}
+                    submittedAtLabel={formatDate(report.submittedAt)}
+                    implementerName={report.implementerName || ''}
+                    locationLabel={locationLabel}
+                    criteria={criteria}
+                    evaluations={evaluations}
+                  />
+                )}
+              </div>
 
               <div className="overflow-x-auto">
                 <table className="w-full text-sm border-collapse">

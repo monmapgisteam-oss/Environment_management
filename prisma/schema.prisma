@@ -101,6 +101,12 @@ model Report {
   // GlobalID of the parent feature created in the ArcGIS/Survey123 service
   // (Layer 0) for this report, so each evaluator's scores attach to one record.
   arcgisGlobalId   String?
+  // The physically-signed score sheet: after every evaluator has scored the
+  // report, the manager prints the score table, gets it signed on paper, then
+  // scans and uploads it back here for the sender to download.
+  signedScanUrl        String?
+  signedScanName       String?
+  signedScanUploadedAt DateTime?
   location         ReportLocation?
   assignments      ReportAssignment[]
   evaluations      Evaluation[]       @relation("reportEvaluations")
