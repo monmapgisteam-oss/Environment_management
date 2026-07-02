@@ -220,6 +220,7 @@ export default function SubmitReportPage() {
               active: typeSlug === "additional",
             },
             { label: "Миний тайлангууд", href: "/sender/reports" },
+            { label: "Газарзүйн мэдээлэл", href: "/sender/geography" },
             { label: "Ноорог", href: "/sender/drafts" },
           ]}
         />

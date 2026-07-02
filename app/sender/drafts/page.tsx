@@ -33,6 +33,7 @@ export default async function DraftsPage() {
             },
             { label: 'Нэмэлт мэдээлэл', href: '/sender/submit?type=additional' },
             { label: 'Миний тайлангууд', href: '/sender/reports' },
+            { label: 'Газарзүйн мэдээлэл', href: '/sender/geography' },
             { label: 'Ноорог', href: '/sender/drafts', active: true },
           ]}
         />

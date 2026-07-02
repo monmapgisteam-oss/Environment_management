@@ -17,7 +17,7 @@ const CompanyMap = dynamic(() => import('./CompanyMap'), {
 
 interface Props {
   points: CompanyPoint[];
-  detailRole?: 'reviewer' | 'staff';
+  detailRole?: 'reviewer' | 'staff' | 'sender';
 }
 
 export default function CompanyMapSection({ points, detailRole }: Props) {

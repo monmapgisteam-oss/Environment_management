@@ -28,8 +28,8 @@ interface CompanyMapProps {
   points: CompanyPoint[];
   // Which portal the "Дэлгэрэнгүй харах" popup link opens the report in
   // (/report/[id]?role=...) — admin/reviewer see everything, staff see only
-  // their own scoring.
-  detailRole?: 'reviewer' | 'staff';
+  // their own scoring, sender sees their own report's detail.
+  detailRole?: 'reviewer' | 'staff' | 'sender';
 }
 
 const UB_CENTER: L.LatLngExpression = [47.92, 106.92];
