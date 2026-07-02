@@ -1,13 +1,19 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { getCurrentUser } from '@/lib/auth';
 
 export async function POST(request: Request) {
   try {
     const data = await request.json();
 
-    const senderCompany = await prisma.company.findFirst({
-      where: { type: 'sender' },
-    });
+    // Attach the report to the logged-in sender's own company — not just
+    // "whichever sender company happens to be first in the table", which
+    // silently misfiled every submission once a second sender company existed.
+    const currentUser = await getCurrentUser();
+    if (!currentUser || currentUser.role !== 'sender' || !currentUser.companyId) {
+      return NextResponse.json({ error: 'Not authenticated as a sender' }, { status: 401 });
+    }
+    const senderCompany = currentUser.company;
     if (!senderCompany) {
       return NextResponse.json({ error: 'No sender company found' }, { status: 400 });
     }

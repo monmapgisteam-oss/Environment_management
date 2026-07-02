@@ -1,16 +1,16 @@
-import { redirect } from 'next/navigation';
-import prisma from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/auth';
-import Header from '@/components/Header';
-import Sidebar from '@/components/Sidebar';
-import EvaluationTable from '@/components/EvaluationTable';
-import AttachmentList from '@/components/AttachmentList';
-import StaffReturnButton from '@/components/StaffReturnButton';
-import SurveyInfoCard from '@/components/SurveyInfoCard';
-import { parseAttachments } from '@/lib/attachments';
-import { signAttachments } from '@/lib/supabase';
-import { formatDate } from '@/lib/utils';
-import { fetchSurveyInfoByRegister } from '@/lib/arcgis';
+import { redirect } from "next/navigation";
+import prisma from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/auth";
+import Header from "@/components/Header";
+import Sidebar from "@/components/Sidebar";
+import EvaluationTable from "@/components/EvaluationTable";
+import AttachmentList from "@/components/AttachmentList";
+import StaffReturnButton from "@/components/StaffReturnButton";
+import SurveyInfoCard from "@/components/SurveyInfoCard";
+import { parseAttachments } from "@/lib/attachments";
+import { signAttachments } from "@/lib/supabase";
+import { formatDate } from "@/lib/utils";
+import { fetchSurveyInfoByRegister } from "@/lib/arcgis";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -19,22 +19,24 @@ type Props = {
 async function fetchCriteria() {
   return prisma.evaluationCriterion.findMany({
     where: { isActive: true },
-    orderBy: { sortOrder: 'asc' },
+    orderBy: { sortOrder: "asc" },
   });
 }
 
 export default async function StaffEvaluatePage(props: Props) {
   const params = await props.params;
   const user = await getCurrentUser();
-  if (!user || user.role !== 'evaluator') {
-    redirect('/login/reviewer');
+  if (!user || user.role !== "evaluator") {
+    redirect("/login/reviewer");
   }
 
   // A staff member may only score a report the manager assigned to them.
   const assignment = await prisma.reportAssignment.findFirst({
     where: { reportId: params.id, evaluatorUserId: user.id },
     include: {
-      report: { include: { reportType: true, senderCompany: true, location: true } },
+      report: {
+        include: { reportType: true, senderCompany: true, location: true },
+      },
       evaluation: { include: { scores: true } },
     },
   });
@@ -42,40 +44,57 @@ export default async function StaffEvaluatePage(props: Props) {
   if (!assignment) {
     return (
       <div className="min-h-screen bg-background">
-        <Header userName={user.name} companyName="Хянах байгууллага" role="staff" />
-        <div className="p-8 text-center text-slate-500">Танд энэ тайлан оноогдоогүй байна.</div>
+        <Header
+          userName={user.name}
+          companyName="Хянах байгууллага"
+          role="staff"
+        />
+        <div className="p-8 text-center text-slate-500">
+          Танд энэ тайлан оноогдоогүй байна.
+        </div>
       </div>
     );
   }
 
   const report = assignment.report;
   const criteria = await fetchCriteria();
-  const surveyRegister = report.implementerRegister || report.senderCompany?.registerNumber || '';
+  const surveyRegister =
+    report.implementerRegister || report.senderCompany?.registerNumber || "";
   const surveyInfo = await fetchSurveyInfoByRegister(surveyRegister);
 
   // Each staff member only ever sees their own scoring — other evaluators'
   // scores are deliberately not loaded here.
   const savedScores =
-    assignment.evaluation?.scores?.reduce((acc: Record<string, string>, s: any) => {
-      acc[s.criterionId] = String(s.score);
-      return acc;
-    }, {}) || null;
+    assignment.evaluation?.scores?.reduce(
+      (acc: Record<string, string>, s: any) => {
+        acc[s.criterionId] = String(s.score);
+        return acc;
+      },
+      {},
+    ) || null;
 
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar
-          items={[
-            { label: 'Удирдлагын хуудас', href: '/evaluator' },
-            { label: 'Надад оноогдсон тайлангууд', href: '/evaluator', active: true },
-            { label: 'Үнэлгээ өгсөн тайлангууд', href: '/evaluator/evaluated' },
-            { label: 'Газарзүйн мэдээлэл', href: '/evaluator/geography' },
-            { label: 'Судалгаа хайх', href: '/evaluator/survey' },
-            { label: 'Нэмэлт мэдээлэл', href: '/evaluator?type=type-5' },
-          ]}
-        />
+        items={[
+          {
+            label: "Надад оноогдсон тайлангууд",
+            href: "/evaluator",
+            active: true,
+          },
+          { label: "Үнэлгээ өгсөн тайлангууд", href: "/evaluator/evaluated" },
+          { label: "Газарзүйн мэдээлэл", href: "/evaluator/geography" },
+          { label: "Судалгаа хайх", href: "/evaluator/survey" },
+          { label: "Нэмэлт мэдээлэл", href: "/evaluator?type=type-5" },
+        ]}
+      />
 
-        <div className="flex min-w-0 flex-1 flex-col">
-        <Header userName={user.name} companyName="Хянах байгууллага" companyType="reviewer" />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <Header
+          userName={user.name}
+          companyName="Хянах байгууллага"
+          companyType="reviewer"
+        />
         <main className="flex-1 min-w-0 p-6 space-y-6">
           {/* Company's own Survey123 submission — auto-matched by register number, top of screen. */}
           <SurveyInfoCard info={surveyInfo} />
@@ -85,23 +104,37 @@ export default async function StaffEvaluatePage(props: Props) {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <p className="text-xs text-slate-500">Тайлангийн дугаар</p>
-                <h1 className="text-xl font-bold text-slate-900">{report.reportNumber}</h1>
+                <h1 className="text-xl font-bold text-slate-900">
+                  {report.reportNumber}
+                </h1>
               </div>
               <div className="text-right">
                 <p className="text-xs text-slate-500">Төрөл</p>
-                <p className="text-sm font-semibold text-slate-700">{report.reportType.name}</p>
+                <p className="text-sm font-semibold text-slate-700">
+                  {report.reportType.name}
+                </p>
               </div>
             </div>
 
             {/* Deadline the manager set when distributing this report */}
             {assignment.deadline && (
               <div className="mb-4 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#d97706"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
                   <circle cx="12" cy="12" r="10" />
                   <polyline points="12 6 12 12 16 14" />
                 </svg>
                 <span className="text-sm text-amber-800">
-                  <span className="font-medium">Хүлээлгэх хугацаа:</span> {formatDate(assignment.deadline)}
+                  <span className="font-medium">Хүлээлгэх хугацаа:</span>{" "}
+                  {formatDate(assignment.deadline)}
                 </span>
               </div>
             )}
@@ -109,57 +142,80 @@ export default async function StaffEvaluatePage(props: Props) {
             <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
               <div>
                 <span className="text-slate-500">Төслийн нэр: </span>
-                <span className="font-medium text-slate-800">{report.title}</span>
+                <span className="font-medium text-slate-800">
+                  {report.title}
+                </span>
               </div>
               <div>
                 <span className="text-slate-500">Байгууллага: </span>
-                <span className="font-medium text-slate-800">{report.senderCompany?.name || '-'}</span>
+                <span className="font-medium text-slate-800">
+                  {report.senderCompany?.name || "-"}
+                </span>
               </div>
               <div>
                 <span className="text-slate-500">Хэрэгжүүлэгч: </span>
-                <span className="font-medium text-slate-800">{report.implementerName || '-'}</span>
+                <span className="font-medium text-slate-800">
+                  {report.implementerName || "-"}
+                </span>
               </div>
               <div>
                 <span className="text-slate-500">Хэрэгжүүлэгчийн РД: </span>
-                <span className="font-medium text-slate-800">{report.implementerRegister || '-'}</span>
+                <span className="font-medium text-slate-800">
+                  {report.implementerRegister || "-"}
+                </span>
               </div>
               <div>
                 <span className="text-slate-500">Батлагдсан огноо: </span>
-                <span className="font-medium text-slate-800">{formatDate(report.approvedDate)}</span>
+                <span className="font-medium text-slate-800">
+                  {formatDate(report.approvedDate)}
+                </span>
               </div>
               <div>
                 <span className="text-slate-500">Илгээсэн огноо: </span>
-                <span className="font-medium text-slate-800">{formatDate(report.submittedAt)}</span>
+                <span className="font-medium text-slate-800">
+                  {formatDate(report.submittedAt)}
+                </span>
               </div>
               <div>
                 <span className="text-slate-500">Тайлангийн он: </span>
-                <span className="font-medium text-slate-800">{report.year || '-'}</span>
+                <span className="font-medium text-slate-800">
+                  {report.year || "-"}
+                </span>
               </div>
               <div>
                 <span className="text-slate-500">Байршил: </span>
                 <span className="font-medium text-slate-800">
-                  {report.location?.latitude != null && report.location?.longitude != null
+                  {report.location?.latitude != null &&
+                  report.location?.longitude != null
                     ? `${report.location.latitude.toFixed(6)}, ${report.location.longitude.toFixed(6)}`
-                    : '-'}
+                    : "-"}
                 </span>
               </div>
               {report.location?.addressDetail && (
                 <div>
                   <span className="text-slate-500">Дэлгэрэнгүй хаяг: </span>
-                  <span className="font-medium text-slate-800">{report.location.addressDetail}</span>
+                  <span className="font-medium text-slate-800">
+                    {report.location.addressDetail}
+                  </span>
                 </div>
               )}
               {report.description && (
                 <div className="col-span-2">
                   <span className="text-slate-500">Тайлбар: </span>
-                  <span className="font-medium text-slate-800">{report.description}</span>
+                  <span className="font-medium text-slate-800">
+                    {report.description}
+                  </span>
                 </div>
               )}
             </div>
           </div>
 
           {/* Attached documents the sender submitted */}
-          <AttachmentList attachments={await signAttachments(parseAttachments(report.fileUrl))} />
+          <AttachmentList
+            attachments={await signAttachments(
+              parseAttachments(report.fileUrl),
+            )}
+          />
 
           {/* Scoring — staff see only their own column, never other evaluators'. */}
           <EvaluationTable
@@ -178,7 +234,9 @@ export default async function StaffEvaluatePage(props: Props) {
             leftAction={
               <div className="flex flex-col items-start gap-1">
                 <StaffReturnButton reportId={report.id} />
-                <p className="text-sm text-slate-500">Менежерт буцаах хүсэлт илгээнэ үү.</p>
+                <p className="text-sm text-slate-500">
+                  Менежерт буцаах хүсэлт илгээнэ үү.
+                </p>
               </div>
             }
           />

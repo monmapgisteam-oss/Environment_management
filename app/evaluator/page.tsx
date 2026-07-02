@@ -92,7 +92,6 @@ export default async function EvaluatorDashboard(props: { searchParams: Promise<
     <div className="flex min-h-screen bg-background">
       <Sidebar
           items={[
-            { label: 'Удирдлагын хуудас', href: '/evaluator' },
             {
               label: 'Надад оноогдсон тайлангууд',
               href: '/evaluator',

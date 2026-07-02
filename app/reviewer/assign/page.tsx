@@ -18,6 +18,8 @@ async function fetchStaff() {
       id: true,
       name: true,
       position: true,
+      email: true,
+      phone: true,
       _count: { select: { evaluatorAssignments: true } },
     },
     orderBy: { name: 'asc' },
@@ -26,6 +28,8 @@ async function fetchStaff() {
     id: s.id,
     name: s.name,
     position: s.position,
+    email: s.email,
+    phone: s.phone,
     assignedCount: s._count.evaluatorAssignments,
   }));
 }

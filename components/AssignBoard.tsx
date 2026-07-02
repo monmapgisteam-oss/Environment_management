@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import StatusBadge from './StatusBadge';
 import { HiUserGroup } from 'react-icons/hi';
@@ -9,6 +10,8 @@ type Staff = {
   id: string;
   name: string;
   position: string | null;
+  email: string;
+  phone: string | null;
   assignedCount: number;
 };
 
@@ -96,7 +99,11 @@ export default function AssignBoard({ reports, staff }: { reports: Report[]; sta
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {staff.map((member, index) => (
-              <div key={member.id} className="flex items-center gap-3 rounded-xl border border-slate-200 p-3">
+              <Link
+                key={member.id}
+                href={`/reviewer/staff/${member.id}`}
+                className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 transition hover:border-teal-300 hover:bg-teal-50/40"
+              >
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-color-primary text-sm font-bold text-white">
                   {member.name.charAt(0)}
                 </div>
@@ -109,7 +116,7 @@ export default function AssignBoard({ reports, staff }: { reports: Report[]; sta
                 <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
                   {member.assignedCount} тайлан
                 </span>
-              </div>
+              </Link>
             ))}
           </div>
         )}

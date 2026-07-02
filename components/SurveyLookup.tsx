@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { HiSearch } from 'react-icons/hi';
+import { Fragment, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { HiSearch, HiChevronDown } from 'react-icons/hi';
 import { formatDate } from '@/lib/utils';
 import { SURVEY_EXCLUDED_OBJECT_IDS } from '@/lib/constants';
 
@@ -21,11 +22,25 @@ type SurveyRow = {
   description: string | null;
 };
 
-export default function SurveyLookup() {
+type ReportMatch = {
+  id: string;
+  reportNumber: string;
+  title: string;
+  status: string;
+  reportType: { name: string };
+};
+
+export default function SurveyLookup({ role = 'reviewer' }: { role?: 'reviewer' | 'staff' }) {
+  const router = useRouter();
   const [register, setRegister] = useState('');
   const [rows, setRows] = useState<SurveyRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  // Тайлбар click flow: look up which Report(s) our own DB has for that
+  // survey row's register, so staff can jump straight to the score table.
+  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [matchLoading, setMatchLoading] = useState<number | null>(null);
+  const [matches, setMatches] = useState<Record<number, ReportMatch[]>>({});
 
   const load = async (reg: string) => {
     setLoading(true);
@@ -65,6 +80,30 @@ export default function SurveyLookup() {
   const search = (e: React.FormEvent) => {
     e.preventDefault();
     load(register.trim());
+  };
+
+  // A single matching report jumps straight to its score table; several
+  // matches expand inline so the user can pick one; none shows a note.
+  const openScores = async (row: SurveyRow) => {
+    if (!row.register) return;
+    if (matches[row.objectId]) {
+      setExpandedId(expandedId === row.objectId ? null : row.objectId);
+      return;
+    }
+    setMatchLoading(row.objectId);
+    try {
+      const res = await fetch(`/api/reports/by-register?register=${encodeURIComponent(row.register)}`);
+      const data = await res.json();
+      const found: ReportMatch[] = data.reports || [];
+      if (found.length === 1) {
+        router.push(`/report/${found[0].id}/scores?role=${role}`);
+        return;
+      }
+      setMatches((prev) => ({ ...prev, [row.objectId]: found }));
+      setExpandedId(row.objectId);
+    } finally {
+      setMatchLoading(null);
+    }
   };
 
   return (
@@ -124,16 +163,59 @@ export default function SurveyLookup() {
                 </tr>
               ) : (
                 rows.map((row) => (
-                  <tr key={row.objectId} className="transition-colors hover:bg-teal-50/40">
-                    <td className="px-4 py-4 text-slate-600">{row.reportType || '-'}</td>
-                    <td className="px-4 py-4 font-semibold text-slate-900">{row.projectName || '-'}</td>
-                    <td className="px-4 py-4 text-slate-600">{row.organization || '-'}</td>
-                    <td className="px-4 py-4 text-slate-600">{row.register || '-'}</td>
-                    <td className="px-4 py-4 whitespace-nowrap text-slate-600">
-                      {row.projectDate ? formatDate(new Date(row.projectDate)) : '-'}
-                    </td>
-                    <td className="px-4 py-4 text-slate-600">{row.description || '-'}</td>
-                  </tr>
+                  <Fragment key={row.objectId}>
+                    <tr className="transition-colors hover:bg-teal-50/40">
+                      <td className="px-4 py-4 text-slate-600">{row.reportType || '-'}</td>
+                      <td className="px-4 py-4 font-semibold text-slate-900">{row.projectName || '-'}</td>
+                      <td className="px-4 py-4 text-slate-600">{row.organization || '-'}</td>
+                      <td className="px-4 py-4 text-slate-600">{row.register || '-'}</td>
+                      <td className="px-4 py-4 whitespace-nowrap text-slate-600">
+                        {row.projectDate ? formatDate(new Date(row.projectDate)) : '-'}
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-2">
+                          <span className="text-slate-600">{row.description}</span>
+                          {row.register && (
+                            <button
+                              type="button"
+                              onClick={() => openScores(row)}
+                              disabled={matchLoading === row.objectId}
+                              className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-teal-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-teal-700 transition hover:bg-teal-50 disabled:opacity-60 whitespace-nowrap"
+                            >
+                              {matchLoading === row.objectId ? 'Хайж байна...' : 'Дэлгэрэнгүй'}
+                              <HiChevronDown
+                                size={12}
+                                className={`shrink-0 transition-transform ${expandedId === row.objectId ? 'rotate-180' : ''}`}
+                              />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                    {expandedId === row.objectId && matches[row.objectId] && (
+                      <tr className="bg-slate-50/70">
+                        <td colSpan={6} className="px-4 py-3">
+                          {matches[row.objectId].length === 0 ? (
+                            <p className="text-sm text-slate-500">Энэ регистрт тохирох тайлан манай системд алга байна.</p>
+                          ) : (
+                            <div className="space-y-1.5">
+                              <p className="text-xs font-medium text-slate-500">Тохирох тайлангууд — үнэлгээ харах бол сонгоно уу:</p>
+                              {matches[row.objectId].map((m) => (
+                                <a
+                                  key={m.id}
+                                  href={`/report/${m.id}/scores?role=${role}`}
+                                  className="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm hover:border-teal-300 hover:bg-teal-50/40"
+                                >
+                                  <span className="font-medium text-slate-800">{m.reportNumber} — {m.title}</span>
+                                  <span className="text-xs text-slate-500">{m.reportType.name}</span>
+                                </a>
+                              ))}
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
                 ))
               )}
             </tbody>

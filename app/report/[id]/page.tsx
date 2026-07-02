@@ -5,6 +5,7 @@ import StatusBadge from '@/components/StatusBadge';
 import AttachmentList from '@/components/AttachmentList';
 import ManagerReturnPanel from '@/components/ManagerReturnPanel';
 import SurveyInfoCard from '@/components/SurveyInfoCard';
+import LocationMap from '@/components/LocationMapClient';
 import { parseAttachments } from '@/lib/attachments';
 import { signAttachments } from '@/lib/supabase';
 import { formatDate, formatScore } from '@/lib/utils';
@@ -125,7 +126,6 @@ export default async function ReportDetailPage(props: Props) {
       ]
     : isStaff
     ? [
-        { label: 'Удирдлагын хуудас', href: '/evaluator' },
         { label: 'Надад оноогдсон тайлангууд', href: '/evaluator' },
         { label: 'Үнэлгээ өгсөн тайлангууд', href: '/evaluator/evaluated' },
         { label: 'Газарзүйн мэдээлэл', href: '/evaluator/geography' },
@@ -267,12 +267,7 @@ export default async function ReportDetailPage(props: Props) {
                       Байршил ({report.location.latitude.toFixed(6)}, {report.location.longitude.toFixed(6)})
                     </p>
                     <div className="rounded-xl overflow-hidden border border-slate-200" style={{ height: 320 }}>
-                      <iframe
-                        title="Тайлангийн байршил"
-                        className="w-full h-full"
-                        loading="lazy"
-                        src={`https://www.openstreetmap.org/export/embed.html?bbox=${report.location.longitude - 0.01}%2C${report.location.latitude - 0.01}%2C${report.location.longitude + 0.01}%2C${report.location.latitude + 0.01}&layer=mapnik&marker=${report.location.latitude}%2C${report.location.longitude}`}
-                      />
+                      <LocationMap lat={report.location.latitude} lng={report.location.longitude} />
                     </div>
                   </div>
                 )}

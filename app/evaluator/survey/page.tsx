@@ -25,7 +25,6 @@ export default async function EvaluatorSurveyPage() {
     <div className="flex min-h-screen bg-background">
       <Sidebar
         items={[
-          { label: 'Удирдлагын хуудас', href: '/evaluator' },
           {
             label: 'Надад оноогдсон тайлангууд',
             href: '/evaluator',
@@ -50,7 +49,7 @@ export default async function EvaluatorSurveyPage() {
             <p className="text-sm text-slate-500">Байгууллагын регистрийн дугаараар Survey123 системээс мэдээлэл хайна.</p>
           </div>
 
-          <SurveyLookup />
+          <SurveyLookup role="staff" />
         </main>
       </div>
     </div>

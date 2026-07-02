@@ -68,22 +68,19 @@ function formatLocation(loc: CompanySurvey['location']) {
 export default function CompaniesView({ companies }: { companies: CompanyRow[] }) {
   const [search, setSearch] = useState('');
   const [applied, setApplied] = useState('');
-  // "" = all, "filled" = only companies with at least one survey.
-  const [onlyFilled, setOnlyFilled] = useState(false);
 
   const filled = companies.filter((c) => c.surveys.length > 0);
 
   const visible = useMemo(() => {
     const term = applied.trim().toLowerCase();
     return companies.filter((c) => {
-      if (onlyFilled && c.surveys.length === 0) return false;
       if (!term) return true;
       return (
         c.name.toLowerCase().includes(term) ||
         c.registerNumber.toLowerCase().includes(term)
       );
     });
-  }, [companies, applied, onlyFilled]);
+  }, [companies, applied]);
 
   return (
     <div className="space-y-6">
@@ -136,15 +133,6 @@ export default function CompaniesView({ companies }: { companies: CompanyRow[] }
               />
             </div>
           </div>
-          <label className="inline-flex h-11 cursor-pointer select-none items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-600">
-            <input
-              type="checkbox"
-              checked={onlyFilled}
-              onChange={(e) => setOnlyFilled(e.target.checked)}
-              className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-400"
-            />
-            Зөвхөн судалгаа бөглөсөн
-          </label>
           <div className="flex items-center gap-2.5">
             <button
               type="button"
@@ -156,7 +144,7 @@ export default function CompaniesView({ companies }: { companies: CompanyRow[] }
             </button>
             <button
               type="button"
-              onClick={() => { setSearch(''); setApplied(''); setOnlyFilled(false); }}
+              onClick={() => { setSearch(''); setApplied(''); }}
               className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
             >
               Цэвэрлэх

@@ -1,0 +1,210 @@
+import prisma from '@/lib/prisma';
+import Header from '@/components/Header';
+import Sidebar from '@/components/Sidebar';
+import { formatScore } from '@/lib/utils';
+import { getCurrentUser } from '@/lib/auth';
+
+type Props = {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ role?: string }>;
+};
+
+async function fetchReportDetail(reportId: string) {
+  return prisma.report.findUnique({
+    where: { id: reportId },
+    include: {
+      assignments: {
+        include: {
+          evaluator: true,
+          evaluation: {
+            include: {
+              scores: {
+                include: { criterion: true },
+              },
+            },
+          },
+        },
+      },
+      location: true,
+    },
+  });
+}
+
+async function fetchCriteria() {
+  return prisma.evaluationCriterion.findMany({
+    where: { isActive: true },
+    orderBy: { sortOrder: 'asc' },
+  });
+}
+
+async function fetchReportTypes() {
+  return prisma.reportType.findMany({
+    where: { isActive: true },
+    orderBy: { name: 'asc' },
+  });
+}
+
+// Score-only view opened from "Судалгаа хайх" — just the Excel-style scoring
+// table (who gave what), without the rest of the report detail page.
+export default async function ReportScoresPage(props: Props) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
+  const isReviewer = searchParams.role === 'reviewer';
+  const isStaff = searchParams.role === 'staff';
+  const roleParam = isReviewer ? 'reviewer' : isStaff ? 'staff' : 'sender';
+
+  const [report, criteria, reportTypes] = await Promise.all([
+    fetchReportDetail(params.id),
+    fetchCriteria(),
+    isReviewer ? fetchReportTypes() : Promise.resolve([]),
+  ]);
+
+  if (!report) {
+    return <div className="p-8 text-center text-slate-500">Тайлан олдсонгүй.</div>;
+  }
+
+  const currentUser = isStaff ? await getCurrentUser() : null;
+
+  const scoreRows = report.assignments
+    .filter((a: any) => !isStaff || a.evaluator?.id === currentUser?.id)
+    .map((a: any) => ({
+      evaluatorName: a.evaluator.name,
+      totalScore: a.evaluation ? a.evaluation.totalScore : null,
+      comment: a.evaluation?.comment ?? null,
+      scores: a.evaluation ? a.evaluation.scores : [],
+    }));
+
+
+  const sidebarItems = isReviewer
+    ? [
+        { label: 'Хяналтын самбар', href: '/reviewer' },
+        {
+          label: 'Ирсэн тайлангууд',
+          href: '/reviewer/reports',
+          children: reportTypes
+            .filter((rt: any) => rt.slug !== 'type-5')
+            .map((rt: any) => ({
+              label: rt.name,
+              href: `/reviewer/reports?type=${rt.slug}`,
+            })),
+        },
+        { label: 'Үнэлгээний явц', href: '/reviewer/evaluation-progress' },
+        { label: 'Газарзүйн мэдээлэл', href: '/reviewer/geography' },
+        { label: 'Судалгаа хайх', href: '/reviewer/survey', active: true },
+        { label: 'Буцаасан тайлан', href: '/reviewer' },
+        { label: 'Нэмэлт мэдээ', href: '/reviewer/reports?type=type-5' },
+      ]
+    : isStaff
+    ? [
+        { label: 'Надад оноогдсон тайлангууд', href: '/evaluator' },
+        { label: 'Үнэлгээ өгсөн тайлангууд', href: '/evaluator/evaluated' },
+        { label: 'Газарзүйн мэдээлэл', href: '/evaluator/geography' },
+        { label: 'Судалгаа хайх', href: '/evaluator/survey', active: true },
+      ]
+    : [{ label: 'Хяналтын самбар', href: '/sender' }];
+
+  const backHref = isReviewer ? '/reviewer/survey' : isStaff ? '/evaluator/survey' : '/sender';
+
+  return (
+    <div className="flex min-h-screen bg-background">
+      <Sidebar items={sidebarItems} />
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        {isReviewer || isStaff ? (
+          <Header userName={isStaff ? 'Үнэлгээний ажилтан' : 'Хянах менежер'} companyName="Хянах байгууллага" role={isStaff ? 'staff' : 'reviewer'} />
+        ) : (
+          <Header userName="Илгээх хэрэглэгч" companyName="Илгээх байгууллага" companyType="sender" />
+        )}
+        <main className="flex-1 min-w-0 p-6 space-y-5">
+          {scoreRows.length > 0 ? (
+            <div className="bg-white rounded-2xl border border-slate-200 p-6">
+              <h2 className="text-base font-semibold text-slate-900 mb-5">Үнэлгээний дүн</h2>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-200 bg-slate-50">
+                      <th rowSpan={2} className="border border-slate-200 py-3 px-4 text-xs font-semibold text-slate-500 uppercase w-12 align-bottom">№</th>
+                      <th rowSpan={2} className="border border-slate-200 text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase align-bottom">Гишүүд</th>
+                      <th colSpan={criteria.length} className="border border-slate-200 py-2 px-4 text-xs font-bold text-slate-600 uppercase text-center">Үнэлгээ</th>
+                      <th rowSpan={2} className="border border-slate-200 py-3 px-4 text-xs font-semibold text-slate-500 uppercase w-24 align-bottom">Нийлбэр дүн</th>
+                      <th rowSpan={2} className="border border-slate-200 py-3 px-4 text-xs font-semibold text-slate-500 uppercase w-24 align-bottom">Дундаж оноо</th>
+                      <th rowSpan={2} className="border border-slate-200 py-3 px-4 text-xs font-semibold text-slate-500 uppercase w-20 align-bottom">Байршил</th>
+                    </tr>
+                    <tr className="border-b-2 border-slate-200 bg-slate-50">
+                      {criteria.map((criterion: any) => (
+                        <th key={criterion.id} className="border border-slate-200 py-2 px-2 text-[11px] font-semibold text-slate-500 text-center leading-tight">
+                          {criterion.name}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {scoreRows.map((row, i) => (
+                      <tr key={i} className="border-b border-slate-100 hover:bg-slate-50">
+                        <td className="border border-slate-200 py-3 px-4 text-slate-600">{i + 1}</td>
+                        <td className="border border-slate-200 py-3 px-4 font-medium text-slate-800">{row.evaluatorName}</td>
+                        {criteria.map((criterion: any) => {
+                          const score = row.scores.find((s: any) => s.criterionId === criterion.id);
+                          return (
+                            <td key={criterion.id} className="border border-slate-200 py-3 px-2 text-center font-medium text-color-primary">
+                              {score ? score.score : ''}
+                            </td>
+                          );
+                        })}
+                        <td className="border border-slate-200 py-3 px-4 text-center font-bold text-slate-900">
+                          {row.totalScore ?? ''}
+                        </td>
+                        {i === 0 && (
+                          <>
+                            <td rowSpan={scoreRows.length} className="border border-slate-200 py-3 px-4 text-center align-middle font-bold text-color-primary">
+                              {report.finalScore !== null ? formatScore(report.finalScore) : '-'}
+                            </td>
+                            <td rowSpan={scoreRows.length} className="border border-slate-200 py-3 px-4 text-center align-middle">
+                              {report.location?.latitude != null && report.location?.longitude != null ? (
+                                <a
+                                  href={`/report/${report.id}/location?role=${roleParam}`}
+                                  className="font-medium text-color-primary underline underline-offset-2 hover:text-color-primary/80"
+                                >
+                                  map
+                                </a>
+                              ) : (
+                                '-'
+                              )}
+                            </td>
+                          </>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {scoreRows.some((row) => row.comment) && (
+                <div className="mt-5 space-y-2">
+                  <h3 className="text-sm font-semibold text-slate-700">Сэтгэгдлүүд</h3>
+                  {scoreRows.filter((row) => row.comment).map((row, i) => (
+                    <div key={i} className="rounded-xl bg-slate-50 border border-slate-100 p-3">
+                      <p className="text-xs font-semibold text-slate-600 mb-0.5">{row.evaluatorName}</p>
+                      <p className="text-sm text-slate-700">{row.comment}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 text-center">
+              <p className="text-sm text-slate-500">Үнэлгээ одоогоор өгөгдөөгүй байна.</p>
+            </div>
+          )}
+
+          <div className="flex justify-end">
+            <a href={backHref} className="h-10 px-5 rounded-xl border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 transition inline-flex items-center">
+              Буцах
+            </a>
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}

@@ -17,7 +17,6 @@ export default async function EvaluatorGeographyPage() {
     <div className="flex min-h-screen bg-background">
       <Sidebar
         items={[
-          { label: 'Удирдлагын хуудас', href: '/evaluator' },
           { label: 'Надад оноогдсон тайлангууд', href: '/evaluator' },
           { label: 'Үнэлгээ өгсөн тайлангууд', href: '/evaluator/evaluated' },
           { label: 'Газарзүйн мэдээлэл', href: '/evaluator/geography', active: true },
