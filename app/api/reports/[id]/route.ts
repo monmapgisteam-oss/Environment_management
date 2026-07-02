@@ -50,6 +50,9 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
         implementerName: data.implementerName || null,
         implementerRegister: data.implementerRegister || null,
         approvedDate: data.approvedDate ? new Date(data.approvedDate) : null,
+        hasGreenery: data.hasGreenery === 'yes' ? true : data.hasGreenery === 'no' ? false : null,
+        treeCount: data.hasGreenery === 'yes' && data.treeCount !== '' && data.treeCount != null ? parseInt(data.treeCount) : null,
+        spentAmount: data.spentAmount !== '' && data.spentAmount != null ? parseInt(data.spentAmount) : null,
         reportNumber: data.reportNumber?.trim() || undefined,
         status,
         // Fixing a returned report clears the previous return reason.

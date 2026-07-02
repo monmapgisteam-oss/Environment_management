@@ -285,6 +285,24 @@ export default async function ReportDetailPage(props: Props) {
                   <p className="font-medium text-slate-800 mt-0.5">{formatDate(report.approvedDate)}</p>
                 </div>
               )}
+              {report.hasGreenery != null && (
+                <div>
+                  <p className="text-slate-500 text-xs">Ногоон байгууламжтай эсэх</p>
+                  <p className="font-medium text-slate-800 mt-0.5">{report.hasGreenery ? 'Тийм' : 'Үгүй'}</p>
+                </div>
+              )}
+              {report.hasGreenery && report.treeCount != null && (
+                <div>
+                  <p className="text-slate-500 text-xs">Тарьсан мод</p>
+                  <p className="font-medium text-slate-800 mt-0.5">{report.treeCount}</p>
+                </div>
+              )}
+              {report.spentAmount != null && (
+                <div>
+                  <p className="text-slate-500 text-xs">Зарцуулсан дүн</p>
+                  <p className="font-medium text-slate-800 mt-0.5">{report.spentAmount.toLocaleString()}₮</p>
+                </div>
+              )}
             </div>
 
             {report.description && (

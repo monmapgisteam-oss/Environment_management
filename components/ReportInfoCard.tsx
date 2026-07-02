@@ -130,7 +130,7 @@ export default function ReportInfoCard({ formData, handleChange, lockedType }: R
       </div>
 
       {/* Row 5: Description */}
-      <div>
+      <div className="mb-5">
         <label className="block text-sm font-medium text-color-text-main mb-1.5">Тайлбар</label>
         <textarea
           name="description"
@@ -140,6 +140,66 @@ export default function ReportInfoCard({ formData, handleChange, lockedType }: R
           rows={4}
           className="w-full rounded-xl border border-[#D9E4F0] bg-white px-4 py-3 text-sm text-color-text-main placeholder:text-color-text-muted focus:outline-none focus:border-color-primary focus:ring-2 focus:ring-color-primary/10 transition resize-y"
         />
+      </div>
+
+      {/* Row 6: Greenery */}
+      <div className="rounded-xl border border-[#E8F0FE] p-4">
+        <h3 className="text-sm font-semibold text-color-text-main mb-3">Нэмэлт</h3>
+
+        <label className="block text-sm font-medium text-color-text-main mb-1.5">Ногоон байгууламжтай эсэх</label>
+        <div className="flex gap-4">
+          <label className="inline-flex items-center gap-1.5 text-sm text-color-text-main">
+            <input
+              type="radio"
+              name="hasGreenery"
+              value="yes"
+              checked={formData.hasGreenery === 'yes'}
+              onChange={handleChange}
+              className="h-4 w-4 accent-color-primary"
+            />
+            Тийм
+          </label>
+          <label className="inline-flex items-center gap-1.5 text-sm text-color-text-main">
+            <input
+              type="radio"
+              name="hasGreenery"
+              value="no"
+              checked={formData.hasGreenery === 'no'}
+              onChange={handleChange}
+              className="h-4 w-4 accent-color-primary"
+            />
+            Үгүй
+          </label>
+        </div>
+
+        {formData.hasGreenery === 'yes' && (
+          <div className="mt-4 grid grid-cols-2 gap-5">
+            <div>
+              <label className="block text-sm font-medium text-color-text-main mb-1.5">Хэдэн мод тарьсан</label>
+              <input
+                type="number"
+                name="treeCount"
+                min={0}
+                value={formData.treeCount}
+                onChange={handleChange}
+                placeholder="Модны тоо"
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-color-text-main mb-1.5">Зарцуулсан мөнгөн дүн (₮)</label>
+              <input
+                type="number"
+                name="spentAmount"
+                min={0}
+                value={formData.spentAmount}
+                onChange={handleChange}
+                placeholder="Зарцуулсан дүн"
+                className={inputClass}
+              />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

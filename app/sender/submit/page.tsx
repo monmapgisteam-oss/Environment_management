@@ -59,6 +59,9 @@ export default function SubmitReportPage() {
     implementerRegister: "",
     approvedDate: "",
     description: "",
+    hasGreenery: "",
+    treeCount: "",
+    spentAmount: "",
   });
 
   // Keep report type locked to the selected sidebar type (create mode only).
@@ -83,6 +86,9 @@ export default function SubmitReportPage() {
         implementerRegister: r.implementerRegister || "",
         approvedDate: r.approvedDate ? String(r.approvedDate).slice(0, 10) : "",
         description: r.description || "",
+        hasGreenery: r.hasGreenery == null ? "" : r.hasGreenery ? "yes" : "no",
+        treeCount: r.treeCount != null ? String(r.treeCount) : "",
+        spentAmount: r.spentAmount != null ? String(r.spentAmount) : "",
       });
       if (r.location) {
         setInitialLocation({
@@ -159,6 +165,9 @@ export default function SubmitReportPage() {
       implementerRegister: "",
       approvedDate: "",
       description: "",
+      hasGreenery: "",
+      treeCount: "",
+      spentAmount: "",
     });
   };
 

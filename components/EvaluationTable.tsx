@@ -18,6 +18,9 @@ type Props = {
   savedScores?: Record<string, string> | null;
   savedComment?: string | null;
   savedSignature?: string | null;
+  // Sender-reported project info (set at submission, not here) — evaluators
+  // only ever view it for context while scoring, never edit it.
+  greenery?: { hasGreenery: boolean | null; treeCount: number | null; spentAmount: number | null } | null;
   redirectTo?: string;
   // Optional content rendered on the left of the action row (e.g. the staff
   // "return report" button), opposite the submit button.
@@ -31,7 +34,7 @@ type Props = {
   selfName?: string;
 };
 
-export default function EvaluationTable({ criteria, reportId, savedScores, savedComment, savedSignature, redirectTo, leftAction, otherEvaluations = [], selfName }: Props) {
+export default function EvaluationTable({ criteria, reportId, savedScores, savedComment, savedSignature, greenery, redirectTo, leftAction, otherEvaluations = [], selfName }: Props) {
   const [scores, setScores] = useState<Record<string, string>>(() => {
     if (savedScores) return savedScores;
     const init: Record<string, string> = {};
@@ -135,6 +138,22 @@ export default function EvaluationTable({ criteria, reportId, savedScores, saved
           </tbody>
         </table>
       </div>
+
+      {/* Sender-reported project info — read-only, set at submission time. */}
+      {greenery && greenery.hasGreenery != null && (
+        <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4">
+          <h3 className="text-sm font-semibold text-slate-700 mb-2">Ногоон байгууламж</h3>
+          <div className="flex flex-wrap gap-x-8 gap-y-1.5 text-sm">
+            <p><span className="text-slate-500">Ногоон байгууламжтай эсэх:</span> <span className="font-medium text-slate-800">{greenery.hasGreenery ? 'Тийм' : 'Үгүй'}</span></p>
+            {greenery.hasGreenery && greenery.treeCount != null && (
+              <p><span className="text-slate-500">Тарьсан мод:</span> <span className="font-medium text-slate-800">{greenery.treeCount}</span></p>
+            )}
+            {greenery.spentAmount != null && (
+              <p><span className="text-slate-500">Зарцуулсан дүн:</span> <span className="font-medium text-slate-800">{greenery.spentAmount.toLocaleString()}₮</span></p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Comment */}
       <div className="mt-6">

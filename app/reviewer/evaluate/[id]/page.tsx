@@ -131,6 +131,7 @@ export default async function ReviewerEvaluatePage(props: Props) {
             }
             savedComment={report.evaluations?.[0]?.comment || null}
             savedSignature={report.evaluations?.[0]?.signature || null}
+            greenery={{ hasGreenery: report.hasGreenery, treeCount: report.treeCount, spentAmount: report.spentAmount }}
           />
         </main>
       </div>

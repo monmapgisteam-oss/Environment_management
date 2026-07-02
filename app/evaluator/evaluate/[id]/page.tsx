@@ -229,6 +229,7 @@ export default async function StaffEvaluatePage(props: Props) {
             savedScores={savedScores}
             savedComment={assignment.evaluation?.comment || null}
             savedSignature={assignment.evaluation?.signature || null}
+            greenery={{ hasGreenery: report.hasGreenery, treeCount: report.treeCount, spentAmount: report.spentAmount }}
             redirectTo="/evaluator"
             selfName={user.name}
             leftAction={

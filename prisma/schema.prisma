@@ -3,8 +3,12 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  // Pooled (port 6543, pgbouncer=true) — used by the app at runtime, safe
+  // under serverless concurrency. DDL (db push/migrate) needs a session
+  // connection instead, since pgbouncer transaction mode doesn't support it.
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum CompanyType {
@@ -89,6 +93,12 @@ model Report {
   implementerName     String?
   implementerRegister String?
   approvedDate        DateTime?
+  // Sender-reported at submission time: whether the project has green
+  // infrastructure (landscaping/trees), how many trees if so, and how much
+  // was spent on it. Reviewers/staff only ever see these, never set them.
+  hasGreenery      Boolean?
+  treeCount        Int?
+  spentAmount      Int?
   status           ReportStatus      @default(draft)
   finalScore       Float?
   // Reason captured when a report is returned — first by a staff member to the
