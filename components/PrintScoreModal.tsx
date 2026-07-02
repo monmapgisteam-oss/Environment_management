@@ -150,7 +150,7 @@ export default function PrintScoreModal({
             <div className="mt-10 space-y-3 break-inside-avoid">
               {evaluations.map((ev, i) => (
                 <div key={i} className="flex items-end gap-2">
-                  <span className="shrink-0 text-sm text-slate-700">{i + 1}. {ev.evaluatorName}:</span>
+                  <span className="shrink-0 text-sm text-slate-700">{ev.evaluatorName}:</span>
                   <span className="w-32 border-b border-slate-500" />
                 </div>
               ))}
