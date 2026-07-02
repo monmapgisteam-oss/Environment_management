@@ -219,7 +219,7 @@ export default function SubmitReportPage() {
               href: "/sender/submit?type=additional",
               active: typeSlug === "additional",
             },
-            { label: "Миний тайлангууд", href: "/sender" },
+            { label: "Миний тайлангууд", href: "/sender/reports" },
             { label: "Ноорог", href: "/sender/drafts" },
           ]}
         />
@@ -251,7 +251,7 @@ export default function SubmitReportPage() {
                 {isEdit ? (
                   <button
                     type="button"
-                    onClick={() => router.push("/sender")}
+                    onClick={() => router.push("/sender/reports")}
                     className="h-11 px-6 rounded-xl bg-color-primary text-white text-sm font-semibold hover:bg-color-primary-dark transition inline-flex items-center"
                   >
                     Миний тайлангууд руу буцах

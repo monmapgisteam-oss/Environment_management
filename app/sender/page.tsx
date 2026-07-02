@@ -49,7 +49,7 @@ export default async function SenderDashboard() {
             ],
           },
           { label: 'Нэмэлт мэдээлэл', href: '/sender/submit?type=additional' },
-          { label: 'Миний тайлангууд', href: '/sender' },
+          { label: 'Миний тайлангууд', href: '/sender/reports' },
           { label: 'Ноорог', href: '/sender/drafts' },
         ]}
       />
