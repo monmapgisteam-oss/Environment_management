@@ -23,8 +23,11 @@ export default async function SenderDashboard() {
   const inReviewCount = reports.filter((r: any) => r.status === 'in_review').length;
   const revisionCount = reports.filter((r: any) => r.status === 'needs_revision').length;
   const completedCount = reports.filter((r: any) => r.status === 'approved' || r.status === 'completed').length;
-  const averageScore = reports.filter((r: any) => r.finalScore != null).length
-    ? (reports.filter((r: any) => r.finalScore != null).reduce((sum: number, r: any) => sum + (r.finalScore ?? 0), 0) / reports.filter((r: any) => r.finalScore != null).length).toFixed(1)
+  // A report's score stays hidden from the sender until the manager sends the
+  // signed scan, even once every staff member has finished scoring it.
+  const visibleScores = reports.filter((r: any) => r.finalScore != null && r.signedScanUrl != null);
+  const averageScore = visibleScores.length
+    ? (visibleScores.reduce((sum: number, r: any) => sum + (r.finalScore ?? 0), 0) / visibleScores.length).toFixed(1)
     : '-';
 
   const stats = [
@@ -84,7 +87,7 @@ export default async function SenderDashboard() {
               title: report.title,
               submittedAt: report.submittedAt?.toISOString() || null,
               status: report.status,
-              finalScore: report.finalScore,
+              finalScore: report.signedScanUrl ? report.finalScore : null,
               senderCompany: report.senderCompany,
               location: report.location,
             }))}

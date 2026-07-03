@@ -1,6 +1,7 @@
 import prisma from '@/lib/prisma';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
+import SignatureBadge from '@/components/SignatureBadge';
 import { formatScore } from '@/lib/utils';
 import { getCurrentUser } from '@/lib/auth';
 
@@ -12,7 +13,11 @@ type Props = {
 async function fetchReportDetail(reportId: string) {
   return prisma.report.findUnique({
     where: { id: reportId },
-    include: {
+    select: {
+      id: true,
+      finalScore: true,
+      signedScanUrl: true,
+      location: true,
       assignments: {
         include: {
           evaluator: true,
@@ -25,7 +30,6 @@ async function fetchReportDetail(reportId: string) {
           },
         },
       },
-      location: true,
     },
   });
 }
@@ -65,14 +69,28 @@ export default async function ReportScoresPage(props: Props) {
 
   const currentUser = isStaff ? await getCurrentUser() : null;
 
-  const scoreRows = report.assignments
-    .filter((a: any) => !isStaff || a.evaluator?.id === currentUser?.id)
-    .map((a: any) => ({
-      evaluatorName: a.evaluator.name,
-      totalScore: a.evaluation ? a.evaluation.totalScore : null,
-      comment: a.evaluation?.comment ?? null,
-      scores: a.evaluation ? a.evaluation.scores : [],
-    }));
+  // Scores stay hidden from the sender until the manager explicitly sends the
+  // signed scan — a single (or even every) staff member finishing must not
+  // leak scores early. Managers and staff always see what they're allowed to.
+  const isSenderView = !isReviewer && !isStaff;
+  const scoresVisible = !isSenderView || !!report.signedScanUrl;
+  const viewerRole: 'sender' | 'manager' | 'staff' = isReviewer ? 'manager' : isStaff ? 'staff' : 'sender';
+
+  const scoreRows = scoresVisible
+    ? report.assignments
+        .filter((a: any) => !isStaff || a.evaluator?.id === currentUser?.id)
+        .map((a: any) => ({
+          evaluatorName: a.evaluator.name,
+          totalScore: a.evaluation ? a.evaluation.totalScore : null,
+          comment: a.evaluation?.comment ?? null,
+          scores: a.evaluation ? a.evaluation.scores : [],
+          // Safe verification metadata only — never the raw numeric signature/PIN.
+          signatureStatus: a.evaluation?.signatureStatus ?? 'PENDING',
+          signedAt: a.evaluation?.signedAt ? a.evaluation.signedAt.toISOString() : null,
+          signatureId: a.evaluation?.signatureId ?? null,
+          documentHash: a.evaluation?.documentHash ?? null,
+        }))
+    : [];
 
 
   const sidebarItems = isReviewer
@@ -143,7 +161,19 @@ export default async function ReportScoresPage(props: Props) {
                     {scoreRows.map((row, i) => (
                       <tr key={i} className="border-b border-slate-100 hover:bg-slate-50">
                         <td className="border border-slate-200 py-3 px-4 text-slate-600">{i + 1}</td>
-                        <td className="border border-slate-200 py-3 px-4 font-medium text-slate-800">{row.evaluatorName}</td>
+                        <td className="border border-slate-200 py-3 px-4 font-medium text-slate-800">
+                          <div className="flex flex-col gap-0.5">
+                            <span>{row.evaluatorName}</span>
+                            <SignatureBadge
+                              status={row.signatureStatus}
+                              signedAt={row.signedAt}
+                              signatureId={row.signatureId}
+                              signerName={row.evaluatorName}
+                              documentHash={row.documentHash}
+                              viewerRole={viewerRole}
+                            />
+                          </div>
+                        </td>
                         {criteria.map((criterion: any) => {
                           const score = row.scores.find((s: any) => s.criterionId === criterion.id);
                           return (
@@ -154,6 +184,7 @@ export default async function ReportScoresPage(props: Props) {
                         })}
                         <td className="border border-slate-200 py-3 px-4 text-center font-bold text-slate-900">
                           {row.totalScore ?? ''}
+                          {row.signatureStatus === 'VERIFIED' && <span className="ml-1 text-emerald-600">✓</span>}
                         </td>
                         {i === 0 && (
                           <>
@@ -194,7 +225,11 @@ export default async function ReportScoresPage(props: Props) {
             </div>
           ) : (
             <div className="bg-white rounded-2xl border border-slate-200 p-6 text-center">
-              <p className="text-sm text-slate-500">Үнэлгээ одоогоор өгөгдөөгүй байна.</p>
+              <p className="text-sm text-slate-500">
+                {isSenderView && !scoresVisible
+                  ? 'Тайлан хянагдаж байна. Менежер баталгаажуулсны дараа үнэлгээний дүн харагдана.'
+                  : 'Үнэлгээ одоогоор өгөгдөөгүй байна.'}
+              </p>
             </div>
           )}
 

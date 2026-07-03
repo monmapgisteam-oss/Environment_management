@@ -55,7 +55,8 @@ export default async function SenderReportsPage() {
               title: report.title,
               submittedAt: report.submittedAt?.toISOString() || null,
               status: report.status,
-              finalScore: report.finalScore,
+              // Hidden until the manager sends the signed scan, even once fully scored.
+              finalScore: report.signedScanUrl ? report.finalScore : null,
               senderCompany: report.senderCompany,
               location: report.location,
             }))}

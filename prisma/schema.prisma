@@ -62,6 +62,10 @@ model User {
   role         UserRole
   phone        String?
   position     String?
+  // Hashed (scrypt, salted) numeric signature PIN. Never stores the raw PIN.
+  // Set on the staff member's first signature — every later signature must
+  // match it (trust-on-first-use enrollment; there is no separate PIN setup flow).
+  signaturePinHash String?
   notifications Notification[]
   evaluatorAssignments ReportAssignment[] @relation("evaluatorAssignments")
   managerAssignments ReportAssignment[] @relation("managerAssignments")
@@ -176,7 +180,17 @@ model Evaluation {
   reportId     String
   totalScore   Int
   comment      String?
+  // Deprecated: legacy raw-PIN column, unused by the signature-verification
+  // flow. Never written to going forward — kept only so existing rows aren't
+  // dropped without a data migration decision.
   signature    String?
+  // Signature verification (safe metadata only — never the raw PIN).
+  status          String    @default("DRAFT")
+  signatureStatus String    @default("PENDING")
+  signedAt        DateTime?
+  signatureId     String?   @unique
+  documentHash    String?
+  lockedAt        DateTime?
   // GlobalID of this evaluator's row in the ArcGIS repeat_1 table, so a
   // re-submitted score updates the same row instead of creating a duplicate.
   arcgisGlobalId String?

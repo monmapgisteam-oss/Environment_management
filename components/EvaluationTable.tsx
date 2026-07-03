@@ -4,6 +4,7 @@ import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import SignatureBadge from './SignatureBadge';
 
 type Criterion = {
   id: string;
@@ -17,7 +18,12 @@ type Props = {
   reportId: string;
   savedScores?: Record<string, string> | null;
   savedComment?: string | null;
-  savedSignature?: string | null;
+  // Signature verification metadata only — the raw numeric signature/PIN is
+  // never sent to the frontend, not even for the person who signed it.
+  locked?: boolean;
+  signatureStatus?: string | null;
+  signedAt?: string | null;
+  signatureId?: string | null;
   // Sender-reported project info (set at submission, not here) — evaluators
   // only ever view it for context while scoring, never edit it.
   greenery?: { hasGreenery: boolean | null; treeCount: number | null; spentAmount: number | null } | null;
@@ -34,7 +40,7 @@ type Props = {
   selfName?: string;
 };
 
-export default function EvaluationTable({ criteria, reportId, savedScores, savedComment, savedSignature, greenery, redirectTo, leftAction, otherEvaluations = [], selfName }: Props) {
+export default function EvaluationTable({ criteria, reportId, savedScores, savedComment, locked, signatureStatus, signedAt, signatureId, greenery, redirectTo, leftAction, otherEvaluations = [], selfName }: Props) {
   const [scores, setScores] = useState<Record<string, string>>(() => {
     if (savedScores) return savedScores;
     const init: Record<string, string> = {};
@@ -42,7 +48,7 @@ export default function EvaluationTable({ criteria, reportId, savedScores, saved
     return init;
   });
   const [comment, setComment] = useState(savedComment || '');
-  const [signature, setSignature] = useState(savedSignature || '');
+  const [signature, setSignature] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
 
@@ -60,8 +66,8 @@ export default function EvaluationTable({ criteria, reportId, savedScores, saved
   };
 
   const handleSubmit = async () => {
-    if (!signature.trim()) {
-      alert('Тоон гарын үсгээ оруулна уу.');
+    if (!/^\d+$/.test(signature.trim())) {
+      alert('Тоон гарын үсгээ зөвхөн тоогоор оруулна уу.');
       return;
     }
     setSubmitting(true);
@@ -75,7 +81,8 @@ export default function EvaluationTable({ criteria, reportId, savedScores, saved
       alert('Үнэлгээ амжилттай өгөгдлөө.');
       router.push(redirectTo || '/reviewer/reports');
     } else {
-      alert('Алдаа гарлаа. Дахин оролдоно уу.');
+      const body = await response.json().catch(() => null);
+      alert(body?.error || 'Алдаа гарлаа. Дахин оролдоно уу.');
     }
   };
 
@@ -119,8 +126,9 @@ export default function EvaluationTable({ criteria, reportId, savedScores, saved
                     max={criterion.maxScore}
                     value={scores[criterion.id]}
                     placeholder="-"
+                    disabled={locked}
                     onChange={(e) => handleScoreChange(criterion.id, e.target.value, criterion.maxScore)}
-                    className="w-20 h-9 rounded-lg border border-slate-200 text-center text-sm font-medium text-slate-800 focus:outline-none focus:border-color-primary focus:ring-2 focus:ring-color-primary/10"
+                    className="w-20 h-9 rounded-lg border border-slate-200 text-center text-sm font-medium text-slate-800 focus:outline-none focus:border-color-primary focus:ring-2 focus:ring-color-primary/10 disabled:bg-slate-100 disabled:text-slate-500"
                   />
                 </td>
               </tr>
@@ -163,34 +171,53 @@ export default function EvaluationTable({ criteria, reportId, savedScores, saved
           onChange={(e) => setComment(e.target.value)}
           placeholder="Үнэлгээний сэтгэгдэл бичнэ үү..."
           rows={3}
-          className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-color-primary focus:ring-2 focus:ring-color-primary/10 transition resize-y"
+          disabled={locked}
+          className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-color-primary focus:ring-2 focus:ring-color-primary/10 transition resize-y disabled:bg-slate-100 disabled:text-slate-500"
         />
       </div>
 
+      {locked && (
+        <div className="mt-6 flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50/60 px-4 py-3">
+          <p className="text-sm text-emerald-700">Гарын үсгээр баталгаажсан тул засах боломжгүй.</p>
+          <SignatureBadge
+            status={signatureStatus || 'VERIFIED'}
+            signedAt={signedAt}
+            signatureId={signatureId}
+            signerName={selfName || ''}
+            viewerRole="staff"
+          />
+        </div>
+      )}
+
       {/* Digital (numeric) signature — the evaluator signs off on their scoring */}
-      <div className="mt-6">
-        <label className="block text-sm font-medium text-slate-700 mb-1.5">
-          Тоон гарын үсэг <span className="text-red-500">*</span>
-        </label>
-        <input
-          type="text"
-          value={signature}
-          onChange={(e) => setSignature(e.target.value)}
-          placeholder="Тоон гарын үсгээ оруулна уу"
-          className="w-full max-w-xs rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-color-primary focus:ring-2 focus:ring-color-primary/10 transition"
-        />
-      </div>
+      {!locked && (
+        <div className="mt-6">
+          <label className="block text-sm font-medium text-slate-700 mb-1.5">
+            Тоон гарын үсэг <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            inputMode="numeric"
+            value={signature}
+            onChange={(e) => setSignature(e.target.value.replace(/\D/g, ''))}
+            placeholder="Тоон гарын үсгээ оруулна уу"
+            className="w-full max-w-xs rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-color-primary focus:ring-2 focus:ring-color-primary/10 transition"
+          />
+        </div>
+      )}
 
       {/* Actions */}
       <div className={`mt-6 flex flex-col-reverse gap-4 sm:flex-row sm:items-start ${leftAction ? 'sm:justify-between' : 'sm:justify-end'}`}>
         {leftAction}
-        <button
-          onClick={handleSubmit}
-          disabled={submitting}
-          className="h-10 px-6 rounded-xl bg-color-primary text-white text-sm font-semibold hover:bg-color-primary-dark transition inline-flex items-center justify-center disabled:opacity-50"
-        >
-          {submitting ? 'Илгээж байна...' : 'Үнэлгээ өгөх'}
-        </button>
+        {!locked && (
+          <button
+            onClick={handleSubmit}
+            disabled={submitting}
+            className="h-10 px-6 rounded-xl bg-color-primary text-white text-sm font-semibold hover:bg-color-primary-dark transition inline-flex items-center justify-center disabled:opacity-50"
+          >
+            {submitting ? 'Илгээж байна...' : 'Гарын үсэг зурж илгээх'}
+          </button>
+        )}
       </div>
     </div>
   );

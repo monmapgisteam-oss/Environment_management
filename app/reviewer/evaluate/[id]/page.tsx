@@ -130,7 +130,10 @@ export default async function ReviewerEvaluatePage(props: Props) {
               }, {}) || null
             }
             savedComment={report.evaluations?.[0]?.comment || null}
-            savedSignature={report.evaluations?.[0]?.signature || null}
+            locked={report.evaluations?.[0]?.status === 'SIGNED'}
+            signatureStatus={report.evaluations?.[0]?.signatureStatus || null}
+            signedAt={report.evaluations?.[0]?.signedAt ? report.evaluations[0].signedAt.toISOString() : null}
+            signatureId={report.evaluations?.[0]?.signatureId || null}
             greenery={{ hasGreenery: report.hasGreenery, treeCount: report.treeCount, spentAmount: report.spentAmount }}
           />
         </main>

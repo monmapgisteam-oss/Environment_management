@@ -7,6 +7,7 @@ import ManagerReturnPanel from '@/components/ManagerReturnPanel';
 import SurveyInfoCard from '@/components/SurveyInfoCard';
 import LocationMap from '@/components/LocationMapClient';
 import ScanPrintPanel from '@/components/ScanPrintPanel';
+import SignatureBadge from '@/components/SignatureBadge';
 import { parseAttachments, downloadUrl } from '@/lib/attachments';
 import { signAttachments, createSignedUrl } from '@/lib/supabase';
 import { formatDate, formatScore } from '@/lib/utils';
@@ -89,6 +90,11 @@ export default async function ReportDetailPage(props: Props) {
       totalScore: a.evaluation.totalScore,
       comment: a.evaluation.comment,
       scores: a.evaluation.scores,
+      // Safe verification metadata only — never the raw numeric signature/PIN.
+      signatureStatus: a.evaluation.signatureStatus as string,
+      signedAt: a.evaluation.signedAt ? a.evaluation.signedAt.toISOString() : null,
+      signatureId: a.evaluation.signatureId as string | null,
+      documentHash: a.evaluation.documentHash as string | null,
     }));
 
   // Staff this report was distributed to, with whether each has scored it yet.
@@ -99,6 +105,7 @@ export default async function ReportDetailPage(props: Props) {
   }));
 
   const isSenderView = !isReviewer && !isStaff;
+  const viewerRole: 'sender' | 'manager' | 'staff' = isReviewer ? 'manager' : isStaff ? 'staff' : 'sender';
   let displayStatus = report.status === 'approved' ? 'completed' : report.status === 'assigned' ? 'submitted' : report.status;
   // "return_requested" is an internal staff→manager step; the sender should still
   // see the report as under review until the manager actually returns it.
@@ -110,6 +117,11 @@ export default async function ReportDetailPage(props: Props) {
   // Manager only sees the print/scan panel once every assigned staff member
   // has actually submitted a score — nothing to sign before that.
   const allEvaluatorsDone = assignedStaff.length > 0 && assignedStaff.every((m: any) => m.submitted);
+
+  // Scores stay hidden from the sender until the manager explicitly sends the
+  // signed scan — a single staff member finishing (or even all of them) must
+  // not leak scores early. Managers and staff always see what they're allowed to.
+  const scoresVisible = !isSenderView || !!report.signedScanUrl;
 
   const locationLabel = [report.location?.province, report.location?.district, report.location?.khoroo, report.location?.addressDetail]
     .filter((v) => v && v !== 'Тодорхойгүй')
@@ -357,7 +369,7 @@ export default async function ReportDetailPage(props: Props) {
           {attachments.length > 0 && <AttachmentList attachments={attachments} />}
 
           {/* Evaluation Scores Table */}
-          {evaluations.length > 0 && (
+          {evaluations.length > 0 && scoresVisible && (
             <div className="bg-white rounded-2xl border border-slate-200 p-6">
               <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
                 <h2 className="text-base font-semibold text-slate-900">Үнэлгээний дүн</h2>
@@ -386,7 +398,19 @@ export default async function ReportDetailPage(props: Props) {
                       <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase">Шалгуур</th>
                       <th className="text-center py-3 px-4 text-xs font-semibold text-slate-500 uppercase w-28">Авбал зохих оноо</th>
                       {evaluations.map((ev, i) => (
-                        <th key={i} className="text-center py-3 px-4 text-xs font-semibold text-slate-500 uppercase w-28">{ev.evaluatorName}</th>
+                        <th key={i} className="text-center py-3 px-4 text-xs font-semibold text-slate-500 uppercase w-28">
+                          <div className="flex flex-col items-center gap-1">
+                            <span>{ev.evaluatorName}</span>
+                            <SignatureBadge
+                              status={ev.signatureStatus}
+                              signedAt={ev.signedAt}
+                              signatureId={ev.signatureId}
+                              signerName={ev.evaluatorName}
+                              documentHash={ev.documentHash}
+                              viewerRole={viewerRole}
+                            />
+                          </div>
+                        </th>
                       ))}
                     </tr>
                   </thead>
@@ -413,7 +437,10 @@ export default async function ReportDetailPage(props: Props) {
                         {criteria.reduce((sum: number, c: any) => sum + c.maxScore, 0)}
                       </td>
                       {evaluations.map((ev, i) => (
-                        <td key={i} className="py-3 px-4 text-center font-bold text-color-primary text-lg">{ev.totalScore}</td>
+                        <td key={i} className="py-3 px-4 text-center font-bold text-color-primary text-lg">
+                          {ev.totalScore}
+                          {ev.signatureStatus === 'VERIFIED' && <span className="ml-1 text-emerald-600">✓</span>}
+                        </td>
                       ))}
                     </tr>
                   </tbody>
@@ -435,15 +462,19 @@ export default async function ReportDetailPage(props: Props) {
             </div>
           )}
 
-          {/* No evaluation yet */}
-          {evaluations.length === 0 && (
+          {/* No evaluation yet, or (sender) not yet released by the manager */}
+          {(evaluations.length === 0 || !scoresVisible) && (
             <div className="bg-white rounded-2xl border border-slate-200 p-6 text-center">
-              <p className="text-sm text-slate-500">Үнэлгээ одоогоор өгөгдөөгүй байна.</p>
+              <p className="text-sm text-slate-500">
+                {evaluations.length === 0
+                  ? 'Үнэлгээ одоогоор өгөгдөөгүй байна.'
+                  : 'Тайлан хянагдаж байна. Менежер баталгаажуулсны дараа үнэлгээний дүн харагдана.'}
+              </p>
             </div>
           )}
 
           {/* Final Score */}
-          {report.finalScore !== null && (
+          {report.finalScore !== null && scoresVisible && (
             <div className="bg-white rounded-2xl border border-slate-200 p-6 flex items-center justify-between">
               <p className="text-sm font-medium text-slate-600">Эцсийн дундаж оноо</p>
               <p className="text-3xl font-bold text-color-primary">{formatScore(report.finalScore)}</p>
