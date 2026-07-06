@@ -65,6 +65,9 @@ export default function ReportTable({ reports, role = 'sender', showStatusFilter
     return status;
   };
 
+  const sourceLabel = (source?: Report['source']) =>
+    source === 'survey123' ? 'Survey системээс тайлан ирлээ' : null;
+
   const types = useMemo(() => {
     const set = new Set(reports.map((report) => report.reportType.name));
     return Array.from(set);
@@ -206,9 +209,9 @@ export default function ReportTable({ reports, role = 'sender', showStatusFilter
                     <td className="px-4 py-4 font-semibold text-slate-900">
                       <div className="flex flex-wrap items-center gap-1.5">
                         <span>{report.reportNumber}</span>
-                        {report.source === 'survey123' && (
+                        {sourceLabel(report.source) && (
                           <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700">
-                            Survey123
+                            {sourceLabel(report.source)}
                           </span>
                         )}
                       </div>
@@ -223,10 +226,10 @@ export default function ReportTable({ reports, role = 'sender', showStatusFilter
                       <div className="flex justify-end">
                         <div className={`${actionColClass} flex-col items-stretch gap-1.5`}>
                           <Link href={report.detailHref || `/report/${report.id}?role=${role ?? 'sender'}`} className="flex items-center justify-center rounded-lg border border-teal-200 bg-white px-3 py-2 text-xs font-semibold text-teal-700 transition hover:bg-teal-50 whitespace-nowrap">Дэлгэрэнгүй</Link>
-                          {role === 'reviewer' && report.source !== 'survey123' && report.status !== 'completed' && report.status !== 'approved' && (
+                          {role === 'reviewer' && report.status !== 'completed' && report.status !== 'approved' && (
                             <Link href={`/reviewer/assign?report=${report.id}`} className="flex items-center justify-center rounded-lg bg-color-primary px-3 py-2 text-xs font-semibold text-white hover:bg-color-primary-dark transition whitespace-nowrap">Гишүүдэд оноох</Link>
                           )}
-                          {role === 'staff' && report.source !== 'survey123' && report.status === 'in_review' && (
+                          {role === 'staff' && report.status === 'in_review' && (
                             <Link href={`/evaluator/evaluate/${report.id}`} className="flex items-center justify-center rounded-lg bg-color-primary px-3 py-2 text-xs font-semibold text-white hover:bg-color-primary-dark transition whitespace-nowrap">Үнэлэх</Link>
                           )}
                         </div>

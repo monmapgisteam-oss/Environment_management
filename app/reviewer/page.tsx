@@ -2,6 +2,7 @@ import prisma from '@/lib/prisma';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import ReportTable from '@/components/ReportTable';
+import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
 import { HiInbox, HiUserGroup, HiClock, HiCheckCircle } from 'react-icons/hi';
 
 async function fetchReportTypes() {
@@ -23,7 +24,7 @@ async function fetchReviewerReports() {
     },
     orderBy: { submittedAt: 'desc' },
   });
-  return reports;
+  return attachEffectiveSenderCompanies(reports);
 }
 
 export default async function ReviewerDashboard() {

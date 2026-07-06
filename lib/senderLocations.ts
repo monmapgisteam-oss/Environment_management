@@ -2,6 +2,7 @@ import prisma from '@/lib/prisma';
 import type { CompanyPoint } from '@/components/CompanyMap';
 import { SURVEY_EXCLUDED_OBJECT_IDS } from '@/lib/constants';
 import { fetchSurveyMapPoints } from '@/lib/surveyMapPoints';
+import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
 
 // Same Survey123 fallback lookup as fetchReviewedCompanyPoints, kept
 // separate since this one scopes to a single sender company instead of
@@ -35,15 +36,21 @@ async function fetchSurveyCoordsByRegister(): Promise<Record<string, [number, nu
  * every company the way the reviewer's "Газарзүйн мэдээлэл" map does.
  */
 export async function fetchSenderCompanyPoints(companyId: string): Promise<CompanyPoint[]> {
-  const [company, reports, surveyCoords] = await Promise.all([
+  const [company, rawReports, surveyCoords] = await Promise.all([
     prisma.company.findUnique({ where: { id: companyId } }),
     prisma.report.findMany({
-      where: { senderCompanyId: companyId, status: { not: 'draft' } },
+      where: {
+        status: { not: 'draft' },
+        OR: [{ senderCompanyId: companyId }, { implementerRegister: { not: null } }],
+      },
       include: { senderCompany: true, reportType: true, location: true },
       orderBy: { submittedAt: 'desc' },
     }),
     fetchSurveyCoordsByRegister(),
   ]);
+  const reports = (await attachEffectiveSenderCompanies(rawReports)).filter(
+    (report) => report.senderCompany?.id === companyId,
+  );
 
   const points: CompanyPoint[] = [];
   const registers = new Set<string>();

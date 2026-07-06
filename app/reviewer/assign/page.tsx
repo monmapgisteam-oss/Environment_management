@@ -3,6 +3,8 @@ import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import AssignBoard from '@/components/AssignBoard';
 import { STAFF_EMAILS } from '@/lib/constants';
+import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
+import { fetchSurveyReports } from '@/lib/surveyReports';
 
 async function fetchReportTypes() {
   return prisma.reportType.findMany({
@@ -35,24 +37,42 @@ async function fetchStaff() {
 }
 
 async function fetchDistributableReports() {
-  const reports = await prisma.report.findMany({
-    where: { status: { in: ['submitted', 'assigned', 'in_review', 'needs_revision'] } },
-    include: {
-      reportType: true,
-      senderCompany: true,
-      assignments: { include: { evaluator: { select: { id: true, name: true } } } },
-    },
-    orderBy: { submittedAt: 'desc' },
-  });
-  return reports.map((report: any) => ({
-    id: report.id,
-    reportNumber: report.reportNumber,
-    title: report.title,
-    reportTypeName: report.reportType.name,
-    senderName: report.senderCompany?.name || '-',
-    status: report.status,
-    assignees: report.assignments.map((a: any) => ({ id: a.evaluator.id, name: a.evaluator.name })),
-  }));
+  const [rawReports, surveyReports] = await Promise.all([
+    prisma.report.findMany({
+      where: { status: { in: ['submitted', 'assigned', 'in_review', 'needs_revision'] } },
+      include: {
+        reportType: true,
+        senderCompany: true,
+        assignments: { include: { evaluator: { select: { id: true, name: true } } } },
+      },
+      orderBy: { submittedAt: 'desc' },
+    }),
+    fetchSurveyReports(),
+  ]);
+  const reports = await attachEffectiveSenderCompanies(rawReports);
+  const existingReportNumbers = new Set(reports.map((report: any) => report.reportNumber));
+  return [
+    ...reports.map((report: any) => ({
+      id: report.id,
+      reportNumber: report.reportNumber,
+      title: report.title,
+      reportTypeName: report.reportType.name,
+      senderName: report.senderCompany?.name || '-',
+      status: report.status,
+      assignees: report.assignments.map((a: any) => ({ id: a.evaluator.id, name: a.evaluator.name })),
+    })),
+    ...surveyReports
+      .filter((report) => !existingReportNumbers.has(report.reportNumber))
+      .map((report) => ({
+        id: report.id,
+        reportNumber: report.reportNumber,
+        title: report.title,
+        reportTypeName: report.reportType.name,
+        senderName: report.senderCompany?.name || '-',
+        status: report.status,
+        assignees: [],
+      })),
+  ].sort((a, b) => a.reportNumber.localeCompare(b.reportNumber));
 }
 
 export default async function AssignPage() {

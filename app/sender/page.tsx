@@ -2,11 +2,16 @@ import prisma from '@/lib/prisma';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import ReportTable from '@/components/ReportTable';
+import { getCurrentUser } from '@/lib/auth';
+import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
 import { HiPaperAirplane, HiClock, HiPencil, HiCheckCircle, HiStar } from 'react-icons/hi';
 
-async function fetchSenderReports() {
+async function fetchSenderReports(companyId: string) {
   const reports = await prisma.report.findMany({
-    where: { status: { not: 'draft' } },
+    where: {
+      status: { not: 'draft' },
+      OR: [{ senderCompanyId: companyId }, { implementerRegister: { not: null } }],
+    },
     include: {
       reportType: true,
       senderCompany: true,
@@ -14,11 +19,12 @@ async function fetchSenderReports() {
     },
     orderBy: { submittedAt: 'desc' },
   });
-  return reports;
+  return (await attachEffectiveSenderCompanies(reports)).filter((report) => report.senderCompany?.id === companyId);
 }
 
 export default async function SenderDashboard() {
-  const reports = await fetchSenderReports();
+  const user = await getCurrentUser();
+  const reports = user?.companyId ? await fetchSenderReports(user.companyId) : [];
   const totalCount = reports.length;
   const inReviewCount = reports.filter((r: any) => r.status === 'in_review').length;
   const revisionCount = reports.filter((r: any) => r.status === 'needs_revision').length;

@@ -2,6 +2,7 @@ import prisma from '@/lib/prisma';
 import type { CompanyPoint } from '@/components/CompanyMap';
 import { SURVEY_EXCLUDED_OBJECT_IDS } from '@/lib/constants';
 import { fetchSurveyMapPoints } from '@/lib/surveyMapPoints';
+import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
 
 // Survey123 Layer 0 query endpoint. Used as a coordinate fallback when a
 // report's own picked location is missing.
@@ -37,7 +38,8 @@ async function fetchSurveyCoordsByRegister(): Promise<Record<string, SurveyRecor
 
 /**
  * One pin per report visible to the review organisation. Managers see every
- * received report, while evaluator staff see only reports they have reviewed.
+ * received report, while evaluator staff see reports assigned to them so the
+ * project's pinned location is visible before and after scoring.
  */
 export async function fetchReviewedCompanyPoints(
   options: FetchReviewedCompanyPointsOptions = {},
@@ -47,7 +49,6 @@ export async function fetchReviewedCompanyPoints(
       ? prisma.reportAssignment.findMany({
           where: {
             evaluatorUserId: options.evaluatorUserId,
-            evaluation: { isNot: null },
           },
           include: {
             evaluation: true,
@@ -65,12 +66,12 @@ export async function fetchReviewedCompanyPoints(
     fetchSurveyCoordsByRegister(),
   ]);
 
-  const reports: ReportForPoint[] = options.evaluatorUserId
+  const reports: ReportForPoint[] = await attachEffectiveSenderCompanies(options.evaluatorUserId
     ? (reportRows as any[]).map((assignment) => ({
         ...assignment.report,
         pointScore: assignment.evaluation?.totalScore ?? null,
       }))
-    : (reportRows as any[]);
+    : (reportRows as any[]));
 
   const points: CompanyPoint[] = [];
   const registers = new Set<string>();

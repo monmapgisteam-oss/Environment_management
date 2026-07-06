@@ -6,11 +6,10 @@ import Sidebar from "@/components/Sidebar";
 import EvaluationTable from "@/components/EvaluationTable";
 import AttachmentList from "@/components/AttachmentList";
 import StaffReturnButton from "@/components/StaffReturnButton";
-import SurveyInfoCard from "@/components/SurveyInfoCard";
 import { parseAttachments } from "@/lib/attachments";
 import { signAttachments } from "@/lib/supabase";
 import { formatDate } from "@/lib/utils";
-import { fetchSurveyInfoByRegister } from "@/lib/arcgis";
+import { attachEffectiveSenderCompanies } from "@/lib/reportCompanies";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -23,6 +22,26 @@ async function fetchCriteria() {
   });
 }
 
+async function findStaffAssignment(reportId: string, evaluatorUserId: string) {
+  const assignments = await prisma.reportAssignment.findMany({
+    where: { reportId, evaluatorUserId },
+    include: {
+      report: {
+        include: { reportType: true, senderCompany: true, location: true },
+      },
+      evaluation: { include: { scores: true } },
+    },
+    orderBy: { assignedAt: "desc" },
+  });
+
+  return (
+    assignments.find((assignment) => !assignment.evaluation) ||
+    assignments.find((assignment) => assignment.evaluation?.status !== "SIGNED") ||
+    assignments[0] ||
+    null
+  );
+}
+
 export default async function StaffEvaluatePage(props: Props) {
   const params = await props.params;
   const user = await getCurrentUser();
@@ -31,15 +50,7 @@ export default async function StaffEvaluatePage(props: Props) {
   }
 
   // A staff member may only score a report the manager assigned to them.
-  const assignment = await prisma.reportAssignment.findFirst({
-    where: { reportId: params.id, evaluatorUserId: user.id },
-    include: {
-      report: {
-        include: { reportType: true, senderCompany: true, location: true },
-      },
-      evaluation: { include: { scores: true } },
-    },
-  });
+  const assignment = await findStaffAssignment(params.id, user.id);
 
   if (!assignment) {
     return (
@@ -56,11 +67,8 @@ export default async function StaffEvaluatePage(props: Props) {
     );
   }
 
-  const report = assignment.report;
+  const report = (await attachEffectiveSenderCompanies([assignment.report]))[0];
   const criteria = await fetchCriteria();
-  const surveyRegister =
-    report.implementerRegister || report.senderCompany?.registerNumber || "";
-  const surveyInfo = await fetchSurveyInfoByRegister(surveyRegister);
 
   // Each staff member only ever sees their own scoring — other evaluators'
   // scores are deliberately not loaded here.
@@ -96,9 +104,6 @@ export default async function StaffEvaluatePage(props: Props) {
           companyType="reviewer"
         />
         <main className="flex-1 min-w-0 p-6 space-y-6">
-          {/* Company's own Survey123 submission — auto-matched by register number, top of screen. */}
-          <SurveyInfoCard info={surveyInfo} />
-
           {/* Report info */}
           <div className="bg-white rounded-2xl border border-slate-200 p-6">
             <div className="flex items-center justify-between mb-4">

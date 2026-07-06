@@ -4,6 +4,7 @@ import { getCurrentUser } from '@/lib/auth';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import ReportTable from '@/components/ReportTable';
+import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
 
 // Reports THIS staff member has already scored (their assignment has an
 // evaluation). Not the merely-assigned ones.
@@ -23,18 +24,24 @@ async function fetchEvaluatedReports(evaluatorUserId: string) {
     orderBy: { submittedAt: 'desc' },
   });
 
-  return assignments.map((assignment: any) => ({
-    id: assignment.report.id,
-    reportNumber: assignment.report.reportNumber,
-    reportType: assignment.report.reportType,
-    title: assignment.report.title,
-    submittedAt: assignment.report.submittedAt?.toISOString() || null,
-    status: 'completed',
-    // Show the score this staff member gave.
-    finalScore: assignment.evaluation?.totalScore ?? null,
-    senderCompany: assignment.report.senderCompany,
-    location: assignment.report.location,
-  }));
+  const reports = await attachEffectiveSenderCompanies(assignments.map((assignment: any) => assignment.report));
+  const reportById = new Map(reports.map((report: any) => [report.id, report]));
+
+  return assignments.map((assignment: any) => {
+    const report = reportById.get(assignment.report.id) || assignment.report;
+    return {
+      id: report.id,
+      reportNumber: report.reportNumber,
+      reportType: report.reportType,
+      title: report.title,
+      submittedAt: report.submittedAt?.toISOString() || null,
+      status: 'completed',
+      // Show the score this staff member gave.
+      finalScore: assignment.evaluation?.totalScore ?? null,
+      senderCompany: report.senderCompany,
+      location: report.location,
+    };
+  });
 }
 
 export default async function EvaluatedReportsPage() {

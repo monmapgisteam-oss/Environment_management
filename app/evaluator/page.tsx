@@ -4,6 +4,7 @@ import { getCurrentUser } from '@/lib/auth';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import ReportTable from '@/components/ReportTable';
+import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
 
 async function fetchReportTypes() {
   return prisma.reportType.findMany({
@@ -32,12 +33,16 @@ async function fetchAssignedReports(evaluatorUserId: string, typeSlug?: string) 
     orderBy: { assignedAt: 'desc' },
   });
 
+  const reports = await attachEffectiveSenderCompanies(assignments.map((assignment: any) => assignment.report));
+  const reportById = new Map(reports.map((report: any) => [report.id, report]));
+
   return assignments.map((assignment: any) => {
+    const report = reportById.get(assignment.report.id) || assignment.report;
     // Surface the report's own state for return flows so the staff member sees
     // "Буцаах хүсэлт илгээгдсэн" after they ask the manager to return it (and
     // "Засвар шаардсан" if the manager actually returned it to the sender).
     // Otherwise derive the status from whether they have submitted their score.
-    const reportStatus = assignment.report.status;
+    const reportStatus = report.status;
     const status =
       reportStatus === 'return_requested' || reportStatus === 'needs_revision'
         ? reportStatus
@@ -45,15 +50,15 @@ async function fetchAssignedReports(evaluatorUserId: string, typeSlug?: string) 
           ? 'completed'
           : 'in_review';
     return {
-      id: assignment.report.id,
-      reportNumber: assignment.report.reportNumber,
-      reportType: assignment.report.reportType,
-      title: assignment.report.title,
-      submittedAt: assignment.report.submittedAt?.toISOString() || null,
+      id: report.id,
+      reportNumber: report.reportNumber,
+      reportType: report.reportType,
+      title: report.title,
+      submittedAt: report.submittedAt?.toISOString() || null,
       status,
-      finalScore: assignment.report.finalScore,
-      senderCompany: assignment.report.senderCompany,
-      location: assignment.report.location,
+      finalScore: report.finalScore,
+      senderCompany: report.senderCompany,
+      location: report.location,
     };
   });
 }

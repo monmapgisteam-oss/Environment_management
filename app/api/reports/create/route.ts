@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 import { serializeImageAttachments } from '@/lib/attachments';
+import { resolveReportSenderCompany } from '@/lib/reportCompanies';
 
 export async function POST(request: Request) {
   try {
@@ -14,10 +15,11 @@ export async function POST(request: Request) {
     if (!currentUser || currentUser.role !== 'sender' || !currentUser.companyId) {
       return NextResponse.json({ error: 'Not authenticated as a sender' }, { status: 401 });
     }
-    const senderCompany = currentUser.company;
-    if (!senderCompany) {
+    const loginCompany = currentUser.company;
+    if (!loginCompany) {
       return NextResponse.json({ error: 'No sender company found' }, { status: 400 });
     }
+    const senderCompany = await resolveReportSenderCompany(loginCompany, data.implementerRegister);
 
     const typeValue = data.reportType?.trim() || '';
     let reportType = typeValue
@@ -46,7 +48,7 @@ export async function POST(request: Request) {
         description: data.description || null,
         fileUrl: serializeImageAttachments(data.fileUrl),
         implementerName: data.implementerName || null,
-        implementerRegister: data.implementerRegister || null,
+        implementerRegister: data.implementerRegister?.trim() || null,
         approvedDate: data.approvedDate ? new Date(data.approvedDate) : null,
         hasGreenery: data.hasGreenery === 'yes' ? true : data.hasGreenery === 'no' ? false : null,
         treeCount: data.hasGreenery === 'yes' && data.treeCount !== '' && data.treeCount != null ? parseInt(data.treeCount) : null,

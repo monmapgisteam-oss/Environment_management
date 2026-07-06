@@ -3,11 +3,20 @@ export const runtime = "nodejs";
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { materializeSurveyReportByObjectId } from "@/lib/surveyReports";
+
+async function resolveAssignableReportId(reportId: string) {
+  const match = /^survey-(\d+)$/.exec(reportId);
+  if (!match) return reportId;
+  const report = await materializeSurveyReportByObjectId(Number(match[1]));
+  return report.id;
+}
 
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    const reportId: string = data.reportId;
+    const rawReportId = String(data.reportId || "");
+    const reportId: string = rawReportId ? await resolveAssignableReportId(rawReportId) : "";
     const evaluatorIds: string[] = data.evaluators || [];
 
     if (!reportId || evaluatorIds.length === 0) {
@@ -38,9 +47,13 @@ export async function POST(request: Request) {
     // Don't assign the same staff member to a report twice.
     const existing = await prisma.reportAssignment.findMany({
       where: { reportId, evaluatorUserId: { in: evaluatorIds } },
-      select: { evaluatorUserId: true },
+      include: { evaluation: true },
     });
-    const existingIds = new Set(existing.map((e) => e.evaluatorUserId));
+    const existingIds = new Set(
+      existing
+        .filter((assignment) => !assignment.evaluation || assignment.evaluation.status !== "SIGNED")
+        .map((assignment) => assignment.evaluatorUserId),
+    );
     const toAssign = evaluatorIds.filter((id) => !existingIds.has(id));
 
     const deadline = data.deadline

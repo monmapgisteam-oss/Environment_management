@@ -5,6 +5,7 @@ import CompanyMapSection from '@/components/CompanyMapSection';
 import type { CompanyPoint } from '@/components/CompanyMap';
 import { adminNavItems } from '@/lib/adminNav';
 import { fetchSurveyMapPoints } from '@/lib/surveyMapPoints';
+import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
 
 async function fetchData() {
   // Every report location that actually has coordinates, with the company
@@ -17,9 +18,14 @@ async function fetchData() {
 
 export default async function AdminMapPage() {
   const locations = await fetchData();
+  const reports = await attachEffectiveSenderCompanies(
+    locations.map((loc: any) => loc.report).filter(Boolean),
+  );
+  const reportById = new Map(reports.map((report: any) => [report.id, report]));
   const locationsByRegister: Record<string, { province?: string | null; district?: string | null }> = {};
   locations.forEach((loc: any) => {
-    const register = (loc.report?.implementerRegister || loc.report?.senderCompany?.registerNumber || '').trim();
+    const report = loc.report ? reportById.get(loc.report.id) || loc.report : null;
+    const register = (report?.implementerRegister || report?.senderCompany?.registerNumber || '').trim();
     if (!register) return;
     locationsByRegister[register.toUpperCase()] = {
       province: loc.province,
@@ -28,21 +34,24 @@ export default async function AdminMapPage() {
   });
   const surveyPoints = await fetchSurveyMapPoints({ locationsByRegister });
 
-  const points: CompanyPoint[] = locations.map((loc: any) => ({
-    id: loc.report?.id ?? loc.id,
-    source: 'report',
-    lat: loc.latitude as number,
-    lng: loc.longitude as number,
-    company: loc.report?.senderCompany?.name ?? '-',
-    register: loc.report?.senderCompany?.registerNumber ?? '-',
-    reportNumber: loc.report?.reportNumber ?? '-',
-    reportType: loc.report?.reportType?.name ?? '-',
-    location: loc.addressDetail ?? '',
-    status: loc.report?.status ?? 'draft',
-    score: loc.report?.finalScore ?? null,
-    province: loc.province,
-    district: loc.district,
-  }));
+  const points: CompanyPoint[] = locations.map((loc: any) => {
+    const report = loc.report ? reportById.get(loc.report.id) || loc.report : null;
+    return {
+      id: report?.id ?? loc.id,
+      source: 'report',
+      lat: loc.latitude as number,
+      lng: loc.longitude as number,
+      company: report?.senderCompany?.name ?? '-',
+      register: report?.implementerRegister || report?.senderCompany?.registerNumber || '-',
+      reportNumber: report?.reportNumber ?? '-',
+      reportType: report?.reportType?.name ?? '-',
+      location: loc.addressDetail ?? '',
+      status: report?.status ?? 'draft',
+      score: report?.finalScore ?? null,
+      province: loc.province,
+      district: loc.district,
+    };
+  });
   const allPoints = [...points, ...surveyPoints];
 
   return (

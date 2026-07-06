@@ -1,6 +1,7 @@
 import prisma from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
+import { syncSurveyReportsForManagerNotifications } from '@/lib/surveyReports';
 
 export async function PATCH(request: NextRequest) {
   try {
@@ -27,6 +28,14 @@ export async function GET() {
     const user = await getCurrentUser();
     if (!user) {
       return NextResponse.json({ notifications: [], unreadCount: 0 });
+    }
+
+    if (user.role === 'review_manager') {
+      try {
+        await syncSurveyReportsForManagerNotifications();
+      } catch (error) {
+        console.error('Failed to sync Survey123 notifications', error);
+      }
     }
 
     const notifications = await prisma.notification.findMany({

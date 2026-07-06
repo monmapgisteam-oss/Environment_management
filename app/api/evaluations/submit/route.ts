@@ -4,6 +4,37 @@ import { getCurrentUser } from '@/lib/auth';
 import { syncEvaluationToSurvey } from '@/lib/arcgis';
 import { computeDocumentHash, generateSignatureId, hashPin, verifyPin } from '@/lib/signature';
 
+async function findOpenAssignment(reportId: string, evaluatorUserId?: string) {
+  const assignments = await prisma.reportAssignment.findMany({
+    where: {
+      reportId,
+      ...(evaluatorUserId ? { evaluatorUserId } : {}),
+    },
+    include: { evaluation: true },
+    orderBy: { assignedAt: 'desc' },
+  });
+
+  return (
+    assignments.find((assignment) => !assignment.evaluation) ||
+    assignments.find((assignment) => assignment.evaluation?.status !== 'SIGNED') ||
+    assignments[0] ||
+    null
+  );
+}
+
+async function nextSignatureId(signedAt: Date) {
+  const dayStart = new Date(Date.UTC(signedAt.getUTCFullYear(), signedAt.getUTCMonth(), signedAt.getUTCDate()));
+  const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+  let sequence = (await prisma.evaluation.count({ where: { signedAt: { gte: dayStart, lt: dayEnd } } })) + 1;
+
+  for (;;) {
+    const signatureId = generateSignatureId(sequence, signedAt);
+    const existing = await prisma.evaluation.findUnique({ where: { signatureId }, select: { id: true } });
+    if (!existing) return signatureId;
+    sequence += 1;
+  }
+}
+
 // "Submit" doubles as "Sign & Submit": scoring and signing happen in one
 // request (this app has no separate draft-save step). A signed evaluation is
 // locked — re-submitting is rejected once status is SIGNED.
@@ -40,18 +71,13 @@ export async function POST(request: Request) {
     // unevaluated assignment (creating one if needed).
     let assignment;
     if (current.role === 'evaluator') {
-      assignment = await prisma.reportAssignment.findFirst({
-        where: { reportId, evaluatorUserId: current.id },
-        include: { evaluation: true },
-      });
+      assignment = await findOpenAssignment(reportId, current.id);
       if (!assignment) {
         return NextResponse.json({ error: 'Танд энэ тайлан оноогдоогүй байна.' }, { status: 403 });
       }
     } else {
-      assignment = await prisma.reportAssignment.findFirst({
-        where: { reportId, evaluation: null },
-        include: { evaluation: true },
-      });
+      assignment = await findOpenAssignment(reportId);
+      if (assignment?.evaluation?.status === 'SIGNED') assignment = null;
       if (!assignment) {
         const manager = await prisma.user.findFirst({ where: { role: 'review_manager' } });
         if (!manager) {
@@ -100,12 +126,7 @@ export async function POST(request: Request) {
     }
 
     const signedAt = new Date();
-    const dayStart = new Date(Date.UTC(signedAt.getUTCFullYear(), signedAt.getUTCMonth(), signedAt.getUTCDate()));
-    const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
-    const signedTodayCount = await prisma.evaluation.count({
-      where: { signedAt: { gte: dayStart, lt: dayEnd } },
-    });
-    const signatureId = generateSignatureId(signedTodayCount + 1, signedAt);
+    const signatureId = await nextSignatureId(signedAt);
 
     // Fixed, signed payload — a tamper-evident fingerprint of exactly what was
     // scored and by whom, safe to expose (it's a hash, not the scores raw).
@@ -216,6 +237,7 @@ export async function POST(request: Request) {
     );
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: 'Failed to submit evaluation' }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Failed to submit evaluation';
+    return NextResponse.json({ error: message || 'Failed to submit evaluation' }, { status: 500 });
   }
 }

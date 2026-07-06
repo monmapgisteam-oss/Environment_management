@@ -4,7 +4,6 @@ import Sidebar from '@/components/Sidebar';
 import StatusBadge from '@/components/StatusBadge';
 import AttachmentList from '@/components/AttachmentList';
 import ManagerReturnPanel from '@/components/ManagerReturnPanel';
-import SurveyInfoCard from '@/components/SurveyInfoCard';
 import LocationMap from '@/components/LocationMapClient';
 import ScanPrintPanel from '@/components/ScanPrintPanel';
 import SignatureBadge from '@/components/SignatureBadge';
@@ -12,8 +11,8 @@ import { parseAttachments, downloadUrl } from '@/lib/attachments';
 import { signAttachments, createSignedUrl } from '@/lib/supabase';
 import { formatDate, formatScore } from '@/lib/utils';
 import { getCurrentUser } from '@/lib/auth';
-import { fetchSurveyInfoByRegister } from '@/lib/arcgis';
 import { fetchSurveyReportByObjectId } from '@/lib/surveyReports';
+import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -57,17 +56,6 @@ async function SurveyReportDetail({ objectId, role }: { objectId: number; role?:
     return <div className="p-8 text-center text-slate-500">Survey123 тайлан олдсонгүй.</div>;
   }
 
-  const surveyInfo = {
-    objectId: survey.objectId,
-    projectName: survey.title,
-    organization: survey.organization,
-    reportType: survey.reportType.name,
-    register: survey.register,
-    projectDate: survey.projectDate,
-    description: survey.description,
-    photos: survey.photos,
-  };
-
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar items={surveySidebarItems(role)} />
@@ -82,7 +70,7 @@ async function SurveyReportDetail({ objectId, role }: { objectId: number; role?:
           <div className="rounded-2xl border border-slate-200 bg-white p-6">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Survey123</p>
+                <p className="text-xs font-medium uppercase tracking-wide text-amber-600">Survey системээс тайлан ирлээ</p>
                 <h1 className="mt-1 text-2xl font-bold text-slate-900">{survey.title}</h1>
                 <p className="mt-1 text-sm text-slate-500">{survey.reportNumber}</p>
               </div>
@@ -108,7 +96,41 @@ async function SurveyReportDetail({ objectId, role }: { objectId: number; role?:
             </div>
           </div>
 
-          <SurveyInfoCard info={surveyInfo} />
+          {survey.description && (
+            <div className="rounded-2xl border border-slate-200 bg-white p-6">
+              <h2 className="text-base font-semibold text-slate-900">Тайлбар</h2>
+              <p className="mt-2 whitespace-pre-wrap text-sm font-medium text-slate-800">{survey.description}</p>
+            </div>
+          )}
+
+          {survey.photos.length > 0 && (
+            <div className="rounded-2xl border border-slate-200 bg-white p-6">
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="text-base font-semibold text-slate-900">Хавсаргасан зураг</h2>
+                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-500">
+                  {survey.photos.length}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                {survey.photos.map((photo, index) => (
+                  <a
+                    key={`${photo.src}-${index}`}
+                    href={photo.src}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="group overflow-hidden rounded-xl border border-slate-200 bg-slate-50"
+                  >
+                    <img
+                      src={photo.src}
+                      alt={photo.alt || `Survey123 зураг ${index + 1}`}
+                      className="h-32 w-full object-cover transition group-hover:scale-105"
+                      loading="lazy"
+                    />
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
 
           {survey.lat != null && survey.lng != null && (
             <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
@@ -127,7 +149,7 @@ async function SurveyReportDetail({ objectId, role }: { objectId: number; role?:
 }
 
 async function fetchReportDetail(reportId: string) {
-  return prisma.report.findUnique({
+  const report = await prisma.report.findUnique({
     where: { id: reportId },
     include: {
       reportType: true,
@@ -147,6 +169,7 @@ async function fetchReportDetail(reportId: string) {
       },
     },
   });
+  return report ? (await attachEffectiveSenderCompanies([report]))[0] : null;
 }
 
 async function fetchCriteria() {
@@ -183,12 +206,6 @@ export default async function ReportDetailPage(props: Props) {
     return <div className="p-8 text-center text-slate-500">Тайлан олдсонгүй.</div>;
   }
 
-  // Surface the company's own Survey123 submission, matched by register
-  // number — reviewer-side only (manager + staff), since the sender already
-  // knows their own information and shouldn't see it echoed back.
-  const surveyRegister = report.implementerRegister || report.senderCompany?.registerNumber || '';
-  const surveyInfo = (isReviewer || isStaff) ? await fetchSurveyInfoByRegister(surveyRegister) : null;
-
   // A staff member viewing the report may only see their OWN evaluation, never
   // their colleagues'. Managers and the sender see every evaluator's scores.
   const currentUser = isStaff ? await getCurrentUser() : null;
@@ -218,6 +235,7 @@ export default async function ReportDetailPage(props: Props) {
   const isSenderView = !isReviewer && !isStaff;
   const viewerRole: 'sender' | 'manager' | 'staff' = isReviewer ? 'manager' : isStaff ? 'staff' : 'sender';
   let displayStatus = report.status === 'approved' ? 'completed' : report.status === 'assigned' ? 'submitted' : report.status;
+  const isSurveySource = report.reportNumber?.startsWith('S123-');
   // "return_requested" is an internal staff→manager step; the sender should still
   // see the report as under review until the manager actually returns it.
   if (isSenderView && report.status === 'return_requested') displayStatus = 'in_review';
@@ -323,9 +341,6 @@ export default async function ReportDetailPage(props: Props) {
             </div>
           )}
 
-          {/* Company's own Survey123 submission — auto-matched by register number, top of screen. */}
-          <SurveyInfoCard info={surveyInfo} />
-
           {/* Manager sees which staff this report was distributed to (top). */}
           {isReviewer && (
             <div className="bg-white rounded-2xl border border-slate-200 p-6">
@@ -367,6 +382,11 @@ export default async function ReportDetailPage(props: Props) {
           <div className="bg-white rounded-2xl border border-slate-200 p-6">
             <div className="flex items-center justify-between mb-5">
               <div>
+                {isSurveySource && (
+                  <span className="mb-2 inline-flex rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
+                    Survey системээс тайлан ирлээ
+                  </span>
+                )}
                 <p className="text-xs text-slate-500 mb-0.5">Тайлангийн дугаар</p>
                 <h1 className="text-xl font-bold text-slate-900">{report.reportNumber}</h1>
               </div>

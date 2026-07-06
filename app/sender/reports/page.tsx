@@ -4,10 +4,14 @@ import Sidebar from '@/components/Sidebar';
 import ReportTable from '@/components/ReportTable';
 import { getCurrentUser } from '@/lib/auth';
 import { fetchSurveyReports } from '@/lib/surveyReports';
+import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
 
 async function fetchSenderReports(companyId: string) {
-  return prisma.report.findMany({
-    where: { senderCompanyId: companyId, status: { not: 'draft' } },
+  const reports = await prisma.report.findMany({
+    where: {
+      status: { not: 'draft' },
+      OR: [{ senderCompanyId: companyId }, { implementerRegister: { not: null } }],
+    },
     include: {
       reportType: true,
       senderCompany: true,
@@ -15,6 +19,7 @@ async function fetchSenderReports(companyId: string) {
     },
     orderBy: { submittedAt: 'desc' },
   });
+  return (await attachEffectiveSenderCompanies(reports)).filter((report) => report.senderCompany?.id === companyId);
 }
 
 export default async function SenderReportsPage() {
@@ -23,6 +28,7 @@ export default async function SenderReportsPage() {
   const surveyReports = await fetchSurveyReports({
     registers: user?.company?.registerNumber ? [user.company.registerNumber] : [],
   });
+  const existingReportNumbers = new Set(reports.map((report: any) => report.reportNumber));
   const tableReports = [
     ...reports.map((report: any) => ({
       id: report.id,
@@ -34,21 +40,23 @@ export default async function SenderReportsPage() {
       finalScore: report.signedScanUrl ? report.finalScore : null,
       senderCompany: report.senderCompany,
       location: report.location,
-      source: 'web' as const,
+      source: report.reportNumber?.startsWith('S123-') ? 'survey123' as const : 'web' as const,
     })),
-    ...surveyReports.map((report) => ({
-      id: report.id,
-      reportNumber: report.reportNumber,
-      reportType: report.reportType,
-      title: report.title,
-      submittedAt: report.submittedAt,
-      status: report.status,
-      finalScore: report.finalScore,
-      senderCompany: report.senderCompany,
-      location: report.location,
-      source: report.source,
-      detailHref: `/report/${report.id}?role=sender`,
-    })),
+    ...surveyReports
+      .filter((report) => !existingReportNumbers.has(report.reportNumber))
+      .map((report) => ({
+        id: report.id,
+        reportNumber: report.reportNumber,
+        reportType: report.reportType,
+        title: report.title,
+        submittedAt: report.submittedAt,
+        status: report.status,
+        finalScore: report.finalScore,
+        senderCompany: report.senderCompany,
+        location: report.location,
+        source: report.source,
+        detailHref: `/report/${report.id}?role=sender`,
+      })),
   ].sort((a, b) => new Date(b.submittedAt || 0).getTime() - new Date(a.submittedAt || 0).getTime());
 
   return (

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { serializeImageAttachments } from '@/lib/attachments';
+import { findSenderCompanyByRegister } from '@/lib/reportCompanies';
 
 // Returns a single report with everything the sender's edit form needs to
 // pre-fill (type, location, attachments).
@@ -40,16 +41,18 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
     const status = data.status === 'draft' ? 'draft' : 'submitted';
     const hasLocation =
       (data.latitude != null && data.longitude != null) || data.province || data.district || data.khoroo;
+    const matchedCompany = await findSenderCompanyByRegister(data.implementerRegister);
 
     const report = await prisma.report.update({
       where: { id: params.id },
       data: {
         reportTypeId: reportType.id,
+        ...(matchedCompany ? { senderCompanyId: matchedCompany.id } : {}),
         title: data.title || 'Тайлан',
         description: data.description || null,
         fileUrl: serializeImageAttachments(data.fileUrl),
         implementerName: data.implementerName || null,
-        implementerRegister: data.implementerRegister || null,
+        implementerRegister: data.implementerRegister?.trim() || null,
         approvedDate: data.approvedDate ? new Date(data.approvedDate) : null,
         hasGreenery: data.hasGreenery === 'yes' ? true : data.hasGreenery === 'no' ? false : null,
         treeCount: data.hasGreenery === 'yes' && data.treeCount !== '' && data.treeCount != null ? parseInt(data.treeCount) : null,

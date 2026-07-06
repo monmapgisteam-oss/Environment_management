@@ -2,6 +2,7 @@ import prisma from '@/lib/prisma';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import ReportTable from '@/components/ReportTable';
+import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
 
 async function fetchReportTypes() {
   return prisma.reportType.findMany({
@@ -11,7 +12,7 @@ async function fetchReportTypes() {
 }
 
 async function fetchEvaluationReports() {
-  return prisma.report.findMany({
+  const reports = await prisma.report.findMany({
     where: { status: 'completed' },
     include: {
       reportType: true,
@@ -21,6 +22,7 @@ async function fetchEvaluationReports() {
     },
     orderBy: { submittedAt: 'desc' },
   });
+  return attachEffectiveSenderCompanies(reports);
 }
 
 export default async function EvaluationProgressPage() {

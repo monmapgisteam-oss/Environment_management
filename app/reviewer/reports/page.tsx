@@ -3,6 +3,7 @@ import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import ReportTable from '@/components/ReportTable';
 import { fetchSurveyReports } from '@/lib/surveyReports';
+import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
 
 async function fetchReportTypes() {
   return prisma.reportType.findMany({
@@ -12,7 +13,7 @@ async function fetchReportTypes() {
 }
 
 async function fetchAllReports(typeSlug?: string) {
-  return prisma.report.findMany({
+  const reports = await prisma.report.findMany({
     // Drafts belong to the sender only; never surface them to the reviewer.
     where: {
       status: { not: 'draft' },
@@ -26,6 +27,7 @@ async function fetchAllReports(typeSlug?: string) {
     },
     orderBy: { submittedAt: 'desc' },
   });
+  return attachEffectiveSenderCompanies(reports);
 }
 
 function surveyReportTypeName(reportType: any | undefined) {
@@ -50,6 +52,7 @@ export default async function ReviewerReportsPage(props: { searchParams: Promise
   ]);
 
   const isAdditional = searchParams.type === 'type-5';
+  const existingReportNumbers = new Set(reports.map((report: any) => report.reportNumber));
   const tableReports = [
     ...reports.map((report: any) => ({
       id: report.id,
@@ -61,21 +64,23 @@ export default async function ReviewerReportsPage(props: { searchParams: Promise
       finalScore: report.finalScore,
       senderCompany: report.senderCompany,
       location: report.location,
-      source: 'web' as const,
+      source: report.reportNumber?.startsWith('S123-') ? 'survey123' as const : 'web' as const,
     })),
-    ...surveyReports.map((report) => ({
-      id: report.id,
-      reportNumber: report.reportNumber,
-      reportType: report.reportType,
-      title: report.title,
-      submittedAt: report.submittedAt,
-      status: report.status,
-      finalScore: report.finalScore,
-      senderCompany: report.senderCompany,
-      location: report.location,
-      source: report.source,
-      detailHref: `/report/${report.id}?role=reviewer`,
-    })),
+    ...surveyReports
+      .filter((report) => !existingReportNumbers.has(report.reportNumber))
+      .map((report) => ({
+        id: report.id,
+        reportNumber: report.reportNumber,
+        reportType: report.reportType,
+        title: report.title,
+        submittedAt: report.submittedAt,
+        status: report.status,
+        finalScore: report.finalScore,
+        senderCompany: report.senderCompany,
+        location: report.location,
+        source: report.source,
+        detailHref: `/report/${report.id}?role=reviewer`,
+      })),
   ].sort((a, b) => new Date(b.submittedAt || 0).getTime() - new Date(a.submittedAt || 0).getTime());
 
   const sidebarChildren = reportTypes

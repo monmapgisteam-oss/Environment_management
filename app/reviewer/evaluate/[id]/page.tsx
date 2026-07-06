@@ -3,17 +3,16 @@ import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import EvaluationTable from '@/components/EvaluationTable';
 import AttachmentList from '@/components/AttachmentList';
-import SurveyInfoCard from '@/components/SurveyInfoCard';
 import { parseAttachments } from '@/lib/attachments';
 import { signAttachments } from '@/lib/supabase';
-import { fetchSurveyInfoByRegister } from '@/lib/arcgis';
+import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
 
 type Props = {
   params: Promise<{ id: string }>;
 };
 
 async function fetchReport(id: string) {
-  return prisma.report.findUnique({
+  const report = await prisma.report.findUnique({
     where: { id },
     include: {
       reportType: true,
@@ -27,6 +26,7 @@ async function fetchReport(id: string) {
       },
     },
   });
+  return report ? (await attachEffectiveSenderCompanies([report]))[0] : null;
 }
 
 async function fetchCriteria() {
@@ -55,9 +55,6 @@ export default async function ReviewerEvaluatePage(props: Props) {
     return <div className="p-8 text-center text-slate-500">Тайлан олдсонгүй.</div>;
   }
 
-  const surveyRegister = report.implementerRegister || report.senderCompany?.registerNumber || '';
-  const surveyInfo = await fetchSurveyInfoByRegister(surveyRegister);
-
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar
@@ -84,9 +81,6 @@ export default async function ReviewerEvaluatePage(props: Props) {
         <div className="flex min-w-0 flex-1 flex-col">
         <Header userName="Хянах менежер" companyName="Хянах байгууллага" companyType="reviewer" />
         <main className="flex-1 min-w-0 p-6 space-y-6">
-          {/* Company's own Survey123 submission — auto-matched by register number, top of screen. */}
-          <SurveyInfoCard info={surveyInfo} />
-
           {/* Report Info */}
           <div className="bg-white rounded-2xl border border-slate-200 p-6">
             <div className="flex items-center justify-between mb-4">

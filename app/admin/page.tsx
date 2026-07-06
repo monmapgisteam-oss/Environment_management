@@ -3,6 +3,7 @@ import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import ReportTable from '@/components/ReportTable';
 import { adminNavItems } from '@/lib/adminNav';
+import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
 
 async function fetchAdminReports() {
   const reports = await prisma.report.findMany({
@@ -13,7 +14,7 @@ async function fetchAdminReports() {
     },
     orderBy: { submittedAt: 'desc' },
   });
-  return reports;
+  return attachEffectiveSenderCompanies(reports);
 }
 
 export default async function AdminDashboard() {
