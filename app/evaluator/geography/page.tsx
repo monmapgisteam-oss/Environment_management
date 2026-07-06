@@ -11,7 +11,7 @@ export default async function EvaluatorGeographyPage() {
     redirect('/login/reviewer');
   }
 
-  const points = await fetchReviewedCompanyPoints();
+  const points = await fetchReviewedCompanyPoints({ evaluatorUserId: user.id });
 
   return (
     <div className="flex min-h-screen bg-background">

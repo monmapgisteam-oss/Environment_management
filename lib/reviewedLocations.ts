@@ -2,15 +2,18 @@ import prisma from '@/lib/prisma';
 import type { CompanyPoint } from '@/components/CompanyMap';
 import { SURVEY_EXCLUDED_OBJECT_IDS } from '@/lib/constants';
 
-// Survey123 Layer 0 query endpoint — used only as a coordinate fallback when a
-// report's own picked location is missing; the survey point is often more
-// precisely field-verified than a manually dropped pin.
+// Survey123 Layer 0 query endpoint. Used as a coordinate fallback when a
+// report's own picked location is missing.
 const SURVEY_QUERY_URL =
   'https://services.arcgis.com/HJzgwvlNIXssnQar/arcgis/rest/services/survey123_2d1e2fe0e49a4623a57f6536b6a6f7c1/FeatureServer/0/query';
 
 type SurveyRecord = { coords?: [number, number] };
+type ReportForPoint = any & { pointScore?: number | null };
 
-// Build a register -> coordinates map from the live survey service.
+type FetchReviewedCompanyPointsOptions = {
+  evaluatorUserId?: string;
+};
+
 async function fetchSurveyCoordsByRegister(): Promise<Record<string, SurveyRecord>> {
   try {
     const where = encodeURIComponent(`OBJECTID NOT IN (${SURVEY_EXCLUDED_OBJECT_IDS.join(',')})`);
@@ -32,43 +35,58 @@ async function fetchSurveyCoordsByRegister(): Promise<Record<string, SurveyRecor
 }
 
 /**
- * Every company the review organisation has reviewed (reports that were
- * assigned to staff), de-duplicated by register, in the same shape the
- * admin dashboard map uses — so the manager and staff "Газарзүйн мэдээлэл"
- * pages render the identical search/filter/cluster/score-color map.
+ * One pin per report visible to the review organisation. Managers see every
+ * received report, while evaluator staff see only reports they have reviewed.
  */
-export async function fetchReviewedCompanyPoints(): Promise<CompanyPoint[]> {
-  const [reports, surveyCoords] = await Promise.all([
-    prisma.report.findMany({
-      where: { assignments: { some: {} } },
-      include: { senderCompany: true, reportType: true, location: true },
-      orderBy: { submittedAt: 'desc' },
-    }),
+export async function fetchReviewedCompanyPoints(
+  options: FetchReviewedCompanyPointsOptions = {},
+): Promise<CompanyPoint[]> {
+  const [reportRows, surveyCoords] = await Promise.all([
+    options.evaluatorUserId
+      ? prisma.reportAssignment.findMany({
+          where: {
+            evaluatorUserId: options.evaluatorUserId,
+            evaluation: { isNot: null },
+          },
+          include: {
+            evaluation: true,
+            report: {
+              include: { senderCompany: true, reportType: true, location: true },
+            },
+          },
+          orderBy: { submittedAt: 'desc' },
+        })
+      : prisma.report.findMany({
+          where: { status: { not: 'draft' } },
+          include: { senderCompany: true, reportType: true, location: true },
+          orderBy: { submittedAt: 'desc' },
+        }),
     fetchSurveyCoordsByRegister(),
   ]);
 
-  const seen = new Set<string>();
+  const reports: ReportForPoint[] = options.evaluatorUserId
+    ? (reportRows as any[]).map((assignment) => ({
+        ...assignment.report,
+        pointScore: assignment.evaluation?.totalScore ?? null,
+      }))
+    : (reportRows as any[]);
+
   const points: CompanyPoint[] = [];
 
-  for (const r of reports as any[]) {
+  for (const r of reports) {
     const register = (r.implementerRegister || r.senderCompany?.registerNumber || '').trim();
-    const key = register ? register.toUpperCase() : `report:${r.id}`;
-    if (seen.has(key)) continue;
-
     const s = register ? surveyCoords[register.toUpperCase()] : undefined;
 
     let lat: number | undefined;
     let lng: number | undefined;
-    if (s?.coords && s.coords.length >= 2) {
-      lng = s.coords[0];
-      lat = s.coords[1];
-    } else if (r.location?.latitude != null && r.location?.longitude != null) {
+    if (r.location?.latitude != null && r.location?.longitude != null) {
       lat = r.location.latitude;
       lng = r.location.longitude;
+    } else if (s?.coords && s.coords.length >= 2) {
+      lng = s.coords[0];
+      lat = s.coords[1];
     }
     if (lat == null || lng == null) continue;
-
-    seen.add(key);
 
     points.push({
       id: r.id,
@@ -80,7 +98,7 @@ export async function fetchReviewedCompanyPoints(): Promise<CompanyPoint[]> {
       reportType: r.reportType?.name || '',
       location: r.location?.addressDetail || '',
       status: r.status,
-      score: r.finalScore,
+      score: r.pointScore ?? r.finalScore,
     });
   }
 
