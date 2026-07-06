@@ -13,11 +13,118 @@ import { signAttachments, createSignedUrl } from '@/lib/supabase';
 import { formatDate, formatScore } from '@/lib/utils';
 import { getCurrentUser } from '@/lib/auth';
 import { fetchSurveyInfoByRegister } from '@/lib/arcgis';
+import { fetchSurveyReportByObjectId } from '@/lib/surveyReports';
 
 type Props = {
   params: Promise<{ id: string }>;
   searchParams: Promise<{ role?: string }>;
 };
+
+function parseSurveyReportId(id: string) {
+  const match = /^survey-(\d+)$/.exec(id);
+  return match ? Number(match[1]) : null;
+}
+
+function surveySidebarItems(role?: string) {
+  if (role === 'sender') {
+    return [
+      { label: 'Хяналтын самбар', href: '/sender' },
+      { label: 'Миний тайлангууд', href: '/sender/reports', active: true },
+      { label: 'Газарзүйн мэдээлэл', href: '/sender/geography' },
+    ];
+  }
+  if (role === 'staff') {
+    return [
+      { label: 'Надад оноогдсон тайлангууд', href: '/evaluator' },
+      { label: 'Газарзүйн мэдээлэл', href: '/evaluator/geography' },
+      { label: 'Судалгаа хайх', href: '/evaluator/survey' },
+    ];
+  }
+  return [
+    { label: 'Хяналтын самбар', href: '/reviewer' },
+    { label: 'Ирсэн тайлангууд', href: '/reviewer/reports', active: true },
+    { label: 'Газарзүйн мэдээлэл', href: '/reviewer/geography' },
+    { label: 'Судалгаа хайх', href: '/reviewer/survey' },
+  ];
+}
+
+async function SurveyReportDetail({ objectId, role }: { objectId: number; role?: string }) {
+  const survey = await fetchSurveyReportByObjectId(objectId);
+  const viewerRole: 'sender' | 'manager' | 'staff' = role === 'sender' ? 'sender' : role === 'staff' ? 'staff' : 'manager';
+  const headerRole = role === 'staff' ? 'staff' : role === 'sender' ? undefined : 'reviewer';
+
+  if (!survey) {
+    return <div className="p-8 text-center text-slate-500">Survey123 тайлан олдсонгүй.</div>;
+  }
+
+  const surveyInfo = {
+    objectId: survey.objectId,
+    projectName: survey.title,
+    organization: survey.organization,
+    reportType: survey.reportType.name,
+    register: survey.register,
+    projectDate: survey.projectDate,
+    description: survey.description,
+    photos: survey.photos,
+  };
+
+  return (
+    <div className="flex min-h-screen bg-background">
+      <Sidebar items={surveySidebarItems(role)} />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <Header
+          userName={viewerRole === 'staff' ? 'Үнэлгээний ажилтан' : viewerRole === 'sender' ? 'Илгээх хэрэглэгч' : 'Хянах менежер'}
+          companyName={viewerRole === 'sender' ? 'Илгээх байгууллага' : 'Хянах байгууллага'}
+          role={headerRole as any}
+          companyType={viewerRole === 'sender' ? 'sender' : 'reviewer'}
+        />
+        <main className="flex-1 min-w-0 p-6 space-y-5">
+          <div className="rounded-2xl border border-slate-200 bg-white p-6">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Survey123</p>
+                <h1 className="mt-1 text-2xl font-bold text-slate-900">{survey.title}</h1>
+                <p className="mt-1 text-sm text-slate-500">{survey.reportNumber}</p>
+              </div>
+              <StatusBadge status="submitted" />
+            </div>
+            <div className="mt-5 grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
+              <div>
+                <p className="text-xs text-slate-500">Тайлангийн төрөл</p>
+                <p className="mt-0.5 font-medium text-slate-800">{survey.reportType.name}</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-500">Байгууллага</p>
+                <p className="mt-0.5 font-medium text-slate-800">{survey.senderCompany?.name || survey.organization || '-'}</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-500">РД</p>
+                <p className="mt-0.5 font-medium text-slate-800">{survey.register || '-'}</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-500">Илгээсэн огноо</p>
+                <p className="mt-0.5 font-medium text-slate-800">{formatDate(survey.submittedAt)}</p>
+              </div>
+            </div>
+          </div>
+
+          <SurveyInfoCard info={surveyInfo} />
+
+          {survey.lat != null && survey.lng != null && (
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+              <div className="border-b border-slate-100 px-6 py-4">
+                <h2 className="text-base font-semibold text-slate-900">Газрын зураг дээрх байршил</h2>
+              </div>
+              <div className="h-80">
+                <LocationMap lat={survey.lat} lng={survey.lng} />
+              </div>
+            </div>
+          )}
+        </main>
+      </div>
+    </div>
+  );
+}
 
 async function fetchReportDetail(reportId: string) {
   return prisma.report.findUnique({
@@ -59,6 +166,10 @@ async function fetchReportTypes() {
 export default async function ReportDetailPage(props: Props) {
   const searchParams = await props.searchParams;
   const params = await props.params;
+  const surveyObjectId = parseSurveyReportId(params.id);
+  if (surveyObjectId !== null) {
+    return <SurveyReportDetail objectId={surveyObjectId} role={searchParams.role} />;
+  }
   const isReviewer = searchParams.role === 'reviewer';
   const isStaff = searchParams.role === 'staff';
 

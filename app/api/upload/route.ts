@@ -16,6 +16,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
+    const purpose = formData.get('purpose');
+    if (purpose === 'report-photo') {
+      if (!file.type.startsWith('image/')) {
+        return NextResponse.json({ error: 'Only image uploads are allowed for reports' }, { status: 400 });
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        return NextResponse.json({ error: 'Image must be 10MB or smaller' }, { status: 400 });
+      }
+    }
+
     const buffer = Buffer.from(await file.arrayBuffer());
 
     await ensureBucket();

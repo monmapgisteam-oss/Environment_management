@@ -1,6 +1,7 @@
 import prisma from '@/lib/prisma';
 import type { CompanyPoint } from '@/components/CompanyMap';
 import { SURVEY_EXCLUDED_OBJECT_IDS } from '@/lib/constants';
+import { fetchSurveyMapPoints } from '@/lib/surveyMapPoints';
 
 // Same Survey123 fallback lookup as fetchReviewedCompanyPoints, kept
 // separate since this one scopes to a single sender company instead of
@@ -34,7 +35,8 @@ async function fetchSurveyCoordsByRegister(): Promise<Record<string, [number, nu
  * every company the way the reviewer's "Газарзүйн мэдээлэл" map does.
  */
 export async function fetchSenderCompanyPoints(companyId: string): Promise<CompanyPoint[]> {
-  const [reports, surveyCoords] = await Promise.all([
+  const [company, reports, surveyCoords] = await Promise.all([
+    prisma.company.findUnique({ where: { id: companyId } }),
     prisma.report.findMany({
       where: { senderCompanyId: companyId, status: { not: 'draft' } },
       include: { senderCompany: true, reportType: true, location: true },
@@ -44,9 +46,19 @@ export async function fetchSenderCompanyPoints(companyId: string): Promise<Compa
   ]);
 
   const points: CompanyPoint[] = [];
+  const registers = new Set<string>();
+  const locationsByRegister: Record<string, { province?: string | null; district?: string | null }> = {};
+  if (company?.registerNumber) registers.add(company.registerNumber);
 
   for (const r of reports as any[]) {
     const register = (r.implementerRegister || r.senderCompany?.registerNumber || '').trim();
+    if (register) registers.add(register);
+    if (register && r.location) {
+      locationsByRegister[register.toUpperCase()] = {
+        province: r.location.province,
+        district: r.location.district,
+      };
+    }
 
     let lat: number | undefined;
     let lng: number | undefined;
@@ -64,6 +76,7 @@ export async function fetchSenderCompanyPoints(companyId: string): Promise<Compa
 
     points.push({
       id: r.id,
+      source: 'report',
       lat,
       lng,
       company: r.implementerName || r.senderCompany?.name || register || 'Байгууллага',
@@ -73,8 +86,12 @@ export async function fetchSenderCompanyPoints(companyId: string): Promise<Compa
       location: r.location?.addressDetail || '',
       status: r.status,
       score: r.finalScore,
+      province: r.location?.province,
+      district: r.location?.district,
     });
   }
 
-  return points;
+  const surveyPoints = await fetchSurveyMapPoints({ registers: Array.from(registers), locationsByRegister });
+
+  return [...points, ...surveyPoints];
 }

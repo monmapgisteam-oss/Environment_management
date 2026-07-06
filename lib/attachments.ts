@@ -1,5 +1,9 @@
 export type Attachment = { url: string; name: string };
 
+export function isImageAttachment(file: Attachment): boolean {
+  return /\.(jpe?g|png|webp|gif|bmp|heic|heif)$/i.test(file.name || file.url);
+}
+
 // Builds a URL that forces a file download (Content-Disposition: attachment)
 // instead of opening in the browser. Supabase Storage honours the `download`
 // query param and uses its value as the saved filename, so the monitoring team
@@ -16,6 +20,11 @@ export function downloadUrl(file: Attachment): string {
     // ignore and fall through
   }
   return file.url;
+}
+
+export function serializeImageAttachments(fileUrl: string | null | undefined): string | null {
+  const imageAttachments = parseAttachments(fileUrl).filter(isImageAttachment);
+  return imageAttachments.length ? JSON.stringify(imageAttachments) : null;
 }
 
 // Attachments are stored on Report.fileUrl as a JSON array of { url, name } so

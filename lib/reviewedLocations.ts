@@ -1,6 +1,7 @@
 import prisma from '@/lib/prisma';
 import type { CompanyPoint } from '@/components/CompanyMap';
 import { SURVEY_EXCLUDED_OBJECT_IDS } from '@/lib/constants';
+import { fetchSurveyMapPoints } from '@/lib/surveyMapPoints';
 
 // Survey123 Layer 0 query endpoint. Used as a coordinate fallback when a
 // report's own picked location is missing.
@@ -72,9 +73,18 @@ export async function fetchReviewedCompanyPoints(
     : (reportRows as any[]);
 
   const points: CompanyPoint[] = [];
+  const registers = new Set<string>();
+  const locationsByRegister: Record<string, { province?: string | null; district?: string | null }> = {};
 
   for (const r of reports) {
     const register = (r.implementerRegister || r.senderCompany?.registerNumber || '').trim();
+    if (register) registers.add(register);
+    if (register && r.location) {
+      locationsByRegister[register.toUpperCase()] = {
+        province: r.location.province,
+        district: r.location.district,
+      };
+    }
     const s = register ? surveyCoords[register.toUpperCase()] : undefined;
 
     let lat: number | undefined;
@@ -90,6 +100,7 @@ export async function fetchReviewedCompanyPoints(
 
     points.push({
       id: r.id,
+      source: 'report',
       lat,
       lng,
       company: r.implementerName || r.senderCompany?.name || register || 'Байгууллага',
@@ -99,8 +110,16 @@ export async function fetchReviewedCompanyPoints(
       location: r.location?.addressDetail || '',
       status: r.status,
       score: r.pointScore ?? r.finalScore,
+      province: r.location?.province,
+      district: r.location?.district,
     });
   }
 
-  return points;
+  const surveyPoints = await fetchSurveyMapPoints(
+    options.evaluatorUserId
+      ? { registers: Array.from(registers), locationsByRegister }
+      : { locationsByRegister },
+  );
+
+  return [...points, ...surveyPoints];
 }

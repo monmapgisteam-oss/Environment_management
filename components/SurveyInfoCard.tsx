@@ -51,6 +51,34 @@ export default function SurveyInfoCard({ info }: { info: SurveyInfo | null }) {
           <p className="font-medium text-slate-800 mt-0.5 whitespace-pre-wrap">{info.description}</p>
         </div>
       )}
+      {info.photos.length > 0 && (
+        <div className="mt-5 border-t border-slate-100 pt-5">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-xs font-medium text-slate-500">Хавсаргасан зураг</p>
+            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-500">
+              {info.photos.length}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {info.photos.map((photo, index) => (
+              <a
+                key={`${photo.src}-${index}`}
+                href={photo.src}
+                target="_blank"
+                rel="noreferrer"
+                className="group overflow-hidden rounded-xl border border-slate-200 bg-slate-50"
+              >
+                <img
+                  src={photo.src}
+                  alt={photo.alt || `Survey123 зураг ${index + 1}`}
+                  className="h-32 w-full object-cover transition group-hover:scale-105"
+                  loading="lazy"
+                />
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

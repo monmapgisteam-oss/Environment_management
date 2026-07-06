@@ -1,5 +1,6 @@
 import prisma from '@/lib/prisma';
 import { SURVEY_EXCLUDED_OBJECT_IDS } from '@/lib/constants';
+import { fetchSurveyPhotoMap, type SurveyPhoto } from '@/lib/surveyPhotos';
 
 // ---------------------------------------------------------------------------
 // ArcGIS / Survey123 write-back integration.
@@ -83,12 +84,14 @@ function excludeJunkClause(): string {
 }
 
 export type SurveyInfo = {
+  objectId: number | null;
   projectName: string | null;
   organization: string | null;
   reportType: string | null;
   register: string | null;
   projectDate: number | null;
   description: string | null;
+  photos: SurveyPhoto[];
 };
 
 // The company may have filled in the Survey123 field app directly (independent
@@ -107,13 +110,20 @@ export async function fetchSurveyInfoByRegister(register: string): Promise<Surve
     const json: any = await res.json();
     const attrs = (json.features || [])[0]?.attributes;
     if (!attrs) return null;
+    const objectId = attrs.objectid ?? attrs.OBJECTID;
+    const photos =
+      typeof objectId === 'number'
+        ? (await fetchSurveyPhotoMap([objectId])).get(objectId) || []
+        : [];
     return {
+      objectId: typeof objectId === 'number' ? objectId : null,
       projectName: attrs.project_name ?? null,
       organization: attrs.Organization ?? null,
       reportType: attrs.Report_type ?? null,
       register: attrs.Register ?? null,
       projectDate: attrs.Project_date ?? null,
       description: attrs.Description ?? null,
+      photos,
     };
   } catch {
     return null;

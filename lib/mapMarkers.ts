@@ -1,14 +1,7 @@
 import L from 'leaflet';
 
-// Branded map markers + popups shared by every Leaflet map in the app
-// (MapPicker, CompanyMap), so pins and popup cards look consistent
-// everywhere instead of each component styling its own.
+// Branded map markers + popups shared by every Leaflet map in the app.
 
-/**
- * Teardrop pin rendered as an inline SVG divIcon (crisp at any zoom, unlike
- * the default Leaflet raster marker). `color` is the fill; a white dot sits
- * in the center so pins stay legible when several share a color.
- */
 export function createPinIcon(color: string, size: 'lg' | 'md' = 'md'): L.DivIcon {
   const w = size === 'lg' ? 34 : 26;
   const h = Math.round(w * 1.36);
@@ -33,32 +26,44 @@ function esc(v: unknown): string {
     .replace(/>/g, '&gt;');
 }
 
+function escAttr(v: unknown): string {
+  return esc(v).replace(/"/g, '&quot;');
+}
+
 export type PopupRow = [label: string, value: unknown];
 
-/**
- * Card-style popup body matching the app's design system (teal accent,
- * slate text, rounded surfaces) instead of Leaflet's plain default popup.
- * Pair with the `.leaflet-popup*` overrides in globals.css.
- */
 export function popupCard(opts: {
   title: string;
   accent?: string;
   badge?: string;
-  // Class name for the badge pill (e.g. one of globals.css's `.badge-*`
-  // status colors) instead of the default flat teal `.map-popup-badge`.
   badgeClass?: string;
   rows: PopupRow[];
+  images?: { src: string; alt?: string }[];
   empty?: string;
-  // Optional call-to-action rendered at the bottom of the card (plain <a>,
-  // since Leaflet popup content is static HTML, not React).
   link?: { label: string; href: string };
 }): string {
-  const { title, accent = '#0F766E', badge, badgeClass, rows, empty = 'Мэдээлэл алга', link } = opts;
+  const {
+    title,
+    accent = '#0F766E',
+    badge,
+    badgeClass,
+    rows,
+    images = [],
+    empty = 'Мэдээлэл алга',
+    link,
+  } = opts;
   const body = rows
     .filter(([, v]) => v !== null && v !== undefined && String(v).trim() !== '')
     .map(
       ([label, v]) =>
         `<div class="map-popup-row"><span class="map-popup-label">${esc(label)}</span><span class="map-popup-value">${esc(v)}</span></div>`,
+    )
+    .join('');
+  const media = images
+    .slice(0, 4)
+    .map(
+      (image) =>
+        `<a href="${escAttr(image.src)}" target="_blank" rel="noreferrer" class="map-popup-photo-link"><img src="${escAttr(image.src)}" alt="${escAttr(image.alt || title)}" class="map-popup-photo" loading="lazy" /></a>`,
     )
     .join('');
 
@@ -68,8 +73,8 @@ export function popupCard(opts: {
         <span class="map-popup-title">${esc(title)}</span>
         ${badge ? `<span class="${badgeClass || 'map-popup-badge'}">${esc(badge)}</span>` : ''}
       </div>
-      <div class="map-popup-body">${body || `<div class="map-popup-empty">${esc(empty)}</div>`}</div>
-      ${link ? `<a href="${esc(link.href)}" class="map-popup-link">${esc(link.label)}</a>` : ''}
+      <div class="map-popup-body">${body || `<div class="map-popup-empty">${esc(empty)}</div>`}${media ? `<div class="map-popup-photos">${media}</div>` : ''}</div>
+      ${link ? `<a href="${escAttr(link.href)}" class="map-popup-link">${esc(link.label)}</a>` : ''}
     </div>
   `;
 }

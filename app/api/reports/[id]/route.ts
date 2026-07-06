@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { serializeImageAttachments } from '@/lib/attachments';
 
 // Returns a single report with everything the sender's edit form needs to
 // pre-fill (type, location, attachments).
@@ -46,7 +47,7 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
         reportTypeId: reportType.id,
         title: data.title || 'Тайлан',
         description: data.description || null,
-        fileUrl: data.fileUrl?.trim() ? data.fileUrl.trim() : null,
+        fileUrl: serializeImageAttachments(data.fileUrl),
         implementerName: data.implementerName || null,
         implementerRegister: data.implementerRegister || null,
         approvedDate: data.approvedDate ? new Date(data.approvedDate) : null,

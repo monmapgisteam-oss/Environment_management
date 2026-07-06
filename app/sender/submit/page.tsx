@@ -9,7 +9,7 @@ import ReportInfoCard from "@/components/ReportInfoCard";
 import LocationCard from "@/components/LocationCard";
 import AttachmentCard from "@/components/AttachmentCard";
 import { HiCheckCircle } from "react-icons/hi";
-import { parseAttachments, type Attachment } from "@/lib/attachments";
+import { isImageAttachment, parseAttachments, type Attachment } from "@/lib/attachments";
 
 const SUBMIT_TYPES = [
   { label: "Жилийн төлөвлөгөө", slug: "plan" },
@@ -100,7 +100,7 @@ export default function SubmitReportPage() {
           khoroo: r.location.khoroo ?? undefined,
         });
       }
-      setExistingAttachments(parseAttachments(r.fileUrl));
+      setExistingAttachments(parseAttachments(r.fileUrl).filter(isImageAttachment));
     })();
   }, [editId]);
 
@@ -121,8 +121,10 @@ export default function SubmitReportPage() {
   const uploadAttachments = async () => {
     const uploaded: { url: string; name: string }[] = [];
     for (const file of attachedFiles) {
+      if (!file.type.startsWith("image/")) continue;
       const body = new FormData();
       body.append("file", file);
+      body.append("purpose", "report-photo");
       const res = await fetch("/api/upload", { method: "POST", body });
       if (res.ok) {
         const data = await res.json();
@@ -137,7 +139,7 @@ export default function SubmitReportPage() {
   // editing, while letting them add more.
   const buildFileUrl = async () => {
     const uploaded = await uploadAttachments();
-    const combined = [...existingAttachments, ...uploaded];
+    const combined = [...existingAttachments.filter(isImageAttachment), ...uploaded];
     return combined.length ? JSON.stringify(combined) : "";
   };
 
@@ -367,7 +369,7 @@ export default function SubmitReportPage() {
                         {isEdit && existingAttachments.length > 0 && (
                           <div className="border border-[#E8F0FE] rounded-2xl p-4">
                             <p className="text-sm font-semibold text-color-text-main mb-2">
-                              Хадгалагдсан файл
+                              Хадгалагдсан зураг
                             </p>
                             <div className="space-y-2">
                               {existingAttachments.map((file, index) => (

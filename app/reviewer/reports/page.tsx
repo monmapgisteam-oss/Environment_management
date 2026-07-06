@@ -2,6 +2,7 @@ import prisma from '@/lib/prisma';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import ReportTable from '@/components/ReportTable';
+import { fetchSurveyReports } from '@/lib/surveyReports';
 
 async function fetchReportTypes() {
   return prisma.reportType.findMany({
@@ -27,14 +28,55 @@ async function fetchAllReports(typeSlug?: string) {
   });
 }
 
+function surveyReportTypeName(reportType: any | undefined) {
+  const name = reportType?.name || '';
+  if (name.includes('Жилийн')) return 'Жилийн тайлан';
+  if (name.includes('Биелэлт')) return 'Биелэлтийн тайлан';
+  return null;
+}
+
 export default async function ReviewerReportsPage(props: { searchParams: Promise<{ type?: string }> }) {
   const searchParams = await props.searchParams;
-  const [reportTypes, reports] = await Promise.all([
-    fetchReportTypes(),
+  const reportTypes = await fetchReportTypes();
+  const selectedType = searchParams.type
+    ? reportTypes.find((rt: any) => rt.slug === searchParams.type)
+    : undefined;
+  const selectedSurveyType = searchParams.type ? surveyReportTypeName(selectedType) : null;
+  const [reports, surveyReports] = await Promise.all([
     fetchAllReports(searchParams.type),
+    searchParams.type && !selectedSurveyType
+      ? Promise.resolve([])
+      : fetchSurveyReports({ reportTypeName: selectedSurveyType }),
   ]);
 
   const isAdditional = searchParams.type === 'type-5';
+  const tableReports = [
+    ...reports.map((report: any) => ({
+      id: report.id,
+      reportNumber: report.reportNumber,
+      reportType: report.reportType,
+      title: report.title,
+      submittedAt: report.submittedAt?.toISOString() || null,
+      status: report.status,
+      finalScore: report.finalScore,
+      senderCompany: report.senderCompany,
+      location: report.location,
+      source: 'web' as const,
+    })),
+    ...surveyReports.map((report) => ({
+      id: report.id,
+      reportNumber: report.reportNumber,
+      reportType: report.reportType,
+      title: report.title,
+      submittedAt: report.submittedAt,
+      status: report.status,
+      finalScore: report.finalScore,
+      senderCompany: report.senderCompany,
+      location: report.location,
+      source: report.source,
+      detailHref: `/report/${report.id}?role=reviewer`,
+    })),
+  ].sort((a, b) => new Date(b.submittedAt || 0).getTime() - new Date(a.submittedAt || 0).getTime());
 
   const sidebarChildren = reportTypes
     .filter((rt: any) => rt.slug !== 'type-5')
@@ -79,25 +121,15 @@ export default async function ReviewerReportsPage(props: { searchParams: Promise
             )}
           </div>
 
-          {isAdditional && reports.length === 0 ? (
+          {isAdditional && tableReports.length === 0 ? (
             <div className="rounded-3xl bg-white px-6 py-16 text-center shadow-soft border border-slate-200">
-              <p className="text-sm text-slate-400">Шинэ мэдээлэл ирээгүй байна.</p>
+              <p className="text-sm text-slate-400">Мэдээлэл ирээгүй байна.</p>
             </div>
           ) : (
             <ReportTable
               role="reviewer"
               showStatusFilter={!isAdditional}
-              reports={reports.map((report: any) => ({
-                id: report.id,
-                reportNumber: report.reportNumber,
-                reportType: report.reportType,
-                title: report.title,
-                submittedAt: report.submittedAt?.toISOString() || null,
-                status: report.status,
-                finalScore: report.finalScore,
-                senderCompany: report.senderCompany,
-                location: report.location,
-              }))}
+              reports={tableReports}
             />
           )}
         </main>

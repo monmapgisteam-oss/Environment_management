@@ -16,6 +16,8 @@ type Report = {
   finalScore: number | null;
   senderCompany: { name: string } | null;
   location: { province: string; district: string } | null;
+  source?: 'web' | 'survey123';
+  detailHref?: string;
 };
 
 type Props = {
@@ -183,6 +185,7 @@ export default function ReportTable({ reports, role = 'sender', showStatusFilter
                 <th className="px-4 py-3.5">Тайлангийн дугаар</th>
                 <th className="px-4 py-3.5">Тайлангийн төрөл</th>
                 <th className="px-4 py-3.5">Төслийн нэр</th>
+                <th className="px-4 py-3.5">Байгууллага</th>
                 <th className="px-4 py-3.5">Илгээсэн огноо</th>
                 <th className="px-4 py-3.5">Төлөв</th>
                 <th className="px-4 py-3.5">Эцсийн оноо</th>
@@ -192,7 +195,7 @@ export default function ReportTable({ reports, role = 'sender', showStatusFilter
             <tbody className="divide-y divide-slate-100">
               {pageItems.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-12 text-center text-slate-400">
+                  <td colSpan={9} className="px-4 py-12 text-center text-slate-400">
                     Тайлан олдсонгүй.
                   </td>
                 </tr>
@@ -200,20 +203,30 @@ export default function ReportTable({ reports, role = 'sender', showStatusFilter
                 pageItems.map((report, index) => (
                   <tr key={report.id} className="transition-colors hover:bg-teal-50/40">
                     <td className="px-4 py-4 text-slate-400">{(page - 1) * pageSize + index + 1}</td>
-                    <td className="px-4 py-4 font-semibold text-slate-900">{report.reportNumber}</td>
+                    <td className="px-4 py-4 font-semibold text-slate-900">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span>{report.reportNumber}</span>
+                        {report.source === 'survey123' && (
+                          <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700">
+                            Survey123
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-4 py-4 text-slate-600">{report.reportType.name}</td>
                     <td className="px-4 py-4 text-slate-600">{report.title}</td>
+                    <td className="px-4 py-4 text-slate-600">{report.senderCompany?.name || '-'}</td>
                     <td className="px-4 py-4 whitespace-nowrap text-slate-600">{formatDate(report.submittedAt)}</td>
                     <td className="px-4 py-4"><StatusBadge status={displayStatus(report.status)} /></td>
                     <td className="px-4 py-4 font-semibold text-slate-900">{formatScore(report.finalScore)}</td>
                     <td className="px-4 py-4">
                       <div className="flex justify-end">
                         <div className={`${actionColClass} flex-col items-stretch gap-1.5`}>
-                          <Link href={`/report/${report.id}?role=${role ?? 'sender'}`} className="flex items-center justify-center rounded-lg border border-teal-200 bg-white px-3 py-2 text-xs font-semibold text-teal-700 transition hover:bg-teal-50 whitespace-nowrap">Дэлгэрэнгүй</Link>
-                          {role === 'reviewer' && report.status !== 'completed' && report.status !== 'approved' && (
+                          <Link href={report.detailHref || `/report/${report.id}?role=${role ?? 'sender'}`} className="flex items-center justify-center rounded-lg border border-teal-200 bg-white px-3 py-2 text-xs font-semibold text-teal-700 transition hover:bg-teal-50 whitespace-nowrap">Дэлгэрэнгүй</Link>
+                          {role === 'reviewer' && report.source !== 'survey123' && report.status !== 'completed' && report.status !== 'approved' && (
                             <Link href={`/reviewer/assign?report=${report.id}`} className="flex items-center justify-center rounded-lg bg-color-primary px-3 py-2 text-xs font-semibold text-white hover:bg-color-primary-dark transition whitespace-nowrap">Гишүүдэд оноох</Link>
                           )}
-                          {role === 'staff' && report.status === 'in_review' && (
+                          {role === 'staff' && report.source !== 'survey123' && report.status === 'in_review' && (
                             <Link href={`/evaluator/evaluate/${report.id}`} className="flex items-center justify-center rounded-lg bg-color-primary px-3 py-2 text-xs font-semibold text-white hover:bg-color-primary-dark transition whitespace-nowrap">Үнэлэх</Link>
                           )}
                         </div>

@@ -2,10 +2,12 @@ import prisma from '@/lib/prisma';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import ReportTable from '@/components/ReportTable';
+import { getCurrentUser } from '@/lib/auth';
+import { fetchSurveyReports } from '@/lib/surveyReports';
 
-async function fetchSenderReports() {
+async function fetchSenderReports(companyId: string) {
   return prisma.report.findMany({
-    where: { status: { not: 'draft' } },
+    where: { senderCompanyId: companyId, status: { not: 'draft' } },
     include: {
       reportType: true,
       senderCompany: true,
@@ -16,7 +18,38 @@ async function fetchSenderReports() {
 }
 
 export default async function SenderReportsPage() {
-  const reports = await fetchSenderReports();
+  const user = await getCurrentUser();
+  const reports = user?.companyId ? await fetchSenderReports(user.companyId) : [];
+  const surveyReports = await fetchSurveyReports({
+    registers: user?.company?.registerNumber ? [user.company.registerNumber] : [],
+  });
+  const tableReports = [
+    ...reports.map((report: any) => ({
+      id: report.id,
+      reportNumber: report.reportNumber,
+      reportType: report.reportType,
+      title: report.title,
+      submittedAt: report.submittedAt?.toISOString() || null,
+      status: report.status,
+      finalScore: report.signedScanUrl ? report.finalScore : null,
+      senderCompany: report.senderCompany,
+      location: report.location,
+      source: 'web' as const,
+    })),
+    ...surveyReports.map((report) => ({
+      id: report.id,
+      reportNumber: report.reportNumber,
+      reportType: report.reportType,
+      title: report.title,
+      submittedAt: report.submittedAt,
+      status: report.status,
+      finalScore: report.finalScore,
+      senderCompany: report.senderCompany,
+      location: report.location,
+      source: report.source,
+      detailHref: `/report/${report.id}?role=sender`,
+    })),
+  ].sort((a, b) => new Date(b.submittedAt || 0).getTime() - new Date(a.submittedAt || 0).getTime());
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -48,18 +81,7 @@ export default async function SenderReportsPage() {
 
           <ReportTable
             role="sender"
-            reports={reports.map((report: any) => ({
-              id: report.id,
-              reportNumber: report.reportNumber,
-              reportType: report.reportType,
-              title: report.title,
-              submittedAt: report.submittedAt?.toISOString() || null,
-              status: report.status,
-              // Hidden until the manager sends the signed scan, even once fully scored.
-              finalScore: report.signedScanUrl ? report.finalScore : null,
-              senderCompany: report.senderCompany,
-              location: report.location,
-            }))}
+            reports={tableReports}
           />
         </main>
       </div>

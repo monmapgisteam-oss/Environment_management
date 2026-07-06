@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
+import { serializeImageAttachments } from '@/lib/attachments';
 
 export async function POST(request: Request) {
   try {
@@ -43,7 +44,7 @@ export async function POST(request: Request) {
         senderCompanyId: senderCompany.id,
         title: data.title || 'Тайлан',
         description: data.description || null,
-        fileUrl: data.fileUrl?.trim() ? data.fileUrl.trim() : null,
+        fileUrl: serializeImageAttachments(data.fileUrl),
         implementerName: data.implementerName || null,
         implementerRegister: data.implementerRegister || null,
         approvedDate: data.approvedDate ? new Date(data.approvedDate) : null,

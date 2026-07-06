@@ -4,6 +4,7 @@ import Sidebar from '@/components/Sidebar';
 import CompanyMapSection from '@/components/CompanyMapSection';
 import type { CompanyPoint } from '@/components/CompanyMap';
 import { adminNavItems } from '@/lib/adminNav';
+import { fetchSurveyMapPoints } from '@/lib/surveyMapPoints';
 
 async function fetchData() {
   // Every report location that actually has coordinates, with the company
@@ -16,9 +17,20 @@ async function fetchData() {
 
 export default async function AdminMapPage() {
   const locations = await fetchData();
+  const locationsByRegister: Record<string, { province?: string | null; district?: string | null }> = {};
+  locations.forEach((loc: any) => {
+    const register = (loc.report?.implementerRegister || loc.report?.senderCompany?.registerNumber || '').trim();
+    if (!register) return;
+    locationsByRegister[register.toUpperCase()] = {
+      province: loc.province,
+      district: loc.district,
+    };
+  });
+  const surveyPoints = await fetchSurveyMapPoints({ locationsByRegister });
 
   const points: CompanyPoint[] = locations.map((loc: any) => ({
     id: loc.report?.id ?? loc.id,
+    source: 'report',
     lat: loc.latitude as number,
     lng: loc.longitude as number,
     company: loc.report?.senderCompany?.name ?? '-',
@@ -28,7 +40,10 @@ export default async function AdminMapPage() {
     location: loc.addressDetail ?? '',
     status: loc.report?.status ?? 'draft',
     score: loc.report?.finalScore ?? null,
+    province: loc.province,
+    district: loc.district,
   }));
+  const allPoints = [...points, ...surveyPoints];
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -48,7 +63,7 @@ export default async function AdminMapPage() {
             className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft"
             style={{ height: 'calc(100vh - 220px)', minHeight: 480 }}
           >
-            <CompanyMapSection points={points} />
+            <CompanyMapSection points={allPoints} />
           </div>
         </main>
       </div>

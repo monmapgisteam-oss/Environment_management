@@ -10,6 +10,13 @@ export default function AttachmentCard({
   onFileChange,
 }: AttachmentCardProps) {
   const [isDragging, setIsDragging] = useState(false);
+  const [error, setError] = useState("");
+
+  const setImageFiles = (files: File[]) => {
+    const imageFiles = files.filter((file) => file.type.startsWith("image/"));
+    setError(imageFiles.length === files.length ? "" : "Зөвхөн зураг файл оруулна уу.");
+    if (onFileChange) onFileChange(imageFiles);
+  };
 
   const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -28,12 +35,12 @@ export default function AttachmentCard({
     e.stopPropagation();
     setIsDragging(false);
     const files = Array.from(e.dataTransfer.files);
-    if (onFileChange) onFileChange(files);
+    setImageFiles(files);
   };
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    if (onFileChange) onFileChange(files);
+    setImageFiles(files);
   };
 
   return (
@@ -55,7 +62,7 @@ export default function AttachmentCard({
           </svg>
         </div>
         <h3 className="text-base font-semibold text-color-text-main">
-          Хавсралт{" "}
+          Зураг{" "}
           <span className="text-sm font-normal text-color-text-muted">
             (сонголттой)
           </span>
@@ -63,7 +70,7 @@ export default function AttachmentCard({
       </div>
 
       <p className="text-[13px] text-color-text-muted mt-2 mb-5">
-        Тайлантай холбоотой баримт, файл хавсаргана уу.
+        Тайлантай холбоотой зураг хавсаргана уу.
       </p>
 
       {/* Upload Zone */}
@@ -81,7 +88,7 @@ export default function AttachmentCard({
           multiple
           onChange={handleFileInputChange}
           className="hidden"
-          accept=".pdf,.doc,.docx"
+          accept="image/*"
         />
         <label htmlFor="fileInput" className="cursor-pointer block">
           <div className="flex justify-center mb-3">
@@ -104,18 +111,19 @@ export default function AttachmentCard({
           </div>
           <p className="text-sm text-color-text-main">
             <span className="font-semibold text-color-primary">
-              Файл сонгох
+              Зураг сонгох
             </span>{" "}
             <span className="text-color-text-muted">эсвэл чирж оруулна уу</span>
           </p>
-          <p className="text-xs text-color-text-muted mt-1.5">PDF, DOC, DOCX</p>
+          <p className="text-xs text-color-text-muted mt-1.5">JPG, PNG, WEBP зураг</p>
           <p className="text-xs text-color-text-muted mt-0.5">
             Хамгийн их хэмжээ: 10MB
           </p>
         </label>
       </div>
+      {error && <p className="mt-2 text-xs font-medium text-red-500">{error}</p>}
 
-      {/* Attached Files */}
+      {/* Attached photos */}
       <div className="mt-5 border border-[#E8F0FE] rounded-xl p-4">
         <div className="flex items-center gap-2 mb-1.5">
           <svg
@@ -132,12 +140,12 @@ export default function AttachmentCard({
             <polyline points="14 2 14 8 20 8" />
           </svg>
           <span className="text-sm font-semibold text-color-text-main">
-            Хавсаргасан файл ({attachedFiles.length})
+            Хавсаргасан зураг ({attachedFiles.length})
           </span>
         </div>
         {attachedFiles.length === 0 ? (
           <p className="text-[13px] text-color-text-muted">
-            Одоогоор файл хавсаргаагүй байна.
+            Одоогоор зураг хавсаргаагүй байна.
           </p>
         ) : (
           <div className="space-y-2 mt-2">
