@@ -6,11 +6,13 @@ import { getCurrentUser } from '@/lib/auth';
 import { fetchSurveyReports } from '@/lib/surveyReports';
 import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
 import { senderSidebarItems } from '@/lib/senderNav';
+import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
 
 async function fetchSenderReports(companyId: string) {
   const reports = await prisma.report.findMany({
     where: {
       status: { not: 'draft' },
+      title: { not: GENERAL_EVALUATION_CONCLUSION_TITLE },
       OR: [{ senderCompanyId: companyId }, { implementerRegister: { not: null } }],
     },
     include: {

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { serializeDocumentAttachments, serializeReportAttachments } from '@/lib/attachments';
 import { findSenderCompanyByRegister } from '@/lib/reportCompanies';
+import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
 
 // Returns a single report with everything the sender's edit form needs to
 // pre-fill (type, location, attachments).
@@ -97,6 +98,7 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
     // Notify managers that a previously returned report has been resubmitted.
     if (status === 'submitted') {
       try {
+        const isConclusion = report.title === GENERAL_EVALUATION_CONCLUSION_TITLE;
         const managers = await prisma.user.findMany({
           where: { role: 'review_manager' },
           select: { id: true },
@@ -106,8 +108,10 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
             data: managers.map((manager) => ({
               userId: manager.id,
               reportId: report.id,
-              title: 'Тайлан дахин ирлээ',
-              message: `${report.senderCompany.name}-аас "${report.title}" тайланг засаж дахин илгээлээ.`,
+              title: isConclusion ? 'Дүгнэлт дахин ирлээ' : 'Тайлан дахин ирлээ',
+              message: isConclusion
+                ? `${report.senderCompany.name}-аас "${report.title}" дүгнэлтийг дахин илгээлээ.`
+                : `${report.senderCompany.name}-аас "${report.title}" тайланг засаж дахин илгээлээ.`,
             })),
           });
         }

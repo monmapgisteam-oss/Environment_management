@@ -3,6 +3,7 @@ import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import ReportTable from '@/components/ReportTable';
 import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
+import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
 import { HiInbox, HiUserGroup, HiClock, HiCheckCircle } from 'react-icons/hi';
 
 async function fetchReportTypes() {
@@ -15,7 +16,7 @@ async function fetchReportTypes() {
 async function fetchReviewerReports() {
   const reports = await prisma.report.findMany({
     // Drafts belong to the sender only; never surface them to the reviewer.
-    where: { status: { not: 'draft' } },
+    where: { status: { not: 'draft' }, title: { not: GENERAL_EVALUATION_CONCLUSION_TITLE } },
     include: {
       reportType: true,
       senderCompany: true,

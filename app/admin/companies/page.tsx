@@ -5,6 +5,7 @@ import CompaniesView, { type CompanyRow } from '@/components/CompaniesView';
 import { adminNavItems } from '@/lib/adminNav';
 import { attachEffectiveSenderCompanies, normalizeRegister } from '@/lib/reportCompanies';
 import { fetchSurveyReports } from '@/lib/surveyReports';
+import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
 
 async function fetchCompanyRows(): Promise<CompanyRow[]> {
   const [companies, rawReports, surveyReports] = await Promise.all([
@@ -18,7 +19,7 @@ async function fetchCompanyRows(): Promise<CompanyRow[]> {
       },
     }),
     prisma.report.findMany({
-      where: { status: { not: 'draft' } },
+      where: { status: { not: 'draft' }, title: { not: GENERAL_EVALUATION_CONCLUSION_TITLE } },
       include: { senderCompany: true, reportType: true, location: true },
       orderBy: { submittedAt: 'desc' },
     }),

@@ -3,6 +3,7 @@ import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import ReportTable from '@/components/ReportTable';
 import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
+import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
 
 async function fetchReportTypes() {
   return prisma.reportType.findMany({
@@ -13,7 +14,7 @@ async function fetchReportTypes() {
 
 async function fetchReturnedReports() {
   const reports = await prisma.report.findMany({
-    where: { status: 'needs_revision' },
+    where: { status: 'needs_revision', title: { not: GENERAL_EVALUATION_CONCLUSION_TITLE } },
     include: {
       reportType: true,
       senderCompany: true,

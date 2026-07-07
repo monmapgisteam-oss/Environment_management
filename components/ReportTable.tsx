@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { HiSearch } from 'react-icons/hi';
 import StatusBadge from './StatusBadge';
+import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
 import { formatDate, formatScore, getStatusLabel } from '@/lib/utils';
 
 type Report = {
@@ -37,6 +38,10 @@ const inputClass =
   'h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-slate-700 transition focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-100';
 
 export default function ReportTable({ reports, role = 'sender', showStatusFilter = true }: Props) {
+  const visibleReports = useMemo(
+    () => reports.filter((report) => report.title !== GENERAL_EVALUATION_CONCLUSION_TITLE),
+    [reports],
+  );
   // Draft values bound to the inputs — these change as the user types/selects
   // but do NOT filter the table until "Шүүх" is pressed.
   const [search, setSearch] = useState('');
@@ -68,21 +73,26 @@ export default function ReportTable({ reports, role = 'sender', showStatusFilter
   const sourceLabel = (source?: Report['source']) =>
     source === 'survey123' ? 'Survey системээс тайлан ирлээ' : null;
 
+  const reportTypeLabel = (report: Report) =>
+    report.title === GENERAL_EVALUATION_CONCLUSION_TITLE
+      ? GENERAL_EVALUATION_CONCLUSION_TITLE
+      : report.reportType.name;
+
   const types = useMemo(() => {
-    const set = new Set(reports.map((report) => report.reportType.name));
+    const set = new Set(visibleReports.map(reportTypeLabel));
     return Array.from(set);
-  }, [reports]);
+  }, [visibleReports]);
 
   const filtered = useMemo(() => {
-    return reports.filter((report) => {
+    return visibleReports.filter((report) => {
       const matchesSearch = [report.reportNumber, report.title, report.senderCompany?.name]
         .filter(Boolean)
         .some((value) => value?.toLowerCase().includes(appliedSearch.toLowerCase()));
       const matchesStatus = appliedStatus ? report.status === appliedStatus : true;
-      const matchesType = appliedType ? report.reportType.name === appliedType : true;
+      const matchesType = appliedType ? reportTypeLabel(report) === appliedType : true;
       return matchesSearch && matchesStatus && matchesType;
     });
-  }, [reports, appliedSearch, appliedStatus, appliedType]);
+  }, [visibleReports, appliedSearch, appliedStatus, appliedType]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   const pageItems = filtered.slice((page - 1) * pageSize, page * pageSize);
@@ -204,7 +214,7 @@ export default function ReportTable({ reports, role = 'sender', showStatusFilter
                 </tr>
               ) : (
                 pageItems.map((report, index) => (
-                  <tr key={report.id} className="transition-colors hover:bg-teal-50/40">
+                  <tr key={`${report.id}-${(page - 1) * pageSize + index}`} className="transition-colors hover:bg-teal-50/40">
                     <td className="px-4 py-4 text-slate-400">{(page - 1) * pageSize + index + 1}</td>
                     <td className="px-4 py-4 font-semibold text-slate-900">
                       <div className="flex flex-wrap items-center gap-1.5">
@@ -216,7 +226,7 @@ export default function ReportTable({ reports, role = 'sender', showStatusFilter
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-4 text-slate-600">{report.reportType.name}</td>
+                    <td className="px-4 py-4 text-slate-600">{reportTypeLabel(report)}</td>
                     <td className="px-4 py-4 text-slate-600">{report.title}</td>
                     <td className="px-4 py-4 text-slate-600">{report.senderCompany?.name || '-'}</td>
                     <td className="px-4 py-4 whitespace-nowrap text-slate-600">{formatDate(report.submittedAt)}</td>

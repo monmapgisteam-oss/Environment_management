@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { syncEvaluationToSurvey } from '@/lib/arcgis';
 import { computeDocumentHash, generateSignatureId, hashPin, verifyPin } from '@/lib/signature';
+import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
 
 async function findOpenAssignment(reportId: string, evaluatorUserId?: string) {
   const assignments = await prisma.reportAssignment.findMany({
@@ -45,6 +46,14 @@ export async function POST(request: Request) {
 
     if (!reportId) {
       return NextResponse.json({ error: 'reportId is required' }, { status: 400 });
+    }
+
+    const targetReport = await prisma.report.findUnique({
+      where: { id: reportId },
+      select: { title: true },
+    });
+    if (!targetReport || targetReport.title === GENERAL_EVALUATION_CONCLUSION_TITLE) {
+      return NextResponse.json({ error: 'Ерөнхий үнэлгээний дүгнэлт нь үнэлэх тайлан биш.' }, { status: 400 });
     }
 
     const numericSignature = typeof signature === 'string' ? signature.trim() : '';

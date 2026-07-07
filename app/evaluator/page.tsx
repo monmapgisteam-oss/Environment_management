@@ -5,6 +5,7 @@ import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import ReportTable from '@/components/ReportTable';
 import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
+import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
 
 async function fetchReportTypes() {
   return prisma.reportType.findMany({
@@ -19,7 +20,10 @@ async function fetchAssignedReports(evaluatorUserId: string, typeSlug?: string) 
   const assignments = await prisma.reportAssignment.findMany({
     where: {
       evaluatorUserId,
-      ...(typeSlug ? { report: { reportType: { slug: typeSlug } } } : {}),
+      report: {
+        title: { not: GENERAL_EVALUATION_CONCLUSION_TITLE },
+        ...(typeSlug ? { reportType: { slug: typeSlug } } : {}),
+      },
     },
     include: {
       report: {
@@ -36,7 +40,12 @@ async function fetchAssignedReports(evaluatorUserId: string, typeSlug?: string) 
   const reports = await attachEffectiveSenderCompanies(assignments.map((assignment: any) => assignment.report));
   const reportById = new Map(reports.map((report: any) => [report.id, report]));
 
-  return assignments.map((assignment: any) => {
+  const seenReportIds = new Set<string>();
+  return assignments.filter((assignment: any) => {
+    if (seenReportIds.has(assignment.report.id)) return false;
+    seenReportIds.add(assignment.report.id);
+    return true;
+  }).map((assignment: any) => {
     const report = reportById.get(assignment.report.id) || assignment.report;
     // Surface the report's own state for return flows so the staff member sees
     // "Буцаах хүсэлт илгээгдсэн" after they ask the manager to return it (and

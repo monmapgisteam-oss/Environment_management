@@ -3,6 +3,7 @@ import type { CompanyPoint } from '@/components/CompanyMap';
 import { SURVEY_EXCLUDED_OBJECT_IDS } from '@/lib/constants';
 import { fetchSurveyMapPoints } from '@/lib/surveyMapPoints';
 import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
+import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
 
 // Survey123 Layer 0 query endpoint. Used as a coordinate fallback when a
 // report's own picked location is missing.
@@ -49,6 +50,7 @@ export async function fetchReviewedCompanyPoints(
       ? prisma.reportAssignment.findMany({
           where: {
             evaluatorUserId: options.evaluatorUserId,
+            report: { title: { not: GENERAL_EVALUATION_CONCLUSION_TITLE } },
           },
           include: {
             evaluation: true,
@@ -59,7 +61,7 @@ export async function fetchReviewedCompanyPoints(
           orderBy: { submittedAt: 'desc' },
         })
       : prisma.report.findMany({
-          where: { status: { not: 'draft' } },
+          where: { status: { not: 'draft' }, title: { not: GENERAL_EVALUATION_CONCLUSION_TITLE } },
           include: { senderCompany: true, reportType: true, location: true },
           orderBy: { submittedAt: 'desc' },
         }),

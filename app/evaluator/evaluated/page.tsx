@@ -5,12 +5,17 @@ import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import ReportTable from '@/components/ReportTable';
 import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
+import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
 
 // Reports THIS staff member has already scored (their assignment has an
 // evaluation). Not the merely-assigned ones.
 async function fetchEvaluatedReports(evaluatorUserId: string) {
   const assignments = await prisma.reportAssignment.findMany({
-    where: { evaluatorUserId, evaluation: { isNot: null } },
+    where: {
+      evaluatorUserId,
+      evaluation: { isNot: null },
+      report: { title: { not: GENERAL_EVALUATION_CONCLUSION_TITLE } },
+    },
     include: {
       evaluation: true,
       report: {

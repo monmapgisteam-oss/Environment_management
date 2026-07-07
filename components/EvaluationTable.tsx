@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import SignatureBadge from './SignatureBadge';
+import { downloadUrl, type Attachment } from '@/lib/attachments';
 
 type Criterion = {
   id: string;
@@ -38,9 +39,10 @@ type Props = {
   // Label for the current user's input column (their own name). Falls back to a
   // generic header on pages where there is no single "self" evaluator.
   selfName?: string;
+  criterionAttachments?: Record<string, Attachment[]>;
 };
 
-export default function EvaluationTable({ criteria, reportId, savedScores, savedComment, locked, signatureStatus, signedAt, signatureId, greenery, redirectTo, leftAction, otherEvaluations = [], selfName }: Props) {
+export default function EvaluationTable({ criteria, reportId, savedScores, savedComment, locked, signatureStatus, signedAt, signatureId, greenery, redirectTo, leftAction, otherEvaluations = [], selfName, criterionAttachments = {} }: Props) {
   const [scores, setScores] = useState<Record<string, string>>(() => {
     if (savedScores) return savedScores;
     const init: Record<string, string> = {};
@@ -99,6 +101,7 @@ export default function EvaluationTable({ criteria, reportId, savedScores, saved
               <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase w-12">№</th>
               <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase">Шалгуур</th>
               <th className="text-center py-3 px-4 text-xs font-semibold text-slate-500 uppercase w-32">Авбал зохих оноо</th>
+              <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase w-56">Илгээсэн файл</th>
               {otherEvaluations.map((ev, i) => (
                 <th key={i} className="text-center py-3 px-4 text-xs font-semibold text-slate-500 uppercase w-28">{ev.evaluatorName}</th>
               ))}
@@ -111,6 +114,25 @@ export default function EvaluationTable({ criteria, reportId, savedScores, saved
                 <td className="py-3 px-4 text-slate-600">{index + 1}</td>
                 <td className="py-3 px-4 text-slate-800">{criterion.name}</td>
                 <td className="py-3 px-4 text-center font-semibold text-slate-700">{criterion.maxScore}</td>
+                <td className="py-3 px-4">
+                  {(criterionAttachments[criterion.id] || []).length > 0 ? (
+                    <div className="space-y-1.5">
+                      {(criterionAttachments[criterion.id] || []).map((file, fileIndex) => (
+                        <div key={`${file.url}-${fileIndex}`} className="flex items-center gap-2">
+                          <span className="max-w-[130px] truncate text-xs text-slate-600">{file.name}</span>
+                          <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-color-primary hover:underline">
+                            Нээх
+                          </a>
+                          <a href={downloadUrl(file)} className="text-xs font-semibold text-color-primary hover:underline">
+                            Татах
+                          </a>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-xs text-slate-400">-</span>
+                  )}
+                </td>
                 {otherEvaluations.map((ev, i) => {
                   const s = ev.scores.find((x) => x.criterionId === criterion.id);
                   return (
@@ -138,6 +160,7 @@ export default function EvaluationTable({ criteria, reportId, savedScores, saved
               <td className="py-3 px-4"></td>
               <td className="py-3 px-4 font-bold text-slate-900">Нийт оноо</td>
               <td className="py-3 px-4 text-center font-bold text-slate-900">{maxTotal}</td>
+              <td className="py-3 px-4"></td>
               {otherEvaluations.map((ev, i) => (
                 <td key={i} className="py-3 px-4 text-center font-bold text-slate-600 text-lg">{ev.totalScore}</td>
               ))}

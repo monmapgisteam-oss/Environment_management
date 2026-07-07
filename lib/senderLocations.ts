@@ -3,6 +3,7 @@ import type { CompanyPoint } from '@/components/CompanyMap';
 import { SURVEY_EXCLUDED_OBJECT_IDS } from '@/lib/constants';
 import { fetchSurveyMapPoints } from '@/lib/surveyMapPoints';
 import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
+import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
 
 // Same Survey123 fallback lookup as fetchReviewedCompanyPoints, kept
 // separate since this one scopes to a single sender company instead of
@@ -41,6 +42,7 @@ export async function fetchSenderCompanyPoints(companyId: string): Promise<Compa
     prisma.report.findMany({
       where: {
         status: { not: 'draft' },
+        title: { not: GENERAL_EVALUATION_CONCLUSION_TITLE },
         OR: [{ senderCompanyId: companyId }, { implementerRegister: { not: null } }],
       },
       include: { senderCompany: true, reportType: true, location: true },

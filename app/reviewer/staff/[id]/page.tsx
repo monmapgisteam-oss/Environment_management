@@ -4,6 +4,7 @@ import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import StatusBadge from '@/components/StatusBadge';
 import { formatDate } from '@/lib/utils';
+import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -14,6 +15,7 @@ async function fetchStaffMember(id: string) {
     where: { id, role: 'evaluator' },
     include: {
       evaluatorAssignments: {
+        where: { report: { title: { not: GENERAL_EVALUATION_CONCLUSION_TITLE } } },
         include: {
           report: { select: { id: true, reportNumber: true, title: true, status: true } },
           evaluation: { select: { totalScore: true } },

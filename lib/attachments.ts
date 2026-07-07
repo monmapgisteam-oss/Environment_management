@@ -1,4 +1,4 @@
-export type Attachment = { url: string; name: string };
+export type Attachment = { url: string; name: string; criterionId?: string };
 
 export function isImageAttachment(file: Attachment): boolean {
   return /\.(jpe?g|png|webp|gif|bmp|heic|heif)$/i.test(file.name || file.url);
@@ -55,7 +55,11 @@ export function parseAttachments(fileUrl: string | null | undefined): Attachment
     if (Array.isArray(parsed)) {
       return parsed
         .filter((f: any) => f && f.url)
-        .map((f: any) => ({ url: f.url, name: f.name || f.url.split('/').pop() }));
+        .map((f: any) => ({
+          url: f.url,
+          name: f.name || f.url.split('/').pop(),
+          ...(typeof f.criterionId === 'string' && f.criterionId ? { criterionId: f.criterionId } : {}),
+        }));
     }
     return [];
   } catch {

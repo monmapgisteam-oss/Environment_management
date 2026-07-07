@@ -7,7 +7,6 @@ import {
   CONCLUSION_PROVINCES,
   CONCLUSION_TYPES,
 } from '@/lib/conclusions';
-import { formatDate } from '@/lib/utils';
 
 type Props = {
   rows: ConclusionRow[];
@@ -17,6 +16,16 @@ type Props = {
 
 const inputClass =
   'h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-slate-700 transition focus:border-color-primary focus:outline-none focus:ring-2 focus:ring-color-primary/10';
+
+function formatIsoDate(value?: string | Date | null) {
+  if (!value) return '-';
+  const date = typeof value === 'string' ? new Date(value) : value;
+  if (Number.isNaN(date.getTime())) return '-';
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
 export default function ConclusionSearchResults({ rows, search, role }: Props) {
   const detailRole = role === 'reviewer' ? 'reviewer' : 'staff';
@@ -133,7 +142,7 @@ export default function ConclusionSearchResults({ rows, search, role }: Props) {
                 rows.map((row, index) => (
                   <tr key={row.id} className="transition-colors hover:bg-teal-50/40">
                     <td className="border-r border-slate-100 px-3 py-4 text-slate-500">{index + 1}</td>
-                    <td className="border-r border-slate-100 px-3 py-4 whitespace-nowrap">{formatDate(row.submittedAt)}</td>
+                    <td className="border-r border-slate-100 px-3 py-4 whitespace-nowrap">{formatIsoDate(row.submittedAt)}</td>
                     <td className="border-r border-slate-100 px-3 py-4 font-semibold text-slate-900">{row.reportNumber}</td>
                     <td className="border-r border-slate-100 px-3 py-4">{row.reportTypeName}</td>
                     <td className="border-r border-slate-100 px-3 py-4">

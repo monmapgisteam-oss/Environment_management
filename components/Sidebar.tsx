@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import {
   HiViewGrid,
@@ -76,9 +76,21 @@ const iconMap: Record<string, ReactNode> = {
 
 function SidebarItem({ item }: { item: Item }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const selectedType = searchParams.get("type");
   const extraChildren: Item[] =
     item.label === "Ирсэн тайлангууд" && item.href.startsWith("/reviewer")
       ? [
+          {
+            label: "Жилийн төлөвлөгөө",
+            href: "/reviewer/reports?type=type-1",
+            active: pathname === "/reviewer/reports" && selectedType === "type-1",
+          },
+          {
+            label: "Биелэлтийн тайлан",
+            href: "/reviewer/reports?type=type-2",
+            active: pathname === "/reviewer/reports" && selectedType === "type-2",
+          },
           {
             label: "Ерөнхий үнэлгээний дүгнэлт",
             href: "/reviewer/conclusions",
@@ -87,6 +99,16 @@ function SidebarItem({ item }: { item: Item }) {
         ]
       : item.label === "Надад оноогдсон тайлангууд" && item.href.startsWith("/evaluator")
         ? [
+            {
+              label: "Жилийн төлөвлөгөө",
+              href: "/evaluator?type=type-1",
+              active: pathname === "/evaluator" && selectedType === "type-1",
+            },
+            {
+              label: "Биелэлтийн тайлан",
+              href: "/evaluator?type=type-2",
+              active: pathname === "/evaluator" && selectedType === "type-2",
+            },
             {
               label: "Ерөнхий үнэлгээний дүгнэлт",
               href: "/evaluator/conclusions",

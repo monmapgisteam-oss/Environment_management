@@ -12,6 +12,7 @@ interface MapPickerProps {
   lng: number;
   hasMarker: boolean;
   onMapClick: (lat: number, lng: number) => void;
+  showSurveyLayer?: boolean;
 }
 
 // ArcGIS / Survey123 FeatureServer (point layer) shown as a toggleable overlay
@@ -35,7 +36,7 @@ function surveyPopup(props: Record<string, any>): string {
   });
 }
 
-export default function MapPicker({ lat, lng, hasMarker, onMapClick }: MapPickerProps) {
+export default function MapPicker({ lat, lng, hasMarker, onMapClick, showSurveyLayer = false }: MapPickerProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
@@ -51,35 +52,37 @@ export default function MapPicker({ lat, lng, hasMarker, onMapClick }: MapPicker
 
     const baseLayer = addBasemap(map);
 
-    // Survey123 point overlay — fetched as GeoJSON and rendered with popups.
-    const surveyIcon = createPinIcon('#D97706');
-    const surveyLayer = L.geoJSON(undefined, {
-      pointToLayer: (_feature, latlng) => L.marker(latlng, { icon: surveyIcon }),
-      onEachFeature: (feature, layer) => {
-        layer.bindPopup(surveyPopup(feature.properties || {}));
-      },
-    }).addTo(map);
-
     let cancelled = false;
-    fetch(SURVEY_LAYER_URL)
-      .then((res) => res.json())
-      .then((geojson) => {
-        if (cancelled || !mapInstanceRef.current) return;
-        if (geojson && Array.isArray(geojson.features)) {
-          surveyLayer.addData(geojson);
-        }
-      })
-      .catch(() => {
-        /* overlay is optional — ignore fetch/network errors */
-      });
+    if (showSurveyLayer) {
+      // Survey123 point overlay — fetched as GeoJSON and rendered with popups.
+      const surveyIcon = createPinIcon('#D97706');
+      const surveyLayer = L.geoJSON(undefined, {
+        pointToLayer: (_feature, latlng) => L.marker(latlng, { icon: surveyIcon }),
+        onEachFeature: (feature, layer) => {
+          layer.bindPopup(surveyPopup(feature.properties || {}));
+        },
+      }).addTo(map);
 
-    L.control
-      .layers(
-        { 'Газрын зураг': baseLayer },
-        { 'Судалгааны цэгүүд': surveyLayer },
-        { collapsed: false },
-      )
-      .addTo(map);
+      fetch(SURVEY_LAYER_URL)
+        .then((res) => res.json())
+        .then((geojson) => {
+          if (cancelled || !mapInstanceRef.current) return;
+          if (geojson && Array.isArray(geojson.features)) {
+            surveyLayer.addData(geojson);
+          }
+        })
+        .catch(() => {
+          /* overlay is optional — ignore fetch/network errors */
+        });
+
+      L.control
+        .layers(
+          { 'Газрын зураг': baseLayer },
+          { 'Судалгааны цэгүүд': surveyLayer },
+          { collapsed: false },
+        )
+        .addTo(map);
+    }
 
     const icon = createPinIcon('#0F766E', 'lg');
 

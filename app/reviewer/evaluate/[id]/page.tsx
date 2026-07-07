@@ -3,9 +3,11 @@ import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import EvaluationTable from '@/components/EvaluationTable';
 import AttachmentList from '@/components/AttachmentList';
-import { parseAttachments } from '@/lib/attachments';
+import LocationMap from '@/components/LocationMapClient';
+import { parseAttachments, type Attachment } from '@/lib/attachments';
 import { signAttachments } from '@/lib/supabase';
 import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
+import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -13,10 +15,11 @@ type Props = {
 
 async function fetchReport(id: string) {
   const report = await prisma.report.findUnique({
-    where: { id },
+    where: { id, title: { not: GENERAL_EVALUATION_CONCLUSION_TITLE } },
     include: {
       reportType: true,
       senderCompany: true,
+      location: true,
       evaluations: {
         include: {
           scores: true,
@@ -34,6 +37,14 @@ async function fetchCriteria() {
     where: { isActive: true },
     orderBy: { sortOrder: 'asc' },
   });
+}
+
+function groupCriterionAttachments(attachments: Attachment[]) {
+  return attachments.reduce((acc: Record<string, Attachment[]>, file) => {
+    if (!file.criterionId) return acc;
+    acc[file.criterionId] = [...(acc[file.criterionId] || []), file];
+    return acc;
+  }, {});
 }
 
 async function fetchReportTypes() {
@@ -54,6 +65,14 @@ export default async function ReviewerEvaluatePage(props: Props) {
   if (!report) {
     return <div className="p-8 text-center text-slate-500">Тайлан олдсонгүй.</div>;
   }
+
+  const signedAttachments = await signAttachments(parseAttachments(report.fileUrl));
+  const criterionAttachments = groupCriterionAttachments(signedAttachments);
+  const reportAttachments = signedAttachments.filter((file) => !file.criterionId);
+  const locationMap =
+    report.location?.latitude != null && report.location?.longitude != null
+      ? { lat: report.location.latitude, lng: report.location.longitude }
+      : null;
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -105,8 +124,22 @@ export default async function ReviewerEvaluatePage(props: Props) {
             </div>
           </div>
 
+          {locationMap && (
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+              <div className="border-b border-slate-100 px-6 py-4">
+                <h2 className="text-base font-semibold text-slate-900">Газрын зураг дээрх байршил</h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  {locationMap.lat.toFixed(6)}, {locationMap.lng.toFixed(6)}
+                </p>
+              </div>
+              <div className="h-80">
+                <LocationMap lat={locationMap.lat} lng={locationMap.lng} />
+              </div>
+            </div>
+          )}
+
           {/* Attached documents the sender submitted */}
-          <AttachmentList attachments={await signAttachments(parseAttachments(report.fileUrl))} />
+          <AttachmentList attachments={reportAttachments} />
 
           {/* Evaluation Table */}
           <EvaluationTable
@@ -129,6 +162,7 @@ export default async function ReviewerEvaluatePage(props: Props) {
             signedAt={report.evaluations?.[0]?.signedAt ? report.evaluations[0].signedAt.toISOString() : null}
             signatureId={report.evaluations?.[0]?.signatureId || null}
             greenery={{ hasGreenery: report.hasGreenery, treeCount: report.treeCount, spentAmount: report.spentAmount }}
+            criterionAttachments={criterionAttachments}
           />
         </main>
       </div>

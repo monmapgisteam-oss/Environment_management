@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
 
 // Reverse lookup for the "Тайлан хайх" (Survey123) table — given a
 // register number pulled from the raw survey feature, find the matching
@@ -13,6 +14,7 @@ export async function GET(request: Request) {
 
   const reports = await prisma.report.findMany({
     where: {
+      title: { not: GENERAL_EVALUATION_CONCLUSION_TITLE },
       OR: [{ implementerRegister: register }, { senderCompany: { registerNumber: register } }],
     },
     select: {

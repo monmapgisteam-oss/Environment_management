@@ -5,6 +5,7 @@ import AssignBoard from '@/components/AssignBoard';
 import { STAFF_EMAILS } from '@/lib/constants';
 import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
 import { fetchSurveyReports } from '@/lib/surveyReports';
+import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
 
 async function fetchReportTypes() {
   return prisma.reportType.findMany({
@@ -39,7 +40,10 @@ async function fetchStaff() {
 async function fetchDistributableReports() {
   const [rawReports, surveyReports] = await Promise.all([
     prisma.report.findMany({
-      where: { status: { in: ['submitted', 'assigned', 'in_review', 'needs_revision'] } },
+      where: {
+        status: { in: ['submitted', 'assigned', 'in_review', 'needs_revision'] },
+        title: { not: GENERAL_EVALUATION_CONCLUSION_TITLE },
+      },
       include: {
         reportType: true,
         senderCompany: true,

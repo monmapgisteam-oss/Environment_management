@@ -4,6 +4,7 @@ import Sidebar from '@/components/Sidebar';
 import ReportTable from '@/components/ReportTable';
 import { fetchSurveyReports } from '@/lib/surveyReports';
 import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
+import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
 
 async function fetchReportTypes() {
   return prisma.reportType.findMany({
@@ -17,6 +18,7 @@ async function fetchAllReports(typeSlug?: string) {
     // Drafts belong to the sender only; never surface them to the reviewer.
     where: {
       status: { not: 'draft' },
+      title: { not: GENERAL_EVALUATION_CONCLUSION_TITLE },
       ...(typeSlug ? { reportType: { slug: typeSlug } } : {}),
     },
     include: {

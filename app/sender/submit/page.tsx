@@ -8,9 +8,17 @@ import ReportInfoCard from "@/components/ReportInfoCard";
 import LocationCard from "@/components/LocationCard";
 import AttachmentCard from "@/components/AttachmentCard";
 import DocumentUploadCard from "@/components/DocumentUploadCard";
+import CriterionEvidenceUploadCard from "@/components/CriterionEvidenceUploadCard";
 import { HiCheckCircle } from "react-icons/hi";
 import { isDocumentAttachment, isReportAttachment, parseAttachments, type Attachment } from "@/lib/attachments";
 import { senderSidebarItems, type SenderNavKey } from "@/lib/senderNav";
+
+type Criterion = {
+  id: string;
+  name: string;
+  maxScore: number;
+  sortOrder: number;
+};
 
 const PERFORMANCE_REPORT_LABEL = "Биелэлтийн тайлан";
 const GENERAL_EVALUATION_LABEL = "Ерөнхий үнэлгээний дүгнэлт";
@@ -42,9 +50,12 @@ export default function SubmitReportPage() {
   const [savingDraft, setSavingDraft] = useState(false);
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const [documentFiles, setDocumentFiles] = useState<File[]>([]);
+  const [criteria, setCriteria] = useState<Criterion[]>([]);
+  const [criterionFiles, setCriterionFiles] = useState<Record<string, File[]>>({});
   const [submitError, setSubmitError] = useState("");
   // Attachments already saved on the report being edited (kept unless removed).
   const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
+  const [existingCriterionAttachments, setExistingCriterionAttachments] = useState<Record<string, Attachment[]>>({});
   const [initialLocation, setInitialLocation] = useState<{
     lat?: number;
     lng?: number;
@@ -74,6 +85,16 @@ export default function SubmitReportPage() {
     spentAmount: "",
   });
 
+  useEffect(() => {
+    if (isGeneralEvaluation || isAdditional) return;
+    (async () => {
+      const res = await fetch("/api/criteria");
+      if (!res.ok) return;
+      const data = await res.json();
+      setCriteria(data);
+    })();
+  }, [isAdditional, isGeneralEvaluation]);
+
   // Keep report type locked to the selected sidebar type (create mode only).
   useEffect(() => {
     if (isEdit) return;
@@ -97,10 +118,8 @@ export default function SubmitReportPage() {
       if (!res.ok) return;
       const r = await res.json();
       const savedAttachments = parseAttachments(r.fileUrl);
-      const hasDocuments = savedAttachments.some(isDocumentAttachment);
-      setEditSubmitType(
-        r.title === GENERAL_EVALUATION_LABEL || hasDocuments ? "general-evaluation" : null,
-      );
+      const isSavedGeneralEvaluation = r.title === GENERAL_EVALUATION_LABEL;
+      setEditSubmitType(isSavedGeneralEvaluation ? "general-evaluation" : null);
       setFormData({
         reportType: r.reportType?.name || "",
         reportNumber: r.reportNumber || "",
@@ -124,7 +143,18 @@ export default function SubmitReportPage() {
         });
       }
       setExistingAttachments(
-        savedAttachments.filter(hasDocuments ? isDocumentAttachment : isReportAttachment),
+        savedAttachments.filter((file) =>
+          isSavedGeneralEvaluation ? isDocumentAttachment(file) : !file.criterionId && isReportAttachment(file),
+        ),
+      );
+      setExistingCriterionAttachments(
+        savedAttachments
+          .filter((file) => !isSavedGeneralEvaluation && file.criterionId && isReportAttachment(file))
+          .reduce((acc: Record<string, Attachment[]>, file) => {
+            const criterionId = file.criterionId as string;
+            acc[criterionId] = [...(acc[criterionId] || []), file];
+            return acc;
+          }, {}),
       );
     })();
   }, [editId]);
@@ -147,6 +177,14 @@ export default function SubmitReportPage() {
     setSubmitError("");
   };
 
+  const handleCriterionFilesChange = (criterionId: string, files: File[]) => {
+    setCriterionFiles((prev) => ({ ...prev, [criterionId]: files }));
+  };
+
+  const handleExistingCriterionFilesChange = (criterionId: string, files: Attachment[]) => {
+    setExistingCriterionAttachments((prev) => ({ ...prev, [criterionId]: files }));
+  };
+
   // Upload newly picked files and return them as { url, name } entries.
   const uploadAttachments = async () => {
     const uploaded: { url: string; name: string }[] = [];
@@ -160,6 +198,24 @@ export default function SubmitReportPage() {
       }
       const data = await res.json();
       uploaded.push({ url: data.url, name: data.name });
+    }
+    return uploaded;
+  };
+
+  const uploadCriterionAttachments = async () => {
+    const uploaded: Attachment[] = [];
+    for (const [criterionId, files] of Object.entries(criterionFiles)) {
+      for (const file of files) {
+        const body = new FormData();
+        body.append("file", file);
+        body.append("purpose", "report-attachment");
+        const res = await fetch("/api/upload", { method: "POST", body });
+        if (!res.ok) {
+          throw new Error("Criterion attachment upload failed");
+        }
+        const data = await res.json();
+        uploaded.push({ url: data.url, name: data.name, criterionId });
+      }
     }
     return uploaded;
   };
@@ -185,10 +241,12 @@ export default function SubmitReportPage() {
   // editing, while letting them add more.
   const buildFileUrl = async () => {
     const uploaded = isGeneralEvaluation ? await uploadDocuments() : await uploadAttachments();
+    const uploadedCriterionFiles = isGeneralEvaluation ? [] : await uploadCriterionAttachments();
     const keptAttachments = existingAttachments.filter(
       isGeneralEvaluation ? isDocumentAttachment : isReportAttachment,
     );
-    const combined = [...keptAttachments, ...uploaded];
+    const keptCriterionAttachments = isGeneralEvaluation ? [] : Object.values(existingCriterionAttachments).flat();
+    const combined = [...keptAttachments, ...keptCriterionAttachments, ...uploaded, ...uploadedCriterionFiles];
     return combined.length ? JSON.stringify(combined) : "";
   };
 
@@ -209,6 +267,8 @@ export default function SubmitReportPage() {
     setSubmitted(false);
     setAttachedFiles([]);
     setDocumentFiles([]);
+    setCriterionFiles({});
+    setExistingCriterionAttachments({});
     setSubmitError("");
     setFormData({
       reportType: isGeneralEvaluation ? PERFORMANCE_REPORT_LABEL : activeType?.label || "",
@@ -516,6 +576,18 @@ export default function SubmitReportPage() {
                         register={formData.implementerRegister}
                       />
                     </div>
+
+                    {criteria.length > 0 && (
+                      <div className="mt-8">
+                        <CriterionEvidenceUploadCard
+                          criteria={criteria}
+                          filesByCriterion={criterionFiles}
+                          existingByCriterion={existingCriterionAttachments}
+                          onFilesChange={handleCriterionFilesChange}
+                          onExistingChange={handleExistingCriterionFilesChange}
+                        />
+                      </div>
+                    )}
                   </>
                 )}
 

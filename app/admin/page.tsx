@@ -4,9 +4,11 @@ import Sidebar from '@/components/Sidebar';
 import ReportTable from '@/components/ReportTable';
 import { adminNavItems } from '@/lib/adminNav';
 import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
+import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
 
 async function fetchAdminReports() {
   const reports = await prisma.report.findMany({
+    where: { title: { not: GENERAL_EVALUATION_CONCLUSION_TITLE } },
     include: {
       reportType: true,
       senderCompany: true,

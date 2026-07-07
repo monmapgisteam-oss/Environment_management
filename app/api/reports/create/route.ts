@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 import { serializeDocumentAttachments, serializeReportAttachments } from '@/lib/attachments';
 import { resolveReportSenderCompany } from '@/lib/reportCompanies';
+import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
 
 export async function POST(request: Request) {
   try {
@@ -78,6 +79,7 @@ export async function POST(request: Request) {
     // Drafts stay private to the sender, so only notify on real submissions.
     if (status === 'submitted') {
       try {
+        const isConclusion = report.title === GENERAL_EVALUATION_CONCLUSION_TITLE;
         const managers = await prisma.user.findMany({
           where: { role: 'review_manager' },
           select: { id: true },
@@ -87,8 +89,10 @@ export async function POST(request: Request) {
             data: managers.map((manager) => ({
               userId: manager.id,
               reportId: report.id,
-              title: 'Шинэ тайлан ирлээ',
-              message: `${senderCompany.name}-аас "${report.title}" тайлан хянуулахаар ирлээ.`,
+              title: isConclusion ? 'Шинэ дүгнэлт ирлээ' : 'Шинэ тайлан ирлээ',
+              message: isConclusion
+                ? `${senderCompany.name}-аас "${report.title}" дүгнэлт ирлээ.`
+                : `${senderCompany.name}-аас "${report.title}" тайлан хянуулахаар ирлээ.`,
             })),
           });
         }

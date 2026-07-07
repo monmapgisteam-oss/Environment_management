@@ -6,10 +6,12 @@ import Sidebar from "@/components/Sidebar";
 import EvaluationTable from "@/components/EvaluationTable";
 import AttachmentList from "@/components/AttachmentList";
 import StaffReturnButton from "@/components/StaffReturnButton";
-import { parseAttachments } from "@/lib/attachments";
+import LocationMap from "@/components/LocationMapClient";
+import { parseAttachments, type Attachment } from "@/lib/attachments";
 import { signAttachments } from "@/lib/supabase";
 import { formatDate } from "@/lib/utils";
 import { attachEffectiveSenderCompanies } from "@/lib/reportCompanies";
+import { GENERAL_EVALUATION_CONCLUSION_TITLE } from "@/lib/conclusions";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -22,9 +24,17 @@ async function fetchCriteria() {
   });
 }
 
+function groupCriterionAttachments(attachments: Attachment[]) {
+  return attachments.reduce((acc: Record<string, Attachment[]>, file) => {
+    if (!file.criterionId) return acc;
+    acc[file.criterionId] = [...(acc[file.criterionId] || []), file];
+    return acc;
+  }, {});
+}
+
 async function findStaffAssignment(reportId: string, evaluatorUserId: string) {
   const assignments = await prisma.reportAssignment.findMany({
-    where: { reportId, evaluatorUserId },
+    where: { reportId, evaluatorUserId, report: { title: { not: GENERAL_EVALUATION_CONCLUSION_TITLE } } },
     include: {
       report: {
         include: { reportType: true, senderCompany: true, location: true },
@@ -80,6 +90,13 @@ export default async function StaffEvaluatePage(props: Props) {
       },
       {},
     ) || null;
+  const signedAttachments = await signAttachments(parseAttachments(report.fileUrl));
+  const criterionAttachments = groupCriterionAttachments(signedAttachments);
+  const reportAttachments = signedAttachments.filter((file) => !file.criterionId);
+  const locationMap =
+    report.location?.latitude != null && report.location?.longitude != null
+      ? { lat: report.location.latitude, lng: report.location.longitude }
+      : null;
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -215,11 +232,23 @@ export default async function StaffEvaluatePage(props: Props) {
             </div>
           </div>
 
+          {locationMap && (
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+              <div className="border-b border-slate-100 px-6 py-4">
+                <h2 className="text-base font-semibold text-slate-900">Газрын зураг дээрх байршил</h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  {locationMap.lat.toFixed(6)}, {locationMap.lng.toFixed(6)}
+                </p>
+              </div>
+              <div className="h-80">
+                <LocationMap lat={locationMap.lat} lng={locationMap.lng} />
+              </div>
+            </div>
+          )}
+
           {/* Attached documents the sender submitted */}
           <AttachmentList
-            attachments={await signAttachments(
-              parseAttachments(report.fileUrl),
-            )}
+            attachments={reportAttachments}
           />
 
           {/* Scoring — staff see only their own column, never other evaluators'. */}
@@ -238,6 +267,7 @@ export default async function StaffEvaluatePage(props: Props) {
             signedAt={assignment.evaluation?.signedAt ? assignment.evaluation.signedAt.toISOString() : null}
             signatureId={assignment.evaluation?.signatureId || null}
             greenery={{ hasGreenery: report.hasGreenery, treeCount: report.treeCount, spentAmount: report.spentAmount }}
+            criterionAttachments={criterionAttachments}
             redirectTo="/evaluator"
             selfName={user.name}
             leftAction={

@@ -6,12 +6,17 @@ import type { CompanyPoint } from '@/components/CompanyMap';
 import { adminNavItems } from '@/lib/adminNav';
 import { fetchSurveyMapPoints } from '@/lib/surveyMapPoints';
 import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
+import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
 
 async function fetchData() {
   // Every report location that actually has coordinates, with the company
   // that submitted it and its review outcome (for search/filter/score color).
   return prisma.reportLocation.findMany({
-    where: { latitude: { not: null }, longitude: { not: null } },
+    where: {
+      latitude: { not: null },
+      longitude: { not: null },
+      report: { title: { not: GENERAL_EVALUATION_CONCLUSION_TITLE } },
+    },
     include: { report: { include: { senderCompany: true, reportType: true } } },
   });
 }

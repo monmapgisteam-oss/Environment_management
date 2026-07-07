@@ -1,9 +1,11 @@
 import prisma from '@/lib/prisma';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
+import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
 
 async function fetchGeographyData() {
   const locations = await prisma.reportLocation.findMany({
+    where: { report: { title: { not: GENERAL_EVALUATION_CONCLUSION_TITLE } } },
     include: {
       report: true,
     },

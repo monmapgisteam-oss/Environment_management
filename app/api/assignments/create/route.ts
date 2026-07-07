@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { materializeSurveyReportByObjectId } from "@/lib/surveyReports";
+import { GENERAL_EVALUATION_CONCLUSION_TITLE } from "@/lib/conclusions";
 
 async function resolveAssignableReportId(reportId: string) {
   const match = /^survey-(\d+)$/.exec(reportId);
@@ -22,6 +23,17 @@ export async function POST(request: Request) {
     if (!reportId || evaluatorIds.length === 0) {
       return NextResponse.json(
         { error: "Тайлан болон гишүүн сонгоно уу." },
+        { status: 400 },
+      );
+    }
+
+    const targetReport = await prisma.report.findUnique({
+      where: { id: reportId },
+      select: { title: true },
+    });
+    if (!targetReport || targetReport.title === GENERAL_EVALUATION_CONCLUSION_TITLE) {
+      return NextResponse.json(
+        { error: "Ерөнхий үнэлгээний дүгнэлт нь оноох тайлан биш." },
         { status: 400 },
       );
     }
