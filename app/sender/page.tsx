@@ -4,6 +4,7 @@ import Sidebar from '@/components/Sidebar';
 import ReportTable from '@/components/ReportTable';
 import { getCurrentUser } from '@/lib/auth';
 import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
+import { senderSidebarItems } from '@/lib/senderNav';
 import { HiPaperAirplane, HiClock, HiPencil, HiCheckCircle, HiStar } from 'react-icons/hi';
 
 async function fetchSenderReports(companyId: string) {
@@ -46,23 +47,7 @@ export default async function SenderDashboard() {
 
   return (
     <div className="flex min-h-screen bg-background">
-      <Sidebar
-        items={[
-          { label: 'Хяналтын самбар', href: '/sender', active: true },
-          {
-            label: 'Тайлан илгээх',
-            href: '/sender/submit',
-            children: [
-              { label: 'Жилийн төлөвлөгөө', href: '/sender/submit?type=plan' },
-              { label: 'Биелэлтийн тайлан', href: '/sender/submit?type=performance' },
-            ],
-          },
-          { label: 'Нэмэлт мэдээлэл', href: '/sender/submit?type=additional' },
-          { label: 'Миний тайлангууд', href: '/sender/reports' },
-          { label: 'Газарзүйн мэдээлэл', href: '/sender/geography' },
-          { label: 'Ноорог', href: '/sender/drafts' },
-        ]}
-      />
+      <Sidebar items={senderSidebarItems('dashboard')} />
 
       <div className="flex min-w-0 flex-1 flex-col">
         <Header userName="Илгээх хэрэглэгч" companyName="Илгээх байгууллага" companyType="sender" />

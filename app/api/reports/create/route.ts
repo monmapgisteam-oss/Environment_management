@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
-import { serializeImageAttachments } from '@/lib/attachments';
+import { serializeDocumentAttachments, serializeReportAttachments } from '@/lib/attachments';
 import { resolveReportSenderCompany } from '@/lib/reportCompanies';
 
 export async function POST(request: Request) {
@@ -46,7 +46,10 @@ export async function POST(request: Request) {
         senderCompanyId: senderCompany.id,
         title: data.title || 'Тайлан',
         description: data.description || null,
-        fileUrl: serializeImageAttachments(data.fileUrl),
+        fileUrl:
+          data.attachmentKind === 'document'
+            ? serializeDocumentAttachments(data.fileUrl)
+            : serializeReportAttachments(data.fileUrl),
         implementerName: data.implementerName || null,
         implementerRegister: data.implementerRegister?.trim() || null,
         approvedDate: data.approvedDate ? new Date(data.approvedDate) : null,

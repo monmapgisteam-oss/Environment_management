@@ -5,6 +5,8 @@ interface AttachmentCardProps {
   onFileChange?: (files: File[]) => void;
 }
 
+const allowedAttachmentPattern = /\.(jpe?g|png|webp|gif|bmp|heic|heif|pdf|docx?|odt)$/i;
+
 export default function AttachmentCard({
   attachedFiles = [],
   onFileChange,
@@ -12,10 +14,16 @@ export default function AttachmentCard({
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState("");
 
-  const setImageFiles = (files: File[]) => {
-    const imageFiles = files.filter((file) => file.type.startsWith("image/"));
-    setError(imageFiles.length === files.length ? "" : "Зөвхөн зураг файл оруулна уу.");
-    if (onFileChange) onFileChange(imageFiles);
+  const setAttachmentFiles = (files: File[]) => {
+    const attachmentFiles = files.filter(
+      (file) => file.type.startsWith("image/") || allowedAttachmentPattern.test(file.name),
+    );
+    setError(
+      attachmentFiles.length === files.length
+        ? ""
+        : "Зураг, PDF, DOC, DOCX файл оруулна уу.",
+    );
+    if (onFileChange) onFileChange(attachmentFiles);
   };
 
   const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
@@ -35,12 +43,12 @@ export default function AttachmentCard({
     e.stopPropagation();
     setIsDragging(false);
     const files = Array.from(e.dataTransfer.files);
-    setImageFiles(files);
+    setAttachmentFiles(files);
   };
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    setImageFiles(files);
+    setAttachmentFiles(files);
   };
 
   return (
@@ -62,7 +70,7 @@ export default function AttachmentCard({
           </svg>
         </div>
         <h3 className="text-base font-semibold text-color-text-main">
-          Зураг{" "}
+          Хавсралт{" "}
           <span className="text-sm font-normal text-color-text-muted">
             (сонголттой)
           </span>
@@ -70,7 +78,7 @@ export default function AttachmentCard({
       </div>
 
       <p className="text-[13px] text-color-text-muted mt-2 mb-5">
-        Тайлантай холбоотой зураг хавсаргана уу.
+        Тайлантай холбоотой зураг, PDF эсвэл Word файл хавсаргана уу.
       </p>
 
       {/* Upload Zone */}
@@ -88,7 +96,7 @@ export default function AttachmentCard({
           multiple
           onChange={handleFileInputChange}
           className="hidden"
-          accept="image/*"
+          accept="image/*,.pdf,.doc,.docx,.odt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         />
         <label htmlFor="fileInput" className="cursor-pointer block">
           <div className="flex justify-center mb-3">
@@ -111,19 +119,21 @@ export default function AttachmentCard({
           </div>
           <p className="text-sm text-color-text-main">
             <span className="font-semibold text-color-primary">
-              Зураг сонгох
+              Файл сонгох
             </span>{" "}
             <span className="text-color-text-muted">эсвэл чирж оруулна уу</span>
           </p>
-          <p className="text-xs text-color-text-muted mt-1.5">JPG, PNG, WEBP зураг</p>
+          <p className="text-xs text-color-text-muted mt-1.5">
+            JPG, PNG, WEBP, PDF, DOC, DOCX
+          </p>
           <p className="text-xs text-color-text-muted mt-0.5">
-            Хамгийн их хэмжээ: 10MB
+            Хамгийн их хэмжээ: зураг 10MB, баримт 25MB
           </p>
         </label>
       </div>
       {error && <p className="mt-2 text-xs font-medium text-red-500">{error}</p>}
 
-      {/* Attached photos */}
+      {/* Attached files */}
       <div className="mt-5 border border-[#E8F0FE] rounded-xl p-4">
         <div className="flex items-center gap-2 mb-1.5">
           <svg
@@ -140,12 +150,12 @@ export default function AttachmentCard({
             <polyline points="14 2 14 8 20 8" />
           </svg>
           <span className="text-sm font-semibold text-color-text-main">
-            Хавсаргасан зураг ({attachedFiles.length})
+            Хавсаргасан файл ({attachedFiles.length})
           </span>
         </div>
         {attachedFiles.length === 0 ? (
           <p className="text-[13px] text-color-text-muted">
-            Одоогоор зураг хавсаргаагүй байна.
+            Одоогоор файл хавсаргаагүй байна.
           </p>
         ) : (
           <div className="space-y-2 mt-2">

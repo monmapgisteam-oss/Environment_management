@@ -1,13 +1,21 @@
 import type { Attachment } from '@/lib/attachments';
 import { downloadUrl, isImageAttachment } from '@/lib/attachments';
 
-// Shows sender-uploaded report photos. Reused on report detail and evaluation pages.
-export default function AttachmentList({ attachments }: { attachments: Attachment[] }) {
+// Shows sender-uploaded report attachments. Reused on report detail and evaluation pages.
+export default function AttachmentList({
+  attachments,
+  title = 'Хавсаргасан файл',
+  emptyText = 'Хавсаргасан файл байхгүй байна.',
+}: {
+  attachments: Attachment[];
+  title?: string;
+  emptyText?: string;
+}) {
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-6">
-      <h2 className="text-base font-semibold text-slate-900 mb-4">Хавсаргасан зураг</h2>
+      <h2 className="text-base font-semibold text-slate-900 mb-4">{title}</h2>
       {attachments.length === 0 ? (
-        <p className="text-sm text-slate-500">Хавсаргасан зураг байхгүй байна.</p>
+        <p className="text-sm text-slate-500">{emptyText}</p>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {attachments.map((file, index) => (

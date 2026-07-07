@@ -13,6 +13,8 @@ import { formatDate, formatScore } from '@/lib/utils';
 import { getCurrentUser } from '@/lib/auth';
 import { fetchSurveyReportByObjectId } from '@/lib/surveyReports';
 import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
+import { senderSidebarItems } from '@/lib/senderNav';
+import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -26,11 +28,7 @@ function parseSurveyReportId(id: string) {
 
 function surveySidebarItems(role?: string) {
   if (role === 'sender') {
-    return [
-      { label: 'Хяналтын самбар', href: '/sender' },
-      { label: 'Миний тайлангууд', href: '/sender/reports', active: true },
-      { label: 'Газарзүйн мэдээлэл', href: '/sender/geography' },
-    ];
+    return senderSidebarItems('reports');
   }
   if (role === 'staff') {
     return [
@@ -234,6 +232,9 @@ export default async function ReportDetailPage(props: Props) {
 
   const isSenderView = !isReviewer && !isStaff;
   const viewerRole: 'sender' | 'manager' | 'staff' = isReviewer ? 'manager' : isStaff ? 'staff' : 'sender';
+  const isConclusion = report.title === GENERAL_EVALUATION_CONCLUSION_TITLE;
+  const isPlanOrPerformanceReport =
+    report.reportType?.name?.includes('Жилийн') || report.reportType?.name?.includes('Биелэлт');
   let displayStatus = report.status === 'approved' ? 'completed' : report.status === 'assigned' ? 'submitted' : report.status;
   const isSurveySource = report.reportNumber?.startsWith('S123-');
   // "return_requested" is an internal staff→manager step; the sender should still
@@ -282,23 +283,19 @@ export default async function ReportDetailPage(props: Props) {
         { label: 'Газарзүйн мэдээлэл', href: '/evaluator/geography' },
         { label: 'Тайлан хайх', href: '/evaluator/survey' },
       ]
-    : [
-        { label: 'Хяналтын самбар', href: '/sender' },
-        {
-          label: 'Тайлан илгээх',
-          href: '/sender/submit',
-          children: [
-            { label: 'Жилийн төлөвлөгөө', href: '/sender/submit?type=plan' },
-            { label: 'Биелэлтийн тайлан', href: '/sender/submit?type=performance' },
-          ],
-        },
-        { label: 'Нэмэлт мэдээлэл', href: '/sender/submit?type=additional' },
-        { label: 'Миний тайлангууд', href: '/sender/reports' },
-        { label: 'Газарзүйн мэдээлэл', href: '/sender/geography' },
-        { label: 'Ноорог', href: '/sender/drafts' },
-      ];
+    : senderSidebarItems('reports');
 
-  const backHref = isReviewer ? '/reviewer' : isStaff ? '/evaluator' : '/sender';
+  const backHref = isConclusion
+    ? isReviewer
+      ? '/reviewer/conclusions'
+      : isStaff
+        ? '/evaluator/conclusions'
+        : '/sender/reports'
+    : isReviewer
+      ? '/reviewer'
+      : isStaff
+        ? '/evaluator'
+        : '/sender';
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -342,7 +339,7 @@ export default async function ReportDetailPage(props: Props) {
           )}
 
           {/* Manager sees which staff this report was distributed to (top). */}
-          {isReviewer && (
+          {isReviewer && !isConclusion && (
             <div className="bg-white rounded-2xl border border-slate-200 p-6">
               <div className="flex items-center gap-2 mb-4">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -387,7 +384,9 @@ export default async function ReportDetailPage(props: Props) {
                     Survey системээс тайлан ирлээ
                   </span>
                 )}
-                <p className="text-xs text-slate-500 mb-0.5">Тайлангийн дугаар</p>
+                <p className="text-xs text-slate-500 mb-0.5">
+                  {isConclusion ? 'Дүгнэлтийн дугаар' : 'Тайлангийн дугаар'}
+                </p>
                 <h1 className="text-xl font-bold text-slate-900">{report.reportNumber}</h1>
               </div>
               <StatusBadge status={displayStatus} />
@@ -395,12 +394,14 @@ export default async function ReportDetailPage(props: Props) {
 
             <div className="grid grid-cols-2 gap-x-8 gap-y-4 text-sm">
               <div>
-                <p className="text-slate-500 text-xs">Төслийн нэр</p>
+                <p className="text-slate-500 text-xs">{isConclusion ? 'Дүгнэлтийн нэр' : 'Төслийн нэр'}</p>
                 <p className="font-medium text-slate-800 mt-0.5">{report.title}</p>
               </div>
               <div>
-                <p className="text-slate-500 text-xs">Тайлангийн төрөл</p>
-                <p className="font-medium text-slate-800 mt-0.5">{report.reportType.name}</p>
+                <p className="text-slate-500 text-xs">{isConclusion ? 'Дүгнэлтийн төрөл' : 'Тайлангийн төрөл'}</p>
+                <p className="font-medium text-slate-800 mt-0.5">
+                  {isConclusion ? GENERAL_EVALUATION_CONCLUSION_TITLE : report.reportType.name}
+                </p>
               </div>
               <div>
                 <p className="text-slate-500 text-xs">Илгээсэн байгууллага</p>
@@ -410,37 +411,37 @@ export default async function ReportDetailPage(props: Props) {
                 <p className="text-slate-500 text-xs">Илгээсэн огноо</p>
                 <p className="font-medium text-slate-800 mt-0.5">{formatDate(report.submittedAt)}</p>
               </div>
-              {report.implementerName && (
+              {!isConclusion && report.implementerName && (
                 <div>
                   <p className="text-slate-500 text-xs">Төсөл хэрэгжүүлэгчийн нэр</p>
                   <p className="font-medium text-slate-800 mt-0.5">{report.implementerName}</p>
                 </div>
               )}
-              {report.implementerRegister && (
+              {!isConclusion && report.implementerRegister && (
                 <div>
                   <p className="text-slate-500 text-xs">Төсөл хэрэгжүүлэгчийн РД</p>
                   <p className="font-medium text-slate-800 mt-0.5">{report.implementerRegister}</p>
                 </div>
               )}
-              {report.approvedDate && (
+              {!isConclusion && report.approvedDate && (
                 <div>
                   <p className="text-slate-500 text-xs">Тайлан батлагдсан огноо</p>
                   <p className="font-medium text-slate-800 mt-0.5">{formatDate(report.approvedDate)}</p>
                 </div>
               )}
-              {report.hasGreenery != null && (
+              {!isConclusion && report.hasGreenery != null && (
                 <div>
                   <p className="text-slate-500 text-xs">Ногоон байгууламжтай эсэх</p>
                   <p className="font-medium text-slate-800 mt-0.5">{report.hasGreenery ? 'Тийм' : 'Үгүй'}</p>
                 </div>
               )}
-              {report.hasGreenery && report.treeCount != null && (
+              {!isConclusion && report.hasGreenery && report.treeCount != null && (
                 <div>
                   <p className="text-slate-500 text-xs">Тарьсан мод</p>
                   <p className="font-medium text-slate-800 mt-0.5">{report.treeCount}</p>
                 </div>
               )}
-              {report.spentAmount != null && (
+              {!isConclusion && report.spentAmount != null && (
                 <div>
                   <p className="text-slate-500 text-xs">Зарцуулсан дүн</p>
                   <p className="font-medium text-slate-800 mt-0.5">{report.spentAmount.toLocaleString()}₮</p>
@@ -450,12 +451,14 @@ export default async function ReportDetailPage(props: Props) {
 
             {report.description && (
               <div className="mt-5 pt-5 border-t border-slate-100 text-sm">
-                <p className="text-slate-500 text-xs">Тайлбар</p>
+                <p className="text-slate-500 text-xs">
+                  {!isConclusion && isPlanOrPerformanceReport ? 'Ногоон байгууламжийн талаарх мэдээлэл' : 'Тайлбар'}
+                </p>
                 <p className="font-medium text-slate-800 mt-0.5 whitespace-pre-wrap">{report.description}</p>
               </div>
             )}
 
-            {report.location && (report.location.addressDetail || (report.location.latitude != null && report.location.longitude != null)) && (
+            {!isConclusion && report.location && (report.location.addressDetail || (report.location.latitude != null && report.location.longitude != null)) && (
               <div className="mt-5 pt-5 border-t border-slate-100 grid grid-cols-3 gap-4 text-sm">
                 {report.location.addressDetail && (
                   <div className="col-span-3">
@@ -478,7 +481,7 @@ export default async function ReportDetailPage(props: Props) {
           </div>
 
           {/* Sender sees why the manager returned the report for revision. */}
-          {isSenderView && report.status === 'needs_revision' && report.returnReason && (
+          {isSenderView && !isConclusion && report.status === 'needs_revision' && report.returnReason && (
             <div className="bg-white rounded-2xl border border-orange-200 p-6">
               <p className="text-sm font-semibold text-orange-700">Тайлан засвар шаардсан байна</p>
               <p className="mt-1 text-sm text-slate-700">Шалтгаан: {report.returnReason}</p>
@@ -487,7 +490,7 @@ export default async function ReportDetailPage(props: Props) {
 
           {/* Manager controls: confirm/dismiss a staff return request, or return
               the report to the sender directly. */}
-          {isReviewer && (
+          {isReviewer && !isConclusion && (
             <ManagerReturnPanel
               reportId={report.id}
               status={report.status}
@@ -497,10 +500,16 @@ export default async function ReportDetailPage(props: Props) {
           )}
 
           {/* Attachments */}
-          {attachments.length > 0 && <AttachmentList attachments={attachments} />}
+          {attachments.length > 0 && (
+            <AttachmentList
+              attachments={attachments}
+              title="Хавсаргасан файл"
+              emptyText="Хавсаргасан файл байхгүй байна."
+            />
+          )}
 
           {/* Evaluation Scores Table */}
-          {evaluations.length > 0 && scoresVisible && (
+          {!isConclusion && evaluations.length > 0 && scoresVisible && (
             <div className="bg-white rounded-2xl border border-slate-200 p-6">
               <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
                 <h2 className="text-base font-semibold text-slate-900">Үнэлгээний дүн</h2>
@@ -594,7 +603,7 @@ export default async function ReportDetailPage(props: Props) {
           )}
 
           {/* No evaluation yet, or (sender) not yet released by the manager */}
-          {(evaluations.length === 0 || !scoresVisible) && (
+          {!isConclusion && (evaluations.length === 0 || !scoresVisible) && (
             <div className="bg-white rounded-2xl border border-slate-200 p-6 text-center">
               <p className="text-sm text-slate-500">
                 {evaluations.length === 0
@@ -605,7 +614,7 @@ export default async function ReportDetailPage(props: Props) {
           )}
 
           {/* Final Score */}
-          {report.finalScore !== null && scoresVisible && (
+          {!isConclusion && report.finalScore !== null && scoresVisible && (
             <div className="bg-white rounded-2xl border border-slate-200 p-6 flex items-center justify-between">
               <p className="text-sm font-medium text-slate-600">Эцсийн дундаж оноо</p>
               <p className="text-3xl font-bold text-color-primary">{formatScore(report.finalScore)}</p>
@@ -614,7 +623,7 @@ export default async function ReportDetailPage(props: Props) {
 
           {/* Back + (for a returned report) Fix */}
           <div className="flex justify-end gap-3">
-            {isSenderView && report.status === 'needs_revision' && (
+            {isSenderView && !isConclusion && report.status === 'needs_revision' && (
               <a href={`/sender/submit?edit=${report.id}`} className="h-10 px-5 rounded-xl border border-orange-300 bg-orange-50 text-sm font-semibold text-orange-700 hover:bg-orange-100 transition inline-flex items-center">
                 Засах
               </a>

@@ -1,0 +1,49 @@
+import prisma from '@/lib/prisma';
+import { isDocumentAttachment, parseAttachments } from '@/lib/attachments';
+import {
+  CONCLUSION_TYPES,
+  GENERAL_EVALUATION_CONCLUSION_TITLE,
+  filterConclusions,
+  type ConclusionSearchParams,
+} from '@/lib/conclusions';
+import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
+import { signAttachments } from '@/lib/supabase';
+
+export async function fetchConclusionRows(search: ConclusionSearchParams = {}) {
+  const reports = await prisma.report.findMany({
+    where: {
+      status: { not: 'draft' },
+      title: GENERAL_EVALUATION_CONCLUSION_TITLE,
+    },
+    include: {
+      reportType: true,
+      senderCompany: true,
+      location: true,
+    },
+    orderBy: { submittedAt: 'desc' },
+  });
+
+  const attachedReports = await attachEffectiveSenderCompanies(reports);
+  const rows = await Promise.all(
+    attachedReports.map(async (report: any) => {
+      const documents = parseAttachments(report.fileUrl).filter(isDocumentAttachment);
+      if (documents.length === 0) return null;
+      return {
+        id: report.id,
+        reportNumber: report.reportNumber,
+        submittedAt: report.submittedAt,
+        reportTypeName: report.reportType?.name || '-',
+        title: report.title,
+        senderCompanyName: report.senderCompany?.name || '-',
+        implementerName: report.implementerName,
+        province: report.location?.province || null,
+        district: report.location?.district || null,
+        conclusionType: report.description || CONCLUSION_TYPES[0],
+        status: report.status,
+        attachments: await signAttachments(documents),
+      };
+    }),
+  );
+
+  return filterConclusions(rows.filter(Boolean) as any, search);
+}

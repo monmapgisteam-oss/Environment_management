@@ -5,6 +5,7 @@ import ReportTable from '@/components/ReportTable';
 import { getCurrentUser } from '@/lib/auth';
 import { fetchSurveyReports } from '@/lib/surveyReports';
 import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
+import { senderSidebarItems } from '@/lib/senderNav';
 
 async function fetchSenderReports(companyId: string) {
   const reports = await prisma.report.findMany({
@@ -61,23 +62,7 @@ export default async function SenderReportsPage() {
 
   return (
     <div className="flex min-h-screen bg-background">
-      <Sidebar
-        items={[
-          { label: 'Хяналтын самбар', href: '/sender' },
-          {
-            label: 'Тайлан илгээх',
-            href: '/sender/submit',
-            children: [
-              { label: 'Жилийн төлөвлөгөө', href: '/sender/submit?type=plan' },
-              { label: 'Биелэлтийн тайлан', href: '/sender/submit?type=performance' },
-            ],
-          },
-          { label: 'Нэмэлт мэдээлэл', href: '/sender/submit?type=additional' },
-          { label: 'Миний тайлангууд', href: '/sender/reports', active: true },
-          { label: 'Газарзүйн мэдээлэл', href: '/sender/geography' },
-          { label: 'Ноорог', href: '/sender/drafts' },
-        ]}
-      />
+      <Sidebar items={senderSidebarItems('reports')} />
 
       <div className="flex min-w-0 flex-1 flex-col">
         <Header userName="Илгээх хэрэглэгч" companyName="Илгээх байгууллага" companyType="sender" />

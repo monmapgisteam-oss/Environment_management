@@ -2,6 +2,7 @@ import prisma from '@/lib/prisma';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import ReportTable from '@/components/ReportTable';
+import { senderSidebarItems } from '@/lib/senderNav';
 
 async function fetchDraftReports() {
   return prisma.report.findMany({
@@ -20,23 +21,7 @@ export default async function DraftsPage() {
 
   return (
     <div className="flex min-h-screen bg-background">
-      <Sidebar
-          items={[
-            { label: 'Хяналтын самбар', href: '/sender' },
-            {
-              label: 'Тайлан илгээх',
-              href: '/sender/submit',
-              children: [
-                { label: 'Жилийн төлөвлөгөө', href: '/sender/submit?type=plan' },
-                { label: 'Биелэлтийн тайлан', href: '/sender/submit?type=performance' },
-              ],
-            },
-            { label: 'Нэмэлт мэдээлэл', href: '/sender/submit?type=additional' },
-            { label: 'Миний тайлангууд', href: '/sender/reports' },
-            { label: 'Газарзүйн мэдээлэл', href: '/sender/geography' },
-            { label: 'Ноорог', href: '/sender/drafts', active: true },
-          ]}
-        />
+      <Sidebar items={senderSidebarItems('drafts')} />
 
         <div className="flex min-w-0 flex-1 flex-col">
         <Header userName="Илгээх хэрэглэгч" companyName="Илгээх байгууллага" companyType="sender" />

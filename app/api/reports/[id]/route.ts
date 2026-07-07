@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { serializeImageAttachments } from '@/lib/attachments';
+import { serializeDocumentAttachments, serializeReportAttachments } from '@/lib/attachments';
 import { findSenderCompanyByRegister } from '@/lib/reportCompanies';
 
 // Returns a single report with everything the sender's edit form needs to
@@ -50,7 +50,10 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
         ...(matchedCompany ? { senderCompanyId: matchedCompany.id } : {}),
         title: data.title || 'Тайлан',
         description: data.description || null,
-        fileUrl: serializeImageAttachments(data.fileUrl),
+        fileUrl:
+          data.attachmentKind === 'document'
+            ? serializeDocumentAttachments(data.fileUrl)
+            : serializeReportAttachments(data.fileUrl),
         implementerName: data.implementerName || null,
         implementerRegister: data.implementerRegister?.trim() || null,
         approvedDate: data.approvedDate ? new Date(data.approvedDate) : null,

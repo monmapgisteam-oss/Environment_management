@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import {
   HiViewGrid,
@@ -50,6 +51,7 @@ const iconMap: Record<string, ReactNode> = {
   "Тайлан илгээх": <HiUpload size={18} />,
   "Жилийн төлөвлөгөө": <HiCalendar size={18} />,
   "Биелэлтийн тайлан": <HiTrendingUp size={18} />,
+  "Ерөнхий үнэлгээний дүгнэлт": <HiDocumentText size={18} />,
   "Нэмэлт мэдээлэл": <HiPencilAlt size={18} />,
   "Нэмэлт мэдээ": <HiPencilAlt size={18} />,
   "Миний тайлангууд": <HiFolder size={18} />,
@@ -73,8 +75,33 @@ const iconMap: Record<string, ReactNode> = {
 };
 
 function SidebarItem({ item }: { item: Item }) {
-  const hasChildren = item.children && item.children.length > 0;
-  const isChildActive = hasChildren && item.children!.some((c) => c.active);
+  const pathname = usePathname();
+  const extraChildren: Item[] =
+    item.label === "Ирсэн тайлангууд" && item.href.startsWith("/reviewer")
+      ? [
+          {
+            label: "Ерөнхий үнэлгээний дүгнэлт",
+            href: "/reviewer/conclusions",
+            active: pathname === "/reviewer/conclusions",
+          },
+        ]
+      : item.label === "Надад оноогдсон тайлангууд" && item.href.startsWith("/evaluator")
+        ? [
+            {
+              label: "Ерөнхий үнэлгээний дүгнэлт",
+              href: "/evaluator/conclusions",
+              active: pathname === "/evaluator/conclusions",
+            },
+          ]
+        : [];
+  const children = [...(item.children || [])];
+  for (const extraChild of extraChildren) {
+    if (!children.some((child) => child.href === extraChild.href || child.label === extraChild.label)) {
+      children.push(extraChild);
+    }
+  }
+  const hasChildren = children.length > 0;
+  const isChildActive = hasChildren && children.some((c) => c.active);
   const [expanded, setExpanded] = useState(item.active || isChildActive);
   const isActive = item.active || isChildActive;
 
@@ -100,7 +127,7 @@ function SidebarItem({ item }: { item: Item }) {
         </button>
         {expanded && (
           <div className="ml-[26px] mt-1 space-y-0.5 border-l border-white/10 pl-3">
-            {item.children!.map((child) => (
+            {children.map((child) => (
               <Link
                 key={child.label}
                 href={child.href}

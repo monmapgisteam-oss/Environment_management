@@ -2,18 +2,23 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import ReportInfoCard from "@/components/ReportInfoCard";
 import LocationCard from "@/components/LocationCard";
 import AttachmentCard from "@/components/AttachmentCard";
+import DocumentUploadCard from "@/components/DocumentUploadCard";
 import { HiCheckCircle } from "react-icons/hi";
-import { isImageAttachment, parseAttachments, type Attachment } from "@/lib/attachments";
+import { isDocumentAttachment, isReportAttachment, parseAttachments, type Attachment } from "@/lib/attachments";
+import { senderSidebarItems, type SenderNavKey } from "@/lib/senderNav";
+
+const PERFORMANCE_REPORT_LABEL = "Биелэлтийн тайлан";
+const GENERAL_EVALUATION_LABEL = "Ерөнхий үнэлгээний дүгнэлт";
 
 const SUBMIT_TYPES = [
   { label: "Жилийн төлөвлөгөө", slug: "plan" },
-  { label: "Биелэлтийн тайлан", slug: "performance" },
+  { label: PERFORMANCE_REPORT_LABEL, slug: "performance" },
+  { label: GENERAL_EVALUATION_LABEL, slug: "general-evaluation" },
   { label: "Нэмэлт мэдээлэл", slug: "additional" },
 ];
 
@@ -25,14 +30,19 @@ export default function SubmitReportPage() {
   const editId = searchParams.get("edit");
   const isEdit = !!editId;
   const activeType = SUBMIT_TYPES.find((t) => t.slug === typeSlug);
+  const [editSubmitType, setEditSubmitType] = useState<SenderNavKey | null>(null);
+  const selectedSubmitType = (typeSlug as SenderNavKey | null) || editSubmitType;
+  const isGeneralEvaluation = selectedSubmitType === "general-evaluation";
   // "Нэмэлт мэдээлэл" is not a full report — it only needs a short writing area.
-  const isAdditional = typeSlug === "additional";
+  const isAdditional = selectedSubmitType === "additional";
   const pageTitle = isEdit ? "Тайлан засах" : activeType?.label || "Тайлан илгээх";
 
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+  const [documentFiles, setDocumentFiles] = useState<File[]>([]);
+  const [submitError, setSubmitError] = useState("");
   // Attachments already saved on the report being edited (kept unless removed).
   const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
   const [initialLocation, setInitialLocation] = useState<{
@@ -67,8 +77,16 @@ export default function SubmitReportPage() {
   // Keep report type locked to the selected sidebar type (create mode only).
   useEffect(() => {
     if (isEdit) return;
-    setFormData((prev) => ({ ...prev, reportType: activeType?.label || "" }));
-  }, [activeType?.label, isEdit]);
+    setFormData((prev) => ({
+      ...prev,
+      reportType: isGeneralEvaluation ? PERFORMANCE_REPORT_LABEL : activeType?.label || "",
+      title: isGeneralEvaluation
+        ? GENERAL_EVALUATION_LABEL
+        : prev.title === GENERAL_EVALUATION_LABEL
+        ? ""
+        : prev.title,
+    }));
+  }, [activeType?.label, isEdit, isGeneralEvaluation]);
 
   // Load the existing report so the sender can edit and resubmit it with their
   // previously filled information pre-populated.
@@ -78,6 +96,11 @@ export default function SubmitReportPage() {
       const res = await fetch(`/api/reports/${editId}`);
       if (!res.ok) return;
       const r = await res.json();
+      const savedAttachments = parseAttachments(r.fileUrl);
+      const hasDocuments = savedAttachments.some(isDocumentAttachment);
+      setEditSubmitType(
+        r.title === GENERAL_EVALUATION_LABEL || hasDocuments ? "general-evaluation" : null,
+      );
       setFormData({
         reportType: r.reportType?.name || "",
         reportNumber: r.reportNumber || "",
@@ -100,7 +123,9 @@ export default function SubmitReportPage() {
           khoroo: r.location.khoroo ?? undefined,
         });
       }
-      setExistingAttachments(parseAttachments(r.fileUrl).filter(isImageAttachment));
+      setExistingAttachments(
+        savedAttachments.filter(hasDocuments ? isDocumentAttachment : isReportAttachment),
+      );
     })();
   }, [editId]);
 
@@ -117,19 +142,40 @@ export default function SubmitReportPage() {
     setAttachedFiles(files);
   };
 
+  const handleDocumentChange = (files: File[]) => {
+    setDocumentFiles(files);
+    setSubmitError("");
+  };
+
   // Upload newly picked files and return them as { url, name } entries.
   const uploadAttachments = async () => {
     const uploaded: { url: string; name: string }[] = [];
     for (const file of attachedFiles) {
-      if (!file.type.startsWith("image/")) continue;
       const body = new FormData();
       body.append("file", file);
-      body.append("purpose", "report-photo");
+      body.append("purpose", "report-attachment");
       const res = await fetch("/api/upload", { method: "POST", body });
-      if (res.ok) {
-        const data = await res.json();
-        uploaded.push({ url: data.url, name: data.name });
+      if (!res.ok) {
+        throw new Error("Attachment upload failed");
       }
+      const data = await res.json();
+      uploaded.push({ url: data.url, name: data.name });
+    }
+    return uploaded;
+  };
+
+  const uploadDocuments = async () => {
+    const uploaded: { url: string; name: string }[] = [];
+    for (const file of documentFiles) {
+      const body = new FormData();
+      body.append("file", file);
+      body.append("purpose", "report-document");
+      const res = await fetch("/api/upload", { method: "POST", body });
+      if (!res.ok) {
+        throw new Error("Document upload failed");
+      }
+      const data = await res.json();
+      uploaded.push({ url: data.url, name: data.name });
     }
     return uploaded;
   };
@@ -138,8 +184,11 @@ export default function SubmitReportPage() {
   // JSON string stored on the report. Preserves the sender's original files when
   // editing, while letting them add more.
   const buildFileUrl = async () => {
-    const uploaded = await uploadAttachments();
-    const combined = [...existingAttachments.filter(isImageAttachment), ...uploaded];
+    const uploaded = isGeneralEvaluation ? await uploadDocuments() : await uploadAttachments();
+    const keptAttachments = existingAttachments.filter(
+      isGeneralEvaluation ? isDocumentAttachment : isReportAttachment,
+    );
+    const combined = [...keptAttachments, ...uploaded];
     return combined.length ? JSON.stringify(combined) : "";
   };
 
@@ -159,10 +208,12 @@ export default function SubmitReportPage() {
   const handleReset = () => {
     setSubmitted(false);
     setAttachedFiles([]);
+    setDocumentFiles([]);
+    setSubmitError("");
     setFormData({
-      reportType: activeType?.label || "",
+      reportType: isGeneralEvaluation ? PERFORMANCE_REPORT_LABEL : activeType?.label || "",
       reportNumber: "",
-      title: "",
+      title: isGeneralEvaluation ? GENERAL_EVALUATION_LABEL : "",
       implementerName: "",
       implementerRegister: "",
       approvedDate: "",
@@ -175,34 +226,72 @@ export default function SubmitReportPage() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (isGeneralEvaluation && existingAttachments.length === 0 && documentFiles.length === 0) {
+      setSubmitError("Ерөнхий үнэлгээний дүгнэлтийн файл хавсаргана уу.");
+      return;
+    }
     setSubmitting(true);
     try {
       const fileUrl = await buildFileUrl();
       const response = await fetch(isEdit ? `/api/reports/${editId}` : "/api/reports/create", {
         method: isEdit ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...formData, ...locationData(), fileUrl, status: "submitted" }),
+        body: JSON.stringify({
+          ...formData,
+          ...(isGeneralEvaluation ? {} : locationData()),
+          reportType: isGeneralEvaluation ? PERFORMANCE_REPORT_LABEL : formData.reportType,
+          title: isGeneralEvaluation ? GENERAL_EVALUATION_LABEL : formData.title,
+          hasGreenery: "",
+          treeCount: "",
+          spentAmount: "",
+          fileUrl,
+          attachmentKind: isGeneralEvaluation ? "document" : "report",
+          status: "submitted",
+        }),
       });
       if (response.ok) {
         setSubmitted(true);
+      } else {
+        setSubmitError("Илгээх үед алдаа гарлаа. Дахин оролдоно уу.");
       }
+    } catch {
+      setSubmitError("Файл хуулах үед алдаа гарлаа. Дахин оролдоно уу.");
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleSaveDraft = async () => {
+    if (isGeneralEvaluation && existingAttachments.length === 0 && documentFiles.length === 0) {
+      setSubmitError("Ерөнхий үнэлгээний дүгнэлтийн файл хавсаргана уу.");
+      return;
+    }
     setSavingDraft(true);
     try {
       const fileUrl = await buildFileUrl();
       const response = await fetch(isEdit ? `/api/reports/${editId}` : "/api/reports/create", {
         method: isEdit ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...formData, ...locationData(), fileUrl, status: "draft" }),
+        body: JSON.stringify({
+          ...formData,
+          ...(isGeneralEvaluation ? {} : locationData()),
+          reportType: isGeneralEvaluation ? PERFORMANCE_REPORT_LABEL : formData.reportType,
+          title: isGeneralEvaluation ? GENERAL_EVALUATION_LABEL : formData.title,
+          hasGreenery: "",
+          treeCount: "",
+          spentAmount: "",
+          fileUrl,
+          attachmentKind: isGeneralEvaluation ? "document" : "report",
+          status: "draft",
+        }),
       });
       if (response.ok) {
         router.push("/sender/drafts");
+      } else {
+        setSubmitError("Хадгалах үед алдаа гарлаа. Дахин оролдоно уу.");
       }
+    } catch {
+      setSubmitError("Файл хуулах үед алдаа гарлаа. Дахин оролдоно уу.");
     } finally {
       setSavingDraft(false);
     }
@@ -210,31 +299,7 @@ export default function SubmitReportPage() {
 
   return (
     <div className="flex min-h-screen bg-background">
-      <Sidebar
-          items={[
-            { label: "Хяналтын самбар", href: "/sender" },
-            {
-              label: "Тайлан илгээх",
-              href: "/sender/submit",
-              active: true,
-              children: SUBMIT_TYPES.filter((t) => t.slug !== "additional").map(
-                (t) => ({
-                  label: t.label,
-                  href: `/sender/submit?type=${t.slug}`,
-                  active: typeSlug === t.slug,
-                }),
-              ),
-            },
-            {
-              label: "Нэмэлт мэдээлэл",
-              href: "/sender/submit?type=additional",
-              active: typeSlug === "additional",
-            },
-            { label: "Миний тайлангууд", href: "/sender/reports" },
-            { label: "Газарзүйн мэдээлэл", href: "/sender/geography" },
-            { label: "Ноорог", href: "/sender/drafts" },
-          ]}
-        />
+      <Sidebar items={senderSidebarItems(selectedSubmitType ?? undefined)} />
 
         <div className="flex min-w-0 flex-1 flex-col">
         <Header
@@ -254,10 +319,12 @@ export default function SubmitReportPage() {
                 </div>
               </div>
               <h2 className="text-2xl font-bold text-slate-900">
-                Тайлан амжилттай илгээгдлээ!
+                {isGeneralEvaluation ? "Дүгнэлт амжилттай илгээгдлээ!" : "Тайлан амжилттай илгээгдлээ!"}
               </h2>
               <p className="text-sm text-slate-500 mt-2 max-w-md mx-auto">
-                Хянах байгууллага таны тайланг хянаж үнэлгээ өгөх болно.
+                {isGeneralEvaluation
+                  ? "Таны ерөнхий үнэлгээний дүгнэлт амжилттай хүлээн авлаа."
+                  : "Хянах байгууллага таны тайланг хянаж үнэлгээ өгөх болно."}
               </p>
               <div className="flex items-center justify-center mt-8">
                 {isEdit ? (
@@ -274,7 +341,7 @@ export default function SubmitReportPage() {
                     onClick={handleReset}
                     className="h-11 px-6 rounded-xl bg-color-primary text-white text-sm font-semibold hover:bg-color-primary-dark transition inline-flex items-center"
                   >
-                    Дахин тайлан илгээх
+                    {isGeneralEvaluation ? "Дахин дүгнэлт илгээх" : "Дахин тайлан илгээх"}
                   </button>
                 )}
               </div>
@@ -312,6 +379,8 @@ export default function SubmitReportPage() {
                       <p className="text-sm text-color-text-muted mt-0.5">
                         {isAdditional
                           ? "Нэмэлт мэдээллээ бичнэ үү."
+                          : isGeneralEvaluation
+                          ? "Ерөнхий үнэлгээний дүгнэлтийн PDF эсвэл Word файлыг хавсаргана уу."
                           : "Тайлангийн мэдээлэл болон байршлын хаягийг оруулна уу."}
                       </p>
                     </div>
@@ -353,6 +422,44 @@ export default function SubmitReportPage() {
                       />
                     </div>
                   </div>
+                ) : isGeneralEvaluation ? (
+                  <div className="max-w-3xl">
+                    {isEdit && existingAttachments.length > 0 && (
+                      <div className="mb-4 border border-[#E8F0FE] rounded-2xl p-4">
+                        <p className="text-sm font-semibold text-color-text-main mb-2">
+                          Хадгалагдсан файл
+                        </p>
+                        <div className="space-y-2">
+                          {existingAttachments.map((file, index) => (
+                            <div
+                              key={`${file.name}-${index}`}
+                              className="flex items-center gap-2 p-2 rounded-lg bg-[#F8FBFF] border border-[#E8F0FE]"
+                            >
+                              <span className="text-sm text-color-text-main flex-1 min-w-0 truncate">
+                                {file.name}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setExistingAttachments((prev) => prev.filter((_, i) => i !== index))
+                                }
+                                className="text-color-text-muted hover:text-red-500 transition text-xs p-1"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    <DocumentUploadCard
+                      attachedFiles={documentFiles}
+                      onFileChange={handleDocumentChange}
+                    />
+                    {submitError && (
+                      <p className="mt-3 text-sm font-medium text-red-500">{submitError}</p>
+                    )}
+                  </div>
                 ) : (
                   <>
                     <div className="grid grid-cols-3 gap-8">
@@ -369,7 +476,7 @@ export default function SubmitReportPage() {
                         {isEdit && existingAttachments.length > 0 && (
                           <div className="border border-[#E8F0FE] rounded-2xl p-4">
                             <p className="text-sm font-semibold text-color-text-main mb-2">
-                              Хадгалагдсан зураг
+                              Хадгалагдсан файл
                             </p>
                             <div className="space-y-2">
                               {existingAttachments.map((file, index) => (
@@ -412,35 +519,41 @@ export default function SubmitReportPage() {
                   </>
                 )}
 
+                {submitError && !isGeneralEvaluation && (
+                  <p className="mt-4 text-sm font-medium text-red-500">{submitError}</p>
+                )}
+
                 {/* Action Buttons — Нэмэлт мэдээлэл has no submit action. */}
                 {!isAdditional && (
                 <div className="flex justify-end gap-3 mt-10 pt-6 border-t border-[#E8F0FE]">
-                  <button
-                    type="button"
-                    onClick={handleSaveDraft}
-                    disabled={savingDraft}
-                    className="h-11 px-6 rounded-xl border border-[#D9E4F0] bg-white text-color-text-main text-sm font-semibold hover:bg-slate-50 transition inline-flex items-center gap-2 disabled:opacity-50"
-                  >
-                    {savingDraft ? (
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-color-primary border-t-transparent" />
-                    ) : (
-                      <svg
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
-                        <polyline points="17 21 17 13 7 13 7 21" />
-                        <polyline points="7 3 7 8 15 8" />
-                      </svg>
-                    )}
-                    {savingDraft ? "Хадгалж байна..." : "Ноорог хадгалах"}
-                  </button>
+                  {!isGeneralEvaluation && (
+                    <button
+                      type="button"
+                      onClick={handleSaveDraft}
+                      disabled={savingDraft}
+                      className="h-11 px-6 rounded-xl border border-[#D9E4F0] bg-white text-color-text-main text-sm font-semibold hover:bg-slate-50 transition inline-flex items-center gap-2 disabled:opacity-50"
+                    >
+                      {savingDraft ? (
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-color-primary border-t-transparent" />
+                      ) : (
+                        <svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                          <polyline points="17 21 17 13 7 13 7 21" />
+                          <polyline points="7 3 7 8 15 8" />
+                        </svg>
+                      )}
+                      {savingDraft ? "Хадгалж байна..." : "Ноорог хадгалах"}
+                    </button>
+                  )}
                   <button
                     type="submit"
                     disabled={submitting}
@@ -464,7 +577,11 @@ export default function SubmitReportPage() {
                         <polygon points="22 2 15 22 11 13 2 9 22 2" />
                       </svg>
                     )}
-                    {submitting ? "Илгээж байна..." : "Тайлан илгээх"}
+                    {submitting
+                      ? "Илгээж байна..."
+                      : isGeneralEvaluation
+                      ? "Дүгнэлт илгээх"
+                      : "Тайлан илгээх"}
                   </button>
                 </div>
                 )}
