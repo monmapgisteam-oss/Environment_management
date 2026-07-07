@@ -68,8 +68,17 @@ function pointSource(point: CompanyPoint) {
   return point.source === 'survey' ? 'survey' : 'report';
 }
 
+function knownLocationName(value?: string | null) {
+  const name = value?.trim();
+  if (!name || name.toLowerCase().includes('тодорхойгүй')) return null;
+  return name;
+}
+
 function inferProvince(point: CompanyPoint) {
-  if (point.province?.trim()) return point.province.trim();
+  const province = knownLocationName(point.province);
+  if (province) return province;
+  if (point.province?.trim()) return null;
+
   let best = PROVINCE_CENTERS[0];
   let bestDistance = Number.POSITIVE_INFINITY;
   PROVINCE_CENTERS.forEach((center) => {
@@ -123,8 +132,12 @@ export default function CompanyMap({ points, detailRole = 'reviewer' }: CompanyM
     const byDistrict = new Map<string, { district: string; province: string; count: number }>();
     surveys.forEach((p) => {
       const province = inferProvince(p);
+      const district = knownLocationName(p.district);
+      if (!province) return;
+
       byProvince.set(province, (byProvince.get(province) || 0) + 1);
-      const district = p.district?.trim() || 'Дүүрэг/сум тодорхойгүй';
+      if (!district) return;
+
       const districtKey = `${province}::${district}`;
       const districtRow = byDistrict.get(districtKey);
       if (districtRow) {
