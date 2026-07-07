@@ -34,7 +34,7 @@ export default async function EvaluatorSurveyPage() {
           },
           { label: 'Үнэлгээ өгсөн тайлангууд', href: '/evaluator/evaluated' },
           { label: 'Газарзүйн мэдээлэл', href: '/evaluator/geography' },
-          { label: 'Судалгаа хайх', href: '/evaluator/survey', active: true },
+          { label: 'Тайлан хайх', href: '/evaluator/survey', active: true },
           ...(additionalType
             ? [{ label: 'Нэмэлт мэдээлэл', href: `/evaluator?type=${additionalType.slug}` }]
             : []),
@@ -45,8 +45,8 @@ export default async function EvaluatorSurveyPage() {
         <Header userName={user.name} companyName="Хянах байгууллага" role="staff" />
         <main className="flex-1 min-w-0 space-y-4 p-6">
           <div className="space-y-1">
-            <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Судалгаа хайх</h1>
-            <p className="text-sm text-slate-500">Байгууллагын регистрийн дугаараар Survey123 системээс мэдээлэл хайна.</p>
+            <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Тайлан хайх</h1>
+            <p className="text-sm text-slate-500">Байгууллагын регистрийн дугаараар тайлангийн мэдээлэл хайна.</p>
           </div>
 
           <SurveyLookup role="staff" />

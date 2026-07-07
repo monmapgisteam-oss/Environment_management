@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
-// Reverse lookup for the "Судалгаа хайх" (Survey123) table — given a
+// Reverse lookup for the "Тайлан хайх" (Survey123) table — given a
 // register number pulled from the raw survey feature, find the matching
 // Report(s) in our own DB so staff can jump straight to the score table.
 export async function GET(request: Request) {

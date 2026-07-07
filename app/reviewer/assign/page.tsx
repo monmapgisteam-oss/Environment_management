@@ -97,8 +97,8 @@ export default async function AssignPage() {
             { label: 'Ирсэн тайлангууд', href: '/reviewer/reports', children: sidebarChildren },
             { label: 'Үнэлгээний явц', href: '/reviewer/evaluation-progress' },
             { label: 'Газарзүйн мэдээлэл', href: '/reviewer/geography' },
-            { label: 'Судалгаа хайх', href: '/reviewer/survey' },
-            { label: 'Буцаасан тайлан', href: '/reviewer' },
+            { label: 'Тайлан хайх', href: '/reviewer/survey' },
+            { label: 'Буцаасан тайлан', href: '/reviewer/returned' },
             { label: 'Нэмэлт мэдээ', href: '/reviewer/reports?type=type-5' },
           ]}
         />

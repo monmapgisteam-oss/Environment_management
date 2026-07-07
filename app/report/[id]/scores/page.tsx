@@ -48,7 +48,7 @@ async function fetchReportTypes() {
   });
 }
 
-// Score-only view opened from "Судалгаа хайх" — just the Excel-style scoring
+// Score-only view opened from "Тайлан хайх" — just the Excel-style scoring
 // table (who gave what), without the rest of the report detail page.
 export default async function ReportScoresPage(props: Props) {
   const searchParams = await props.searchParams;
@@ -108,8 +108,8 @@ export default async function ReportScoresPage(props: Props) {
         },
         { label: 'Үнэлгээний явц', href: '/reviewer/evaluation-progress' },
         { label: 'Газарзүйн мэдээлэл', href: '/reviewer/geography' },
-        { label: 'Судалгаа хайх', href: '/reviewer/survey', active: true },
-        { label: 'Буцаасан тайлан', href: '/reviewer' },
+        { label: 'Тайлан хайх', href: '/reviewer/survey', active: true },
+        { label: 'Буцаасан тайлан', href: '/reviewer/returned' },
         { label: 'Нэмэлт мэдээ', href: '/reviewer/reports?type=type-5' },
       ]
     : isStaff
@@ -117,7 +117,7 @@ export default async function ReportScoresPage(props: Props) {
         { label: 'Надад оноогдсон тайлангууд', href: '/evaluator' },
         { label: 'Үнэлгээ өгсөн тайлангууд', href: '/evaluator/evaluated' },
         { label: 'Газарзүйн мэдээлэл', href: '/evaluator/geography' },
-        { label: 'Судалгаа хайх', href: '/evaluator/survey', active: true },
+        { label: 'Тайлан хайх', href: '/evaluator/survey', active: true },
       ]
     : [{ label: 'Хяналтын самбар', href: '/sender' }];
 

@@ -31,12 +31,12 @@ export default async function ReportLocationPage(props: Props) {
     role === 'reviewer'
       ? [
           { label: 'Хяналтын самбар', href: '/reviewer' },
-          { label: 'Судалгаа хайх', href: '/reviewer/survey', active: true },
+          { label: 'Тайлан хайх', href: '/reviewer/survey', active: true },
         ]
       : role === 'staff'
       ? [
           { label: 'Надад оноогдсон тайлангууд', href: '/evaluator' },
-          { label: 'Судалгаа хайх', href: '/evaluator/survey', active: true },
+          { label: 'Тайлан хайх', href: '/evaluator/survey', active: true },
         ]
       : [{ label: 'Хяналтын самбар', href: '/sender' }];
 

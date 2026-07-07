@@ -59,7 +59,7 @@ export default async function EvaluatedReportsPage() {
             { label: 'Надад оноогдсон тайлангууд', href: '/evaluator' },
             { label: 'Үнэлгээ өгсөн тайлангууд', href: '/evaluator/evaluated', active: true },
             { label: 'Газарзүйн мэдээлэл', href: '/evaluator/geography' },
-            { label: 'Судалгаа хайх', href: '/evaluator/survey' },
+            { label: 'Тайлан хайх', href: '/evaluator/survey' },
             { label: 'Нэмэлт мэдээлэл', href: '/evaluator?type=type-5' },
           ]}
         />

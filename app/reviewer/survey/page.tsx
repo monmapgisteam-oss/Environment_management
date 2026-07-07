@@ -28,8 +28,8 @@ export default async function ReviewerSurveyPage() {
           { label: 'Ирсэн тайлангууд', href: '/reviewer/reports', children: sidebarChildren },
           { label: 'Үнэлгээний явц', href: '/reviewer/evaluation-progress' },
           { label: 'Газарзүйн мэдээлэл', href: '/reviewer/geography' },
-          { label: 'Судалгаа хайх', href: '/reviewer/survey', active: true },
-          { label: 'Буцаасан тайлан', href: '/reviewer' },
+          { label: 'Тайлан хайх', href: '/reviewer/survey', active: true },
+          { label: 'Буцаасан тайлан', href: '/reviewer/returned' },
           { label: 'Нэмэлт мэдээ', href: '/reviewer/reports?type=type-5' },
         ]}
       />
@@ -38,8 +38,8 @@ export default async function ReviewerSurveyPage() {
         <Header userName="Хянах менежер" companyName="Хянах байгууллага" companyType="reviewer" />
         <main className="flex-1 min-w-0 space-y-4 p-6">
           <div className="space-y-1">
-            <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Судалгаа хайх</h1>
-            <p className="text-sm text-slate-500">Байгууллагын регистрийн дугаараар Survey123 системээс мэдээлэл хайна.</p>
+            <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Тайлан хайх</h1>
+            <p className="text-sm text-slate-500">Байгууллагын регистрийн дугаараар тайлангийн мэдээлэл хайна.</p>
           </div>
 
           <SurveyLookup />

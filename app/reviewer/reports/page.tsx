@@ -104,8 +104,8 @@ export default async function ReviewerReportsPage(props: { searchParams: Promise
             },
             { label: 'Үнэлгээний явц', href: '/reviewer/evaluation-progress' },
             { label: 'Газарзүйн мэдээлэл', href: '/reviewer/geography' },
-            { label: 'Судалгаа хайх', href: '/reviewer/survey' },
-            { label: 'Буцаасан тайлан', href: '/reviewer' },
+            { label: 'Тайлан хайх', href: '/reviewer/survey' },
+            { label: 'Буцаасан тайлан', href: '/reviewer/returned' },
             { label: 'Нэмэлт мэдээ', href: '/reviewer/reports?type=type-5', active: searchParams.type === 'type-5' },
           ]}
         />

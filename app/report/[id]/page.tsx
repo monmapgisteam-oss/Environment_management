@@ -36,14 +36,14 @@ function surveySidebarItems(role?: string) {
     return [
       { label: 'Надад оноогдсон тайлангууд', href: '/evaluator' },
       { label: 'Газарзүйн мэдээлэл', href: '/evaluator/geography' },
-      { label: 'Судалгаа хайх', href: '/evaluator/survey' },
+      { label: 'Тайлан хайх', href: '/evaluator/survey' },
     ];
   }
   return [
     { label: 'Хяналтын самбар', href: '/reviewer' },
     { label: 'Ирсэн тайлангууд', href: '/reviewer/reports', active: true },
     { label: 'Газарзүйн мэдээлэл', href: '/reviewer/geography' },
-    { label: 'Судалгаа хайх', href: '/reviewer/survey' },
+    { label: 'Тайлан хайх', href: '/reviewer/survey' },
   ];
 }
 
@@ -271,8 +271,8 @@ export default async function ReportDetailPage(props: Props) {
         },
         { label: 'Үнэлгээний явц', href: '/reviewer/evaluation-progress' },
         { label: 'Газарзүйн мэдээлэл', href: '/reviewer/geography' },
-        { label: 'Судалгаа хайх', href: '/reviewer/survey' },
-        { label: 'Буцаасан тайлан', href: '/reviewer' },
+        { label: 'Тайлан хайх', href: '/reviewer/survey' },
+        { label: 'Буцаасан тайлан', href: '/reviewer/returned' },
         { label: 'Нэмэлт мэдээ', href: '/reviewer/reports?type=type-5' },
       ]
     : isStaff
@@ -280,7 +280,7 @@ export default async function ReportDetailPage(props: Props) {
         { label: 'Надад оноогдсон тайлангууд', href: '/evaluator' },
         { label: 'Үнэлгээ өгсөн тайлангууд', href: '/evaluator/evaluated' },
         { label: 'Газарзүйн мэдээлэл', href: '/evaluator/geography' },
-        { label: 'Судалгаа хайх', href: '/evaluator/survey' },
+        { label: 'Тайлан хайх', href: '/evaluator/survey' },
       ]
     : [
         { label: 'Хяналтын самбар', href: '/sender' },
