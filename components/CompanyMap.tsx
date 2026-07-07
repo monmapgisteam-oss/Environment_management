@@ -37,8 +37,6 @@ interface CompanyMapProps {
 }
 
 const UB_CENTER: L.LatLngExpression = [47.92, 106.92];
-const SURVEY_COLOR = '#D97706';
-const SURVEY_LABEL = 'Survey123 мэдээлэл';
 const PROVINCE_CENTERS = [
   { name: 'Улаанбаатар', lat: 47.92, lng: 106.92 },
   { name: 'Дархан-Уул', lat: 49.49, lng: 105.92 },
@@ -94,7 +92,7 @@ function inferProvince(point: CompanyPoint) {
 }
 
 function pointStatusLabel(status: string) {
-  if (status === 'survey') return SURVEY_LABEL;
+  if (status === 'survey') return 'Тайлан';
   return STATUS_LABELS[status] || status;
 }
 
@@ -178,8 +176,7 @@ export default function CompanyMap({ points, detailRole = 'reviewer' }: CompanyM
   );
   const pointGroups = useMemo(
     () => [
-      { key: 'report', label: 'Reports', points: filteredPoints.filter((p) => pointSource(p) === 'report') },
-      { key: 'survey', label: SURVEY_LABEL, points: filteredPoints.filter((p) => pointSource(p) === 'survey') },
+      { key: 'report', label: 'Reports', points: filteredPoints },
     ],
     [filteredPoints],
   );
@@ -230,14 +227,14 @@ export default function CompanyMap({ points, detailRole = 'reviewer' }: CompanyM
     filteredPoints.forEach((p) => {
       const bucket = scoreBucket(p.score);
       const isSurvey = p.source === 'survey';
-      const accent = isSurvey ? SURVEY_COLOR : SCORE_COLORS[bucket];
+      const accent = SCORE_COLORS[bucket];
       const marker = L.marker([p.lat, p.lng], { icon: createPinIcon(accent) });
 
       marker.bindPopup(
         popupCard({
           title: p.company,
           accent,
-          badge: isSurvey ? p.reportType || SURVEY_LABEL : pointStatusLabel(p.status),
+          badge: isSurvey ? p.reportType || pointStatusLabel(p.status) : pointStatusLabel(p.status),
           badgeClass: isSurvey ? 'map-popup-badge' : STATUS_BADGE_COLORS[p.status] || 'badge-gray',
           rows: isSurvey
             ? [
@@ -307,7 +304,7 @@ export default function CompanyMap({ points, detailRole = 'reviewer' }: CompanyM
             {[
               { key: 'all', label: 'All', count: sourceCounts.all },
               { key: 'report', label: 'Reports', count: sourceCounts.report },
-              { key: 'survey', label: 'Survey123', count: sourceCounts.survey },
+              { key: 'survey', label: 'Survey', count: sourceCounts.survey },
             ].map((item) => (
               <button
                 key={item.key}
@@ -358,7 +355,7 @@ export default function CompanyMap({ points, detailRole = 'reviewer' }: CompanyM
                   {group.points.map((p) => {
                     const bucket = scoreBucket(p.score);
                     const isSurvey = p.source === 'survey';
-                    const color = isSurvey ? SURVEY_COLOR : SCORE_COLORS[bucket];
+                    const color = SCORE_COLORS[bucket];
                     return (
                       <button
                         key={p.id}
@@ -375,7 +372,7 @@ export default function CompanyMap({ points, detailRole = 'reviewer' }: CompanyM
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-[11.5px] font-semibold text-slate-800">{p.company}</span>
                           <span className="block truncate text-[10px] text-slate-400">
-                            {isSurvey ? p.reportType || SURVEY_LABEL : p.register}
+                            {p.register}
                           </span>
                         </span>
                       </button>
@@ -391,13 +388,13 @@ export default function CompanyMap({ points, detailRole = 'reviewer' }: CompanyM
       <aside className="absolute right-2 top-2 z-[500] hidden w-[260px] max-h-[calc(100%-5.5rem)] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white/97 shadow-lg backdrop-blur lg:flex">
         <div className="border-b border-slate-100 px-3 py-2.5">
           <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Статистик</p>
-          <h3 className="mt-0.5 text-sm font-semibold text-slate-900">{SURVEY_LABEL}</h3>
+          <h3 className="mt-0.5 text-sm font-semibold text-slate-900">Тайлангийн мэдээлэл</h3>
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto p-3">
           {stats.provinceRows.length === 0 ? (
             <p className="rounded-lg bg-slate-50 px-3 py-4 text-center text-[11px] text-slate-400">
-              Survey123 мэдээлэл алга.
+              Тайлангийн мэдээлэл алга.
             </p>
           ) : (
             <div className="space-y-4">
@@ -460,10 +457,6 @@ export default function CompanyMap({ points, detailRole = 'reviewer' }: CompanyM
       <div className="absolute left-2 bottom-2 z-[500] rounded-lg border border-slate-200 bg-white/97 px-2.5 py-2 shadow-lg backdrop-blur">
         <p className="mb-1 text-[9.5px] font-semibold uppercase tracking-wide text-slate-400">Тэмдэглэгээ</p>
         <div className="flex flex-col gap-0.5">
-          <div className="flex items-center gap-1.5">
-            <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: SURVEY_COLOR }} />
-            <span className="text-[10.5px] text-slate-600">{SURVEY_LABEL}</span>
-          </div>
           {(Object.keys(SCORE_COLORS) as ScoreBucket[]).map((bucket) => (
             <div key={bucket} className="flex items-center gap-1.5">
               <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: SCORE_COLORS[bucket] }} />
