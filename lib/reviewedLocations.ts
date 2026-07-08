@@ -4,6 +4,7 @@ import { SURVEY_EXCLUDED_OBJECT_IDS } from '@/lib/constants';
 import { fetchSurveyMapPoints } from '@/lib/surveyMapPoints';
 import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
+import { resolveReportPointLocations } from '@/lib/locationResolver';
 
 // Survey123 Layer 0 query endpoint. Used as a coordinate fallback when a
 // report's own picked location is missing.
@@ -118,11 +119,20 @@ export async function fetchReviewedCompanyPoints(
     });
   }
 
+  const resolvedPoints = await resolveReportPointLocations(points);
+  resolvedPoints.forEach((point) => {
+    if (!point.register) return;
+    locationsByRegister[point.register.toUpperCase()] = {
+      province: point.province,
+      district: point.district,
+    };
+  });
+
   const surveyPoints = await fetchSurveyMapPoints(
     options.evaluatorUserId
       ? { registers: Array.from(registers), locationsByRegister }
       : { locationsByRegister },
   );
 
-  return [...points, ...surveyPoints];
+  return [...resolvedPoints, ...surveyPoints];
 }

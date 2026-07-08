@@ -1,6 +1,7 @@
 import type { CompanyPoint } from '@/components/CompanyMap';
 import { SURVEY_EXCLUDED_OBJECT_IDS } from '@/lib/constants';
 import { fetchSurveyPhotoMap } from '@/lib/surveyPhotos';
+import { normalizeSurveyReportType } from '@/lib/surveyReportType';
 
 const SERVICE_URL =
   'https://services.arcgis.com/HJzgwvlNIXssnQar/arcgis/rest/services/survey123_2d1e2fe0e49a4623a57f6536b6a6f7c1/FeatureServer';
@@ -211,7 +212,7 @@ export async function fetchSurveyMapPoints(
         company: title,
         register: attrs.Register || '',
         reportNumber: '',
-        reportType: attrs.Report_type || '',
+        reportType: normalizeSurveyReportType(attrs.Report_type),
         location: '',
         status: 'survey',
         score: null,

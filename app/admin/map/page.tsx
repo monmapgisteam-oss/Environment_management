@@ -7,6 +7,7 @@ import { adminNavItems } from '@/lib/adminNav';
 import { fetchSurveyMapPoints } from '@/lib/surveyMapPoints';
 import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
+import { resolveReportPointLocations } from '@/lib/locationResolver';
 
 async function fetchData() {
   // Every report location that actually has coordinates, with the company
@@ -37,8 +38,6 @@ export default async function AdminMapPage() {
       district: loc.district,
     };
   });
-  const surveyPoints = await fetchSurveyMapPoints({ locationsByRegister });
-
   const points: CompanyPoint[] = locations.map((loc: any) => {
     const report = loc.report ? reportById.get(loc.report.id) || loc.report : null;
     return {
@@ -57,7 +56,16 @@ export default async function AdminMapPage() {
       district: loc.district,
     };
   });
-  const allPoints = [...points, ...surveyPoints];
+  const resolvedPoints = await resolveReportPointLocations(points);
+  resolvedPoints.forEach((point) => {
+    if (!point.register) return;
+    locationsByRegister[point.register.toUpperCase()] = {
+      province: point.province,
+      district: point.district,
+    };
+  });
+  const surveyPoints = await fetchSurveyMapPoints({ locationsByRegister });
+  const allPoints = [...resolvedPoints, ...surveyPoints];
 
   return (
     <div className="flex min-h-screen bg-background">

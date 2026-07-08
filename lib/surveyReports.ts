@@ -2,6 +2,7 @@ import prisma from '@/lib/prisma';
 import { SURVEY_EXCLUDED_OBJECT_IDS } from '@/lib/constants';
 import { fetchSurveyPhotoMap, type SurveyPhoto } from '@/lib/surveyPhotos';
 import { findSenderCompanyByRegister, normalizeRegister } from '@/lib/reportCompanies';
+import { normalizeSurveyReportType } from '@/lib/surveyReportType';
 
 const SERVICE_URL =
   'https://services.arcgis.com/HJzgwvlNIXssnQar/arcgis/rest/services/survey123_2d1e2fe0e49a4623a57f6536b6a6f7c1/FeatureServer';
@@ -93,7 +94,7 @@ function toSurveyReport(
   const objectId = attrs.objectid ?? attrs.OBJECTID;
   if (typeof objectId !== 'number') return null;
 
-  const reportType = toStringOrNull(attrs.Report_type) || 'Survey123';
+  const reportType = normalizeSurveyReportType(attrs.Report_type) || 'Survey123';
   const title = toStringOrNull(attrs.project_name) || toStringOrNull(attrs.Organization) || `Survey123 #${objectId}`;
   const organization = toStringOrNull(attrs.Organization);
   const register = toStringOrNull(attrs.Register);

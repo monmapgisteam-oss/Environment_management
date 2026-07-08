@@ -135,18 +135,15 @@ export default function CompanyMap({ points, detailRole = 'reviewer' }: CompanyM
 
   const statusOptions = useMemo(() => Array.from(new Set(points.map((p) => p.status))), [points]);
   const stats = useMemo(() => {
-    const reports = filteredPoints.filter((p) => pointSource(p) === 'report');
-    const surveys = filteredPoints.filter((p) => pointSource(p) === 'survey');
-    const photoCount = surveys.reduce((sum, p) => sum + (p.photos?.length || 0), 0);
     const byProvince = new Map<string, number>();
     const byDistrict = new Map<string, { district: string; province: string; count: number }>();
-    surveys.forEach((p) => {
-      const province = inferProvince(p);
-      const district = knownLocationName(p.district);
-      if (!province) return;
+    const reportPoints = points.filter((p) => pointSource(p) === 'report');
+
+    reportPoints.forEach((p) => {
+      const province = inferProvince(p) || 'Аймаг/хот';
+      const district = knownLocationName(p.district) || 'Сум/дүүрэг';
 
       byProvince.set(province, (byProvince.get(province) || 0) + 1);
-      if (!district) return;
 
       const districtKey = `${province}::${district}`;
       const districtRow = byDistrict.get(districtKey);
@@ -170,14 +167,11 @@ export default function CompanyMap({ points, detailRole = 'reviewer' }: CompanyM
     );
 
     return {
-      total: filteredPoints.length,
-      reports: reports.length,
-      surveys: surveys.length,
-      photoCount,
+      total: reportPoints.length,
       provinceRows,
       districtRows,
     };
-  }, [filteredPoints]);
+  }, [points]);
   const sourceCounts = useMemo(
     () => ({
       all: points.length,
@@ -400,7 +394,7 @@ export default function CompanyMap({ points, detailRole = 'reviewer' }: CompanyM
       <aside className="absolute right-2 top-2 z-[500] hidden w-[260px] max-h-[calc(100%-5.5rem)] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white/97 shadow-lg backdrop-blur lg:flex">
         <div className="border-b border-slate-100 px-3 py-2.5">
           <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Статистик</p>
-          <h3 className="mt-0.5 text-sm font-semibold text-slate-900">Тайлангийн мэдээлэл</h3>
+          <h3 className="mt-0.5 text-sm font-semibold text-slate-900">Байршлаар тайлангийн тоо</h3>
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto p-3">
@@ -413,7 +407,7 @@ export default function CompanyMap({ points, detailRole = 'reviewer' }: CompanyM
               <section>
                 <div className="mb-2 flex items-center justify-between text-[10px] font-bold uppercase tracking-wide text-slate-400">
                   <span>Аймаг / хот</span>
-                  <span>{stats.provinceRows.length}</span>
+                  <span>{stats.total} тайлан</span>
                 </div>
                 <div className="space-y-1.5">
                   {stats.provinceRows.slice(0, 12).map((row) => (
@@ -437,7 +431,7 @@ export default function CompanyMap({ points, detailRole = 'reviewer' }: CompanyM
               <section>
                 <div className="mb-2 flex items-center justify-between text-[10px] font-bold uppercase tracking-wide text-slate-400">
                   <span>Сум / дүүрэг</span>
-                  <span>{stats.districtRows.length}</span>
+                  <span>{stats.total} тайлан</span>
                 </div>
                 <div className="space-y-1.5">
                   {stats.districtRows.slice(0, 24).map((row) => (

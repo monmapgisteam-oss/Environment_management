@@ -6,6 +6,7 @@ import 'leaflet/dist/leaflet.css';
 import { addBasemap } from '@/lib/basemap';
 import { createPinIcon, popupCard } from '@/lib/mapMarkers';
 import { SURVEY_EXCLUDED_OBJECT_IDS } from '@/lib/constants';
+import { normalizeSurveyReportType } from '@/lib/surveyReportType';
 
 interface MapPickerProps {
   lat: number;
@@ -28,7 +29,7 @@ function surveyPopup(props: Record<string, any>): string {
     rows: [
       ['Төслийн нэр', props.project_name],
       ['Байгууллага', props.Organization],
-      ['Тайлангийн төрөл', props.Report_type],
+      ['Тайлангийн төрөл', normalizeSurveyReportType(props.Report_type)],
       ['Регистр', props.Register],
       ['Огноо', props.Project_date],
       ['Тайлбар', props.Description],

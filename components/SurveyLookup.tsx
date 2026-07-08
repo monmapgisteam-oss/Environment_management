@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { HiSearch, HiChevronDown } from 'react-icons/hi';
 import { formatDate } from '@/lib/utils';
 import { SURVEY_EXCLUDED_OBJECT_IDS } from '@/lib/constants';
+import { normalizeSurveyReportType } from '@/lib/surveyReportType';
 
 // Same Survey123 FeatureServer the report pages match against by register —
 // here the manager/staff search it directly instead of only auto-matching
@@ -58,7 +59,7 @@ export default function SurveyLookup({ role = 'reviewer' }: { role?: 'reviewer' 
           objectId: f.attributes.OBJECTID ?? f.attributes.objectid,
           projectName: f.attributes.project_name ?? null,
           organization: f.attributes.Organization ?? null,
-          reportType: f.attributes.Report_type ?? null,
+          reportType: normalizeSurveyReportType(f.attributes.Report_type) || null,
           register: f.attributes.Register ?? null,
           projectDate: f.attributes.Project_date ?? null,
           description: f.attributes.Description ?? null,

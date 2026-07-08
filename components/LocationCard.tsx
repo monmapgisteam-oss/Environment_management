@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import { SURVEY_EXCLUDED_OBJECT_IDS } from "@/lib/constants";
+import { extractNominatimLocation, extractSurveyLocation, type AdministrativeLocation } from "@/lib/locationResolver";
 
 const MapPicker = dynamic(() => import("./MapPicker"), {
   ssr: false,
@@ -48,11 +49,18 @@ export default function LocationCard({ onLocationChange, initialLocation, regist
   const [looking, setLooking] = useState(false);
   const seeded = useRef(false);
 
-  const push = (nextCoords: { lat: number; lng: number } | null, nextAddress: string) => {
+  const push = (
+    nextCoords: { lat: number; lng: number } | null,
+    nextAddress: string,
+    nextLocation: AdministrativeLocation = {},
+  ) => {
     onLocationChange?.({
       lat: nextCoords?.lat,
       lng: nextCoords?.lng,
       address: nextAddress || undefined,
+      province: nextLocation.province,
+      district: nextLocation.district,
+      khoroo: nextLocation.khoroo,
     });
   };
 
@@ -67,7 +75,7 @@ export default function LocationCard({ onLocationChange, initialLocation, regist
     const nextAddress = initialLocation.address || "";
     setCoords(nextCoords);
     setAddress(nextAddress);
-    push(nextCoords, nextAddress);
+    push(nextCoords, nextAddress, initialLocation);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialLocation]);
 
@@ -98,11 +106,12 @@ export default function LocationCard({ onLocationChange, initialLocation, regist
         if (c && c.length >= 2) {
           const [lng, lat] = c;
           const org = feature.properties?.Organization || feature.properties?.project_name || "";
+          const resolvedLocation = extractSurveyLocation(feature.properties);
           setCoords({ lat, lng });
           setAddress(org);
           setMatchInfo(org || "Бүртгэлээс олдлоо");
           setNotFound(false);
-          push({ lat, lng }, org);
+          push({ lat, lng }, org, resolvedLocation);
         } else {
           // No match — keep any existing marker, just flag it so the user knows.
           setMatchInfo("");
@@ -134,9 +143,10 @@ export default function LocationCard({ onLocationChange, initialLocation, regist
       );
       const data = await res.json();
       const display = data.display_name || "";
+      const resolvedLocation = extractNominatimLocation(data);
       setAddress(display);
       setMatchInfo("");
-      push({ lat, lng }, display);
+      push({ lat, lng }, display, resolvedLocation);
     } catch {}
   };
 

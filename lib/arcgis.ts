@@ -1,6 +1,7 @@
 import prisma from '@/lib/prisma';
 import { SURVEY_EXCLUDED_OBJECT_IDS } from '@/lib/constants';
 import { fetchSurveyPhotoMap, type SurveyPhoto } from '@/lib/surveyPhotos';
+import { normalizeSurveyReportType } from '@/lib/surveyReportType';
 
 // ---------------------------------------------------------------------------
 // ArcGIS / Survey123 write-back integration.
@@ -119,7 +120,7 @@ export async function fetchSurveyInfoByRegister(register: string): Promise<Surve
       objectId: typeof objectId === 'number' ? objectId : null,
       projectName: attrs.project_name ?? null,
       organization: attrs.Organization ?? null,
-      reportType: attrs.Report_type ?? null,
+      reportType: normalizeSurveyReportType(attrs.Report_type) || null,
       register: attrs.Register ?? null,
       projectDate: attrs.Project_date ?? null,
       description: attrs.Description ?? null,
@@ -162,7 +163,7 @@ async function ensureReportFeature(report: any): Promise<string | null> {
   // 2) Otherwise create a new feature from the report's own details.
   if (!globalId) {
     const attributes: Record<string, any> = {
-      Report_type: report.reportType?.name ?? null,
+      Report_type: normalizeSurveyReportType(report.reportType?.name) || null,
       project_name: report.title ?? null,
       Organization: report.implementerName ?? report.senderCompany?.name ?? null,
       Register: register || null,

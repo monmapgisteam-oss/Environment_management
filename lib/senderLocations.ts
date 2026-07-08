@@ -4,6 +4,7 @@ import { SURVEY_EXCLUDED_OBJECT_IDS } from '@/lib/constants';
 import { fetchSurveyMapPoints } from '@/lib/surveyMapPoints';
 import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
+import { resolveReportPointLocations } from '@/lib/locationResolver';
 
 // Same Survey123 fallback lookup as fetchReviewedCompanyPoints, kept
 // separate since this one scopes to a single sender company instead of
@@ -100,7 +101,16 @@ export async function fetchSenderCompanyPoints(companyId: string): Promise<Compa
     });
   }
 
+  const resolvedPoints = await resolveReportPointLocations(points);
+  resolvedPoints.forEach((point) => {
+    if (!point.register) return;
+    locationsByRegister[point.register.toUpperCase()] = {
+      province: point.province,
+      district: point.district,
+    };
+  });
+
   const surveyPoints = await fetchSurveyMapPoints({ registers: Array.from(registers), locationsByRegister });
 
-  return [...points, ...surveyPoints];
+  return [...resolvedPoints, ...surveyPoints];
 }
