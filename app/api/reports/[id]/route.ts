@@ -24,6 +24,9 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
   const params = await props.params;
   try {
     const data = await request.json();
+    if ((data.title || '').trim() === GENERAL_EVALUATION_CONCLUSION_TITLE) {
+      return NextResponse.json({ error: 'Ерөнхий үнэлгээний дүгнэлт илгээх хэсэг хаагдсан.' }, { status: 400 });
+    }
 
     // Resolve the (possibly changed) report type the same way create does.
     const typeValue = data.reportType?.trim() || '';

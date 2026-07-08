@@ -13,6 +13,15 @@ type Notification = {
   reportId: string | null;
 };
 
+type Profile = {
+  id: string;
+  name: string;
+  role: string;
+  position: string | null;
+  phone: string | null;
+  workplace: string | null;
+};
+
 // A staff member (evaluator) and a manager share the same `reviewer` company,
 // but they have separate dashboards and must never land in each other's system.
 // `role` captures the actual user role and drives all in-app navigation.
@@ -47,12 +56,15 @@ export default function Header({ userName, companyName, role, companyType = 'sen
   // sender/manager pages keep working unchanged.
   const viewerRole: ViewerRole = role ?? companyType;
   const [open, setOpen] = useState(false);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const menuRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const displayName = profile?.name || userName;
+  const displayCompany = profile?.workplace || companyName;
 
   useEffect(() => {
     // Notifications are scoped to the logged-in user server-side, so no role
@@ -62,6 +74,15 @@ export default function Header({ userName, companyName, role, companyType = 'sen
       .then((data) => {
         setNotifications(data.notifications || []);
         setUnreadCount(data.unreadCount || 0);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    fetch('/api/profile')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data) setProfile(data);
       })
       .catch(() => {});
   }, []);
@@ -181,8 +202,8 @@ export default function Header({ userName, companyName, role, companyType = 'sen
                 </svg>
               </div>
               <div className="hidden text-left leading-tight sm:block">
-                <p className="text-[13px] font-semibold text-color-text-main">{userName}</p>
-                <p className="text-[11px] text-color-text-muted">{companyName}</p>
+                <p className="text-[13px] font-semibold text-color-text-main">{displayName}</p>
+                <p className="text-[11px] text-color-text-muted">{displayCompany}</p>
               </div>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform ${open ? 'rotate-180' : ''}`}>
                 <polyline points="6 9 12 15 18 9" />
@@ -191,6 +212,18 @@ export default function Header({ userName, companyName, role, companyType = 'sen
 
             {open && (
               <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl border border-slate-200 shadow-lg py-1 z-50">
+                <Link
+                  href="/profile"
+                  onClick={() => setOpen(false)}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
+                  Хувийн мэдээлэл
+                </Link>
+                <div className="my-1 h-px bg-slate-100" />
                 <button
                   onClick={handleLogout}
                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition"

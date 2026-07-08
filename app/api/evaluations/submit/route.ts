@@ -4,6 +4,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { syncEvaluationToSurvey } from '@/lib/arcgis';
 import { computeDocumentHash, generateSignatureId, hashPin, verifyPin } from '@/lib/signature';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
+import { uniqueAssignmentsByEvaluator } from '@/lib/reportAssignments';
 
 async function findOpenAssignment(reportId: string, evaluatorUserId?: string) {
   const assignments = await prisma.reportAssignment.findMany({
@@ -80,6 +81,17 @@ export async function POST(request: Request) {
     // unevaluated assignment (creating one if needed).
     let assignment;
     if (current.role === 'evaluator') {
+      const alreadySigned = await prisma.reportAssignment.findFirst({
+        where: {
+          reportId,
+          evaluatorUserId: current.id,
+          evaluation: { status: 'SIGNED' },
+        },
+        include: { evaluation: true },
+      });
+      if (alreadySigned) {
+        return NextResponse.json({ error: 'Гарын үсгээр баталгаажсан тул засах боломжгүй.' }, { status: 403 });
+      }
       assignment = await findOpenAssignment(reportId, current.id);
       if (!assignment) {
         return NextResponse.json({ error: 'Танд энэ тайлан оноогдоогүй байна.' }, { status: 403 });
@@ -188,8 +200,9 @@ export async function POST(request: Request) {
       where: { reportId },
       include: { evaluation: true },
     });
-    const signed = assignments.filter((a) => a.evaluation?.status === 'SIGNED' && a.evaluation?.signatureStatus === 'VERIFIED');
-    const allDone = assignments.length > 0 && signed.length === assignments.length;
+    const uniqueAssignments = uniqueAssignmentsByEvaluator(assignments);
+    const signed = uniqueAssignments.filter((a) => a.evaluation?.status === 'SIGNED' && a.evaluation?.signatureStatus === 'VERIFIED');
+    const allDone = uniqueAssignments.length > 0 && signed.length === uniqueAssignments.length;
     const rawAvg = signed.length
       ? signed.reduce((sum, a) => sum + (a.evaluation?.totalScore ?? 0), 0) / signed.length
       : 0;

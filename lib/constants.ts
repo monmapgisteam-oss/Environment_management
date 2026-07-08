@@ -49,7 +49,7 @@ export const PROVINCES = [
 // mismatch — anonymous edits can add but not remove). Excluded from every
 // query against that layer until someone deletes them in ArcGIS Online
 // directly.
-export const SURVEY_EXCLUDED_OBJECT_IDS = [1, 2, 4, 5, 7];
+export const SURVEY_EXCLUDED_OBJECT_IDS = [1, 2, 4, 5, 7, 8];
 
 // Seed accounts used to prefill each login form's email/password for now,
 // since there is no public sign-up yet. Once real workers get their own

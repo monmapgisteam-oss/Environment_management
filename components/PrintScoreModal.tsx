@@ -103,9 +103,9 @@ export default function PrintScoreModal({
                   </th>
                 </tr>
                 <tr>
-                  {evaluations.map((_, i) => (
+                  {evaluations.map((ev, i) => (
                     <th key={i} className="border border-slate-500 bg-slate-50 px-1.5 py-1.5 font-semibold text-slate-700 text-center whitespace-nowrap">
-                      Гишүүн {i + 1}
+                      {ev.evaluatorName || `Гишүүн ${i + 1}`}
                     </th>
                   ))}
                 </tr>

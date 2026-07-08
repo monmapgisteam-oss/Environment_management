@@ -35,7 +35,7 @@ export default function AssignBoard({ reports, staff }: { reports: Report[]; sta
 
   const openAssign = (report: Report) => {
     setActiveReport(report);
-    setSelected(report.assignees.map((a) => a.id));
+    setSelected(Array.from(new Set(report.assignees.map((a) => a.id))));
     setDeadline('');
   };
 
@@ -68,7 +68,7 @@ export default function AssignBoard({ reports, staff }: { reports: Report[]; sta
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           reportId: activeReport.id,
-          evaluators: selected,
+          evaluators: Array.from(new Set(selected)),
           deadline: deadline || undefined,
         }),
       });

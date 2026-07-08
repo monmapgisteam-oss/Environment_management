@@ -4,6 +4,7 @@ import Sidebar from '@/components/Sidebar';
 import SignatureBadge from '@/components/SignatureBadge';
 import { formatScore } from '@/lib/utils';
 import { getCurrentUser } from '@/lib/auth';
+import { uniqueAssignmentsByEvaluator } from '@/lib/reportAssignments';
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -53,8 +54,9 @@ async function fetchReportTypes() {
 export default async function ReportScoresPage(props: Props) {
   const searchParams = await props.searchParams;
   const params = await props.params;
-  const isReviewer = searchParams.role === 'reviewer';
-  const isStaff = searchParams.role === 'staff';
+  const currentUser = await getCurrentUser();
+  const isStaff = currentUser?.role === 'evaluator' || (!currentUser && searchParams.role === 'staff');
+  const isReviewer = currentUser?.role === 'review_manager' || (!currentUser && searchParams.role === 'reviewer');
   const roleParam = isReviewer ? 'reviewer' : isStaff ? 'staff' : 'sender';
 
   const [report, criteria, reportTypes] = await Promise.all([
@@ -67,8 +69,6 @@ export default async function ReportScoresPage(props: Props) {
     return <div className="p-8 text-center text-slate-500">Тайлан олдсонгүй.</div>;
   }
 
-  const currentUser = isStaff ? await getCurrentUser() : null;
-
   // Scores stay hidden from the sender until the manager explicitly sends the
   // signed scan — a single (or even every) staff member finishing must not
   // leak scores early. Managers and staff always see what they're allowed to.
@@ -76,8 +76,9 @@ export default async function ReportScoresPage(props: Props) {
   const scoresVisible = !isSenderView || !!report.signedScanUrl;
   const viewerRole: 'sender' | 'manager' | 'staff' = isReviewer ? 'manager' : isStaff ? 'staff' : 'sender';
 
+  const uniqueAssignments = uniqueAssignmentsByEvaluator(report.assignments);
   const scoreRows = scoresVisible
-    ? report.assignments
+    ? uniqueAssignments
         .filter((a: any) => !isStaff || a.evaluator?.id === currentUser?.id)
         .map((a: any) => ({
           evaluatorName: a.evaluator.name,
@@ -92,6 +93,12 @@ export default async function ReportScoresPage(props: Props) {
         }))
     : [];
 
+  const signedVerifiedScores = scoreRows
+    .filter((row) => row.signatureStatus === 'VERIFIED' && row.totalScore !== null)
+    .map((row) => row.totalScore as number);
+  const displayFinalScore = signedVerifiedScores.length
+    ? Math.round((signedVerifiedScores.reduce((sum, score) => sum + score, 0) / signedVerifiedScores.length) * 10) / 10
+    : report.finalScore;
 
   const sidebarItems = isReviewer
     ? [
@@ -189,7 +196,7 @@ export default async function ReportScoresPage(props: Props) {
                         {i === 0 && (
                           <>
                             <td rowSpan={scoreRows.length} className="border border-slate-200 py-3 px-4 text-center align-middle font-bold text-color-primary">
-                              {report.finalScore !== null ? formatScore(report.finalScore) : '-'}
+                              {displayFinalScore !== null ? formatScore(displayFinalScore) : '-'}
                             </td>
                             <td rowSpan={scoreRows.length} className="border border-slate-200 py-3 px-4 text-center align-middle">
                               {report.location?.latitude != null && report.location?.longitude != null ? (

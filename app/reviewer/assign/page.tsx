@@ -6,6 +6,7 @@ import { STAFF_EMAILS } from '@/lib/constants';
 import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
 import { fetchSurveyReports } from '@/lib/surveyReports';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
+import { uniqueAssignmentsByEvaluator } from '@/lib/reportAssignments';
 
 async function fetchReportTypes() {
   return prisma.reportType.findMany({
@@ -63,7 +64,7 @@ async function fetchDistributableReports() {
       reportTypeName: report.reportType.name,
       senderName: report.senderCompany?.name || '-',
       status: report.status,
-      assignees: report.assignments.map((a: any) => ({ id: a.evaluator.id, name: a.evaluator.name })),
+      assignees: uniqueAssignmentsByEvaluator(report.assignments).map((a: any) => ({ id: a.evaluator.id, name: a.evaluator.name })),
     })),
     ...surveyReports
       .filter((report) => !existingReportNumbers.has(report.reportNumber))

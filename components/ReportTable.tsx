@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { HiSearch } from 'react-icons/hi';
 import StatusBadge from './StatusBadge';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
-import { formatDate, formatScore, getStatusLabel } from '@/lib/utils';
+import { formatDate, formatScore } from '@/lib/utils';
 
 type Report = {
   id: string;

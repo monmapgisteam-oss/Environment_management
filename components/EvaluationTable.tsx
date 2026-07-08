@@ -101,10 +101,10 @@ export default function EvaluationTable({ criteria, reportId, savedScores, saved
               <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase w-12">№</th>
               <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase">Шалгуур</th>
               <th className="text-center py-3 px-4 text-xs font-semibold text-slate-500 uppercase w-32">Авбал зохих оноо</th>
-              <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase w-56">Илгээсэн файл</th>
               {otherEvaluations.map((ev, i) => (
                 <th key={i} className="text-center py-3 px-4 text-xs font-semibold text-slate-500 uppercase w-28">{ev.evaluatorName}</th>
               ))}
+              <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase w-56">Илгээсэн файл</th>
               <th className="text-center py-3 px-4 text-xs font-semibold text-color-primary uppercase w-32 bg-blue-50">{selfName || 'Өгөх оноо'}</th>
             </tr>
           </thead>
@@ -114,6 +114,14 @@ export default function EvaluationTable({ criteria, reportId, savedScores, saved
                 <td className="py-3 px-4 text-slate-600">{index + 1}</td>
                 <td className="py-3 px-4 text-slate-800">{criterion.name}</td>
                 <td className="py-3 px-4 text-center font-semibold text-slate-700">{criterion.maxScore}</td>
+                {otherEvaluations.map((ev, i) => {
+                  const s = ev.scores.find((x) => x.criterionId === criterion.id);
+                  return (
+                    <td key={i} className="py-3 px-4 text-center font-medium text-slate-500">
+                      {s ? s.score : '-'}
+                    </td>
+                  );
+                })}
                 <td className="py-3 px-4">
                   {(criterionAttachments[criterion.id] || []).length > 0 ? (
                     <div className="space-y-1.5">
@@ -133,14 +141,6 @@ export default function EvaluationTable({ criteria, reportId, savedScores, saved
                     <span className="text-xs text-slate-400">-</span>
                   )}
                 </td>
-                {otherEvaluations.map((ev, i) => {
-                  const s = ev.scores.find((x) => x.criterionId === criterion.id);
-                  return (
-                    <td key={i} className="py-3 px-4 text-center font-medium text-slate-500">
-                      {s ? s.score : '-'}
-                    </td>
-                  );
-                })}
                 <td className="py-3 px-4 text-center bg-blue-50/40">
                   <input
                     type="number"
@@ -160,10 +160,10 @@ export default function EvaluationTable({ criteria, reportId, savedScores, saved
               <td className="py-3 px-4"></td>
               <td className="py-3 px-4 font-bold text-slate-900">Нийт оноо</td>
               <td className="py-3 px-4 text-center font-bold text-slate-900">{maxTotal}</td>
-              <td className="py-3 px-4"></td>
               {otherEvaluations.map((ev, i) => (
                 <td key={i} className="py-3 px-4 text-center font-bold text-slate-600 text-lg">{ev.totalScore}</td>
               ))}
+              <td className="py-3 px-4"></td>
               <td className="py-3 px-4 text-center font-bold text-color-primary text-lg bg-blue-50">{totalScore}</td>
             </tr>
           </tbody>

@@ -15,6 +15,8 @@ import { fetchSurveyReportByObjectId } from '@/lib/surveyReports';
 import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
 import { senderSidebarItems } from '@/lib/senderNav';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
+import { uniqueAssignmentsByEvaluator } from '@/lib/reportAssignments';
+import { splitScoringAttachments } from '@/lib/scoringAttachments';
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -191,8 +193,9 @@ export default async function ReportDetailPage(props: Props) {
   if (surveyObjectId !== null) {
     return <SurveyReportDetail objectId={surveyObjectId} role={searchParams.role} />;
   }
-  const isReviewer = searchParams.role === 'reviewer';
-  const isStaff = searchParams.role === 'staff';
+  const currentUser = await getCurrentUser();
+  const isStaff = currentUser?.role === 'evaluator' || (!currentUser && searchParams.role === 'staff');
+  const isReviewer = currentUser?.role === 'review_manager' || (!currentUser && searchParams.role === 'reviewer');
 
   const [report, criteria, reportTypes] = await Promise.all([
     fetchReportDetail(params.id),
@@ -204,11 +207,11 @@ export default async function ReportDetailPage(props: Props) {
     return <div className="p-8 text-center text-slate-500">Тайлан олдсонгүй.</div>;
   }
 
+  const uniqueAssignments = uniqueAssignmentsByEvaluator(report.assignments);
+
   // A staff member viewing the report may only see their OWN evaluation, never
   // their colleagues'. Managers and the sender see every evaluator's scores.
-  const currentUser = isStaff ? await getCurrentUser() : null;
-
-  const evaluations = report.assignments
+  const evaluations = uniqueAssignments
     .filter((a: any) => a.evaluation)
     .filter((a: any) => !isStaff || a.evaluator?.id === currentUser?.id)
     .map((a: any) => ({
@@ -223,8 +226,15 @@ export default async function ReportDetailPage(props: Props) {
       documentHash: a.evaluation.documentHash as string | null,
     }));
 
+  const signedVerifiedScores = evaluations
+    .filter((ev) => ev.signatureStatus === 'VERIFIED')
+    .map((ev) => ev.totalScore);
+  const displayFinalScore = signedVerifiedScores.length
+    ? Math.round((signedVerifiedScores.reduce((sum, score) => sum + score, 0) / signedVerifiedScores.length) * 10) / 10
+    : report.finalScore;
+
   // Staff this report was distributed to, with whether each has scored it yet.
-  const assignedStaff = report.assignments.map((a: any) => ({
+  const assignedStaff = uniqueAssignments.map((a: any) => ({
     name: a.evaluator.name,
     position: a.evaluator.position,
     submitted: !!a.evaluation,
@@ -242,6 +252,7 @@ export default async function ReportDetailPage(props: Props) {
   if (isSenderView && report.status === 'return_requested') displayStatus = 'in_review';
 
   const attachments = await signAttachments(parseAttachments(report.fileUrl));
+  const { criterionAttachments, reportAttachments } = splitScoringAttachments(attachments, criteria);
   const signedScanDownloadUrl = report.signedScanUrl ? await createSignedUrl(report.signedScanUrl) : null;
 
   // Manager only sees the print/scan panel once every assigned staff member
@@ -500,9 +511,9 @@ export default async function ReportDetailPage(props: Props) {
           )}
 
           {/* Attachments */}
-          {attachments.length > 0 && (
+          {reportAttachments.length > 0 && (
             <AttachmentList
-              attachments={attachments}
+              attachments={reportAttachments}
               title="Хавсаргасан файл"
               emptyText="Хавсаргасан файл байхгүй байна."
             />
@@ -537,6 +548,7 @@ export default async function ReportDetailPage(props: Props) {
                       <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase w-12">№</th>
                       <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase">Шалгуур</th>
                       <th className="text-center py-3 px-4 text-xs font-semibold text-slate-500 uppercase w-28">Авбал зохих оноо</th>
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase w-56">Илгээсэн файл</th>
                       {evaluations.map((ev, i) => (
                         <th key={i} className="text-center py-3 px-4 text-xs font-semibold text-slate-500 uppercase w-28">
                           <div className="flex flex-col items-center gap-1">
@@ -560,6 +572,25 @@ export default async function ReportDetailPage(props: Props) {
                         <td className="py-3 px-4 text-slate-600">{index + 1}</td>
                         <td className="py-3 px-4 text-slate-800">{criterion.name}</td>
                         <td className="py-3 px-4 text-center font-semibold text-slate-700">{criterion.maxScore}</td>
+                        <td className="py-3 px-4">
+                          {(criterionAttachments[criterion.id] || []).length > 0 ? (
+                            <div className="space-y-1.5">
+                              {(criterionAttachments[criterion.id] || []).map((file, fileIndex) => (
+                                <div key={`${file.url}-${fileIndex}`} className="flex items-center gap-2">
+                                  <span className="max-w-[130px] truncate text-xs text-slate-600">{file.name}</span>
+                                  <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-color-primary hover:underline">
+                                    Нээх
+                                  </a>
+                                  <a href={downloadUrl(file)} className="text-xs font-semibold text-color-primary hover:underline">
+                                    Татах
+                                  </a>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-xs text-slate-400">-</span>
+                          )}
+                        </td>
                         {evaluations.map((ev, i) => {
                           const score = ev.scores.find((s: any) => s.criterionId === criterion.id);
                           return (
@@ -576,6 +607,7 @@ export default async function ReportDetailPage(props: Props) {
                       <td className="py-3 px-4 text-center font-bold text-slate-900">
                         {criteria.reduce((sum: number, c: any) => sum + c.maxScore, 0)}
                       </td>
+                      <td className="py-3 px-4"></td>
                       {evaluations.map((ev, i) => (
                         <td key={i} className="py-3 px-4 text-center font-bold text-color-primary text-lg">
                           {ev.totalScore}
@@ -614,10 +646,10 @@ export default async function ReportDetailPage(props: Props) {
           )}
 
           {/* Final Score */}
-          {!isConclusion && report.finalScore !== null && scoresVisible && (
+          {!isConclusion && displayFinalScore !== null && scoresVisible && (
             <div className="bg-white rounded-2xl border border-slate-200 p-6 flex items-center justify-between">
               <p className="text-sm font-medium text-slate-600">Эцсийн дундаж оноо</p>
-              <p className="text-3xl font-bold text-color-primary">{formatScore(report.finalScore)}</p>
+              <p className="text-3xl font-bold text-color-primary">{formatScore(displayFinalScore)}</p>
             </div>
           )}
 

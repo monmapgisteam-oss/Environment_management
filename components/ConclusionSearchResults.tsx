@@ -1,6 +1,8 @@
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 import { HiDocumentText, HiSearch } from 'react-icons/hi';
 import { downloadUrl } from '@/lib/attachments';
+import TableExportToolbar from '@/components/TableExportToolbar';
 import type { ConclusionRow, ConclusionSearchParams } from '@/lib/conclusions';
 import {
   CONCLUSION_PROJECT_CATEGORIES,
@@ -16,6 +18,8 @@ type Props = {
 
 const inputClass =
   'h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-slate-700 transition focus:border-color-primary focus:outline-none focus:ring-2 focus:ring-color-primary/10';
+const headerCellClass =
+  'border-r border-emerald-800/70 px-3 py-4 align-middle text-left text-[12px] font-semibold leading-5 text-emerald-50 last:border-r-0';
 
 function formatIsoDate(value?: string | Date | null) {
   if (!value) return '-';
@@ -27,8 +31,41 @@ function formatIsoDate(value?: string | Date | null) {
   return `${year}-${month}-${day}`;
 }
 
+function HeaderCell({ children, sortable = false, align = 'left' }: { children?: ReactNode; sortable?: boolean; align?: 'left' | 'right' }) {
+  return (
+    <th className={`${headerCellClass} ${align === 'right' ? 'text-right' : ''}`}>
+      <div className={`flex items-center gap-1.5 ${align === 'right' ? 'justify-end' : ''}`}>
+        {sortable && <span className="rounded bg-emerald-700 px-1 text-[10px] leading-4 text-emerald-50">↕</span>}
+        <span>{children}</span>
+      </div>
+    </th>
+  );
+}
+
 export default function ConclusionSearchResults({ rows, search, role }: Props) {
   const detailRole = role === 'reviewer' ? 'reviewer' : 'staff';
+  const exportHeaders = [
+    '№',
+    'Дүгнэлт гаргасан огноо',
+    'Дүгнэлтийн дугаар',
+    'Төслийн ангилал',
+    'Төслийн нэр',
+    'Төсөл хэрэгжих аймгийн нэр',
+    'Төсөл хэрэгжих сумын нэр',
+    'Төсөл хэрэгжүүлэгчийн нэр',
+    'Дүгнэлтийн төрөл',
+  ];
+  const exportRows = rows.map((row, index) => [
+    index + 1,
+    formatIsoDate(row.submittedAt),
+    row.reportNumber,
+    row.reportTypeName,
+    row.title,
+    row.province || '-',
+    row.district || '-',
+    row.implementerName || row.senderCompanyName || '-',
+    row.conclusionType,
+  ]);
 
   return (
     <div className="space-y-6">
@@ -107,28 +144,22 @@ export default function ConclusionSearchResults({ rows, search, role }: Props) {
         </div>
       </form>
 
-      <div className="flex items-center gap-3 rounded-2xl border border-teal-100 bg-teal-50/80 px-5 py-4 text-sm font-medium text-color-primary">
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-color-primary shadow-sm">
-          <HiDocumentText size={17} />
-        </div>
-        <span>Нийт {rows.length} дүгнэлт байна.</span>
-      </div>
-
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft">
+        <TableExportToolbar headers={exportHeaders} rows={exportRows} fileName="dugnelt" />
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm text-slate-700">
             <thead>
-              <tr className="bg-color-primary text-left text-xs font-bold text-white">
-                <th className="border-r border-white/20 px-3 py-3 align-top">№</th>
-                <th className="border-r border-white/20 px-3 py-3 align-top">↕ Дүгнэлт гаргасан огноо</th>
-                <th className="border-r border-white/20 px-3 py-3 align-top">↕ Дүгнэлтийн дугаар</th>
-                <th className="border-r border-white/20 px-3 py-3 align-top">↕ Төслийн ангилал</th>
-                <th className="border-r border-white/20 px-3 py-3 align-top">Төслийн нэр</th>
-                <th className="border-r border-white/20 px-3 py-3 align-top">Төсөл хэрэгжих аймгийн нэр</th>
-                <th className="border-r border-white/20 px-3 py-3 align-top">Төсөл хэрэгжих сумын нэр</th>
-                <th className="border-r border-white/20 px-3 py-3 align-top">Төсөл хэрэгжүүлэгчийн нэр</th>
-                <th className="border-r border-white/20 px-3 py-3 align-top">↕ Дүгнэлтийн төрөл</th>
-                <th className="px-3 py-3 text-right align-top"></th>
+              <tr className="bg-[#064E3B]">
+                <HeaderCell>№</HeaderCell>
+                <HeaderCell sortable>Дүгнэлт гаргасан огноо</HeaderCell>
+                <HeaderCell sortable>Дүгнэлтийн дугаар</HeaderCell>
+                <HeaderCell sortable>Төслийн ангилал</HeaderCell>
+                <HeaderCell>Төслийн нэр</HeaderCell>
+                <HeaderCell>Төсөл хэрэгжих аймгийн нэр</HeaderCell>
+                <HeaderCell>Төсөл хэрэгжих сумын нэр</HeaderCell>
+                <HeaderCell>Төсөл хэрэгжүүлэгчийн нэр</HeaderCell>
+                <HeaderCell sortable>Дүгнэлтийн төрөл</HeaderCell>
+                <HeaderCell align="right"></HeaderCell>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">

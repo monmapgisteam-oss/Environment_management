@@ -96,6 +96,18 @@ function pointStatusLabel(status: string) {
   return STATUS_LABELS[status] || status;
 }
 
+function pointMapKey(point: CompanyPoint, index: number) {
+  return [
+    pointSource(point),
+    point.id,
+    point.reportNumber,
+    point.register,
+    point.lat,
+    point.lng,
+    index,
+  ].join(':');
+}
+
 export default function CompanyMap({ points, detailRole = 'reviewer' }: CompanyMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
@@ -224,7 +236,7 @@ export default function CompanyMap({ points, detailRole = 'reviewer' }: CompanyM
     cluster.clearLayers();
     markersByIdRef.current.clear();
 
-    filteredPoints.forEach((p) => {
+    filteredPoints.forEach((p, index) => {
       const bucket = scoreBucket(p.score);
       const isSurvey = p.source === 'survey';
       const accent = SCORE_COLORS[bucket];
@@ -255,20 +267,20 @@ export default function CompanyMap({ points, detailRole = 'reviewer' }: CompanyM
         }),
       );
       marker.addTo(cluster);
-      markersByIdRef.current.set(p.id, marker);
+      markersByIdRef.current.set(pointMapKey(p, index), marker);
     });
 
     if (filteredPoints.length === 1) {
-      const only = markersByIdRef.current.get(filteredPoints[0].id);
+      const only = markersByIdRef.current.get(pointMapKey(filteredPoints[0], 0));
       if (only) cluster.zoomToShowLayer(only, () => only.openPopup());
     } else if (filteredPoints.length > 1) {
       map.fitBounds(L.latLngBounds(filteredPoints.map((p) => [p.lat, p.lng] as L.LatLngTuple)).pad(0.2));
     }
   }, [filteredPoints, detailRole]);
 
-  const flyToPoint = (p: CompanyPoint) => {
+  const flyToPoint = (p: CompanyPoint, index: number) => {
     const cluster = clusterRef.current;
-    const marker = markersByIdRef.current.get(p.id);
+    const marker = markersByIdRef.current.get(pointMapKey(p, index));
     if (!cluster || !marker) return;
     cluster.zoomToShowLayer(marker, () => marker.openPopup());
   };
@@ -352,15 +364,15 @@ export default function CompanyMap({ points, detailRole = 'reviewer' }: CompanyM
                     <span>{group.label}</span>
                     <span>{group.points.length}</span>
                   </div>
-                  {group.points.map((p) => {
+                  {group.points.map((p, index) => {
                     const bucket = scoreBucket(p.score);
                     const isSurvey = p.source === 'survey';
                     const color = SCORE_COLORS[bucket];
                     return (
                       <button
-                        key={p.id}
+                        key={pointMapKey(p, index)}
                         type="button"
-                        onClick={() => flyToPoint(p)}
+                        onClick={() => flyToPoint(p, index)}
                         className="flex w-full items-start gap-2 rounded-lg px-1.5 py-1.5 text-left transition hover:bg-slate-50"
                       >
                         <span

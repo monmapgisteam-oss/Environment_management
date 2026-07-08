@@ -7,11 +7,12 @@ import EvaluationTable from "@/components/EvaluationTable";
 import AttachmentList from "@/components/AttachmentList";
 import StaffReturnButton from "@/components/StaffReturnButton";
 import LocationMap from "@/components/LocationMapClient";
-import { parseAttachments, type Attachment } from "@/lib/attachments";
+import { parseAttachments } from "@/lib/attachments";
 import { signAttachments } from "@/lib/supabase";
 import { formatDate } from "@/lib/utils";
 import { attachEffectiveSenderCompanies } from "@/lib/reportCompanies";
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from "@/lib/conclusions";
+import { splitScoringAttachments } from "@/lib/scoringAttachments";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -22,14 +23,6 @@ async function fetchCriteria() {
     where: { isActive: true },
     orderBy: { sortOrder: "asc" },
   });
-}
-
-function groupCriterionAttachments(attachments: Attachment[]) {
-  return attachments.reduce((acc: Record<string, Attachment[]>, file) => {
-    if (!file.criterionId) return acc;
-    acc[file.criterionId] = [...(acc[file.criterionId] || []), file];
-    return acc;
-  }, {});
 }
 
 async function findStaffAssignment(reportId: string, evaluatorUserId: string) {
@@ -45,6 +38,7 @@ async function findStaffAssignment(reportId: string, evaluatorUserId: string) {
   });
 
   return (
+    assignments.find((assignment) => assignment.evaluation?.status === "SIGNED") ||
     assignments.find((assignment) => !assignment.evaluation) ||
     assignments.find((assignment) => assignment.evaluation?.status !== "SIGNED") ||
     assignments[0] ||
@@ -79,6 +73,12 @@ export default async function StaffEvaluatePage(props: Props) {
 
   const report = (await attachEffectiveSenderCompanies([assignment.report]))[0];
   const criteria = await fetchCriteria();
+  const tableCriteria = criteria.map((c: any) => ({
+    id: c.id,
+    name: c.name,
+    maxScore: c.maxScore,
+    sortOrder: c.sortOrder,
+  }));
 
   // Each staff member only ever sees their own scoring — other evaluators'
   // scores are deliberately not loaded here.
@@ -91,8 +91,7 @@ export default async function StaffEvaluatePage(props: Props) {
       {},
     ) || null;
   const signedAttachments = await signAttachments(parseAttachments(report.fileUrl));
-  const criterionAttachments = groupCriterionAttachments(signedAttachments);
-  const reportAttachments = signedAttachments.filter((file) => !file.criterionId);
+  const { criterionAttachments, reportAttachments } = splitScoringAttachments(signedAttachments, tableCriteria);
   const locationMap =
     report.location?.latitude != null && report.location?.longitude != null
       ? { lat: report.location.latitude, lng: report.location.longitude }
@@ -247,18 +246,15 @@ export default async function StaffEvaluatePage(props: Props) {
           )}
 
           {/* Attached documents the sender submitted */}
-          <AttachmentList
-            attachments={reportAttachments}
-          />
+          {reportAttachments.length > 0 && (
+            <AttachmentList
+              attachments={reportAttachments}
+            />
+          )}
 
           {/* Scoring — staff see only their own column, never other evaluators'. */}
           <EvaluationTable
-            criteria={criteria.map((c: any) => ({
-              id: c.id,
-              name: c.name,
-              maxScore: c.maxScore,
-              sortOrder: c.sortOrder,
-            }))}
+            criteria={tableCriteria}
             reportId={report.id}
             savedScores={savedScores}
             savedComment={assignment.evaluation?.comment || null}

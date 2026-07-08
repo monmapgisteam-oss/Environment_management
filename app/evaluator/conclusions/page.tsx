@@ -28,16 +28,9 @@ export default async function EvaluatorConclusionsPage(props: Props) {
     fetchReportTypes(),
   ]);
   const additionalType = reportTypes.find((rt: any) => rt.name.includes('Нэмэлт'));
-  const sidebarChildren = [
-    ...reportTypes
-      .filter((rt: any) => !rt.name.includes('Нэмэлт'))
-      .map((rt: any) => ({ label: rt.name, href: `/evaluator?type=${rt.slug}` })),
-    {
-      label: 'Ерөнхий үнэлгээний дүгнэлт',
-      href: '/evaluator/conclusions',
-      active: true,
-    },
-  ];
+  const sidebarChildren = reportTypes
+    .filter((rt: any) => !rt.name.includes('Нэмэлт'))
+    .map((rt: any) => ({ label: rt.name, href: `/evaluator?type=${rt.slug}` }));
 
   return (
     <ConclusionSectionPage
@@ -50,7 +43,6 @@ export default async function EvaluatorConclusionsPage(props: Props) {
         {
           label: 'Надад оноогдсон тайлангууд',
           href: '/evaluator',
-          active: true,
           children: sidebarChildren,
         },
         { label: 'Үнэлгээ өгсөн тайлангууд', href: '/evaluator/evaluated' },

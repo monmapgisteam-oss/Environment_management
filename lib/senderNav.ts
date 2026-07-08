@@ -14,15 +14,10 @@ export function senderSidebarItems(active?: SenderNavKey) {
     {
       label: 'Тайлан илгээх',
       href: '/sender/submit',
-      active: active === 'plan' || active === 'performance' || active === 'general-evaluation',
+      active: active === 'plan' || active === 'performance',
       children: [
         { label: 'Жилийн төлөвлөгөө', href: '/sender/submit?type=plan', active: active === 'plan' },
         { label: 'Биелэлтийн тайлан', href: '/sender/submit?type=performance', active: active === 'performance' },
-        {
-          label: 'Ерөнхий үнэлгээний дүгнэлт',
-          href: '/sender/submit?type=general-evaluation',
-          active: active === 'general-evaluation',
-        },
       ],
     },
     { label: 'Нэмэлт мэдээлэл', href: '/sender/submit?type=additional', active: active === 'additional' },

@@ -26,7 +26,6 @@ const GENERAL_EVALUATION_LABEL = "Ерөнхий үнэлгээний дүгнэ
 const SUBMIT_TYPES = [
   { label: "Жилийн төлөвлөгөө", slug: "plan" },
   { label: PERFORMANCE_REPORT_LABEL, slug: "performance" },
-  { label: GENERAL_EVALUATION_LABEL, slug: "general-evaluation" },
   { label: "Нэмэлт мэдээлэл", slug: "additional" },
 ];
 
@@ -39,7 +38,7 @@ export default function SubmitReportPage() {
   const isEdit = !!editId;
   const activeType = SUBMIT_TYPES.find((t) => t.slug === typeSlug);
   const [editSubmitType, setEditSubmitType] = useState<SenderNavKey | null>(null);
-  const selectedSubmitType = (typeSlug as SenderNavKey | null) || editSubmitType;
+  const selectedSubmitType = (activeType?.slug as SenderNavKey | undefined) || editSubmitType;
   const isGeneralEvaluation = selectedSubmitType === "general-evaluation";
   // "Нэмэлт мэдээлэл" is not a full report — it only needs a short writing area.
   const isAdditional = selectedSubmitType === "additional";
@@ -86,6 +85,12 @@ export default function SubmitReportPage() {
   });
 
   useEffect(() => {
+    if (typeSlug === "general-evaluation") {
+      router.replace("/sender/submit");
+    }
+  }, [router, typeSlug]);
+
+  useEffect(() => {
     if (isGeneralEvaluation || isAdditional) return;
     (async () => {
       const res = await fetch("/api/criteria");
@@ -119,7 +124,11 @@ export default function SubmitReportPage() {
       const r = await res.json();
       const savedAttachments = parseAttachments(r.fileUrl);
       const isSavedGeneralEvaluation = r.title === GENERAL_EVALUATION_LABEL;
-      setEditSubmitType(isSavedGeneralEvaluation ? "general-evaluation" : null);
+      if (isSavedGeneralEvaluation) {
+        router.replace("/sender/reports");
+        return;
+      }
+      setEditSubmitType(null);
       setFormData({
         reportType: r.reportType?.name || "",
         reportNumber: r.reportNumber || "",
@@ -157,7 +166,7 @@ export default function SubmitReportPage() {
           }, {}),
       );
     })();
-  }, [editId]);
+  }, []);
 
   const handleChange = (
     e: React.ChangeEvent<

@@ -20,19 +20,12 @@ export default async function ReviewerConclusionsPage(props: Props) {
     fetchConclusionRows(searchParams),
     fetchReportTypes(),
   ]);
-  const sidebarChildren = [
-    ...reportTypes
-      .filter((rt: any) => rt.slug !== 'type-5')
-      .map((rt: any) => ({
-        label: rt.name,
-        href: `/reviewer/reports?type=${rt.slug}`,
-      })),
-    {
-      label: 'Ерөнхий үнэлгээний дүгнэлт',
-      href: '/reviewer/conclusions',
-      active: true,
-    },
-  ];
+  const sidebarChildren = reportTypes
+    .filter((rt: any) => rt.slug !== 'type-5')
+    .map((rt: any) => ({
+      label: rt.name,
+      href: `/reviewer/reports?type=${rt.slug}`,
+    }));
 
   return (
     <ConclusionSectionPage
@@ -46,7 +39,6 @@ export default async function ReviewerConclusionsPage(props: Props) {
         {
           label: 'Ирсэн тайлангууд',
           href: '/reviewer/reports',
-          active: true,
           children: sidebarChildren,
         },
         { label: 'Үнэлгээний явц', href: '/reviewer/evaluation-progress' },

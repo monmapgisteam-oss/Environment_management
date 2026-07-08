@@ -4,10 +4,11 @@ import Sidebar from '@/components/Sidebar';
 import EvaluationTable from '@/components/EvaluationTable';
 import AttachmentList from '@/components/AttachmentList';
 import LocationMap from '@/components/LocationMapClient';
-import { parseAttachments, type Attachment } from '@/lib/attachments';
+import { parseAttachments } from '@/lib/attachments';
 import { signAttachments } from '@/lib/supabase';
 import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
+import { splitScoringAttachments } from '@/lib/scoringAttachments';
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -39,14 +40,6 @@ async function fetchCriteria() {
   });
 }
 
-function groupCriterionAttachments(attachments: Attachment[]) {
-  return attachments.reduce((acc: Record<string, Attachment[]>, file) => {
-    if (!file.criterionId) return acc;
-    acc[file.criterionId] = [...(acc[file.criterionId] || []), file];
-    return acc;
-  }, {});
-}
-
 async function fetchReportTypes() {
   return prisma.reportType.findMany({
     where: { isActive: true },
@@ -67,8 +60,13 @@ export default async function ReviewerEvaluatePage(props: Props) {
   }
 
   const signedAttachments = await signAttachments(parseAttachments(report.fileUrl));
-  const criterionAttachments = groupCriterionAttachments(signedAttachments);
-  const reportAttachments = signedAttachments.filter((file) => !file.criterionId);
+  const tableCriteria = criteria.map((c: any) => ({
+    id: c.id,
+    name: c.name,
+    maxScore: c.maxScore,
+    sortOrder: c.sortOrder,
+  }));
+  const { criterionAttachments, reportAttachments } = splitScoringAttachments(signedAttachments, tableCriteria);
   const locationMap =
     report.location?.latitude != null && report.location?.longitude != null
       ? { lat: report.location.latitude, lng: report.location.longitude }
@@ -139,16 +137,11 @@ export default async function ReviewerEvaluatePage(props: Props) {
           )}
 
           {/* Attached documents the sender submitted */}
-          <AttachmentList attachments={reportAttachments} />
+          {reportAttachments.length > 0 && <AttachmentList attachments={reportAttachments} />}
 
           {/* Evaluation Table */}
           <EvaluationTable
-            criteria={criteria.map((c: any) => ({
-              id: c.id,
-              name: c.name,
-              maxScore: c.maxScore,
-              sortOrder: c.sortOrder,
-            }))}
+            criteria={tableCriteria}
             reportId={report.id}
             savedScores={
               report.evaluations?.[0]?.scores?.reduce((acc: Record<string, string>, s: any) => {

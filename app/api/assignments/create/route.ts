@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     const data = await request.json();
     const rawReportId = String(data.reportId || "");
     const reportId: string = rawReportId ? await resolveAssignableReportId(rawReportId) : "";
-    const evaluatorIds: string[] = data.evaluators || [];
+    const evaluatorIds: string[] = Array.from(new Set((data.evaluators || []).filter(Boolean)));
 
     if (!reportId || evaluatorIds.length === 0) {
       return NextResponse.json(
@@ -61,11 +61,7 @@ export async function POST(request: Request) {
       where: { reportId, evaluatorUserId: { in: evaluatorIds } },
       include: { evaluation: true },
     });
-    const existingIds = new Set(
-      existing
-        .filter((assignment) => !assignment.evaluation || assignment.evaluation.status !== "SIGNED")
-        .map((assignment) => assignment.evaluatorUserId),
-    );
+    const existingIds = new Set(existing.map((assignment) => assignment.evaluatorUserId));
     const toAssign = evaluatorIds.filter((id) => !existingIds.has(id));
 
     const deadline = data.deadline
@@ -111,11 +107,6 @@ export async function POST(request: Request) {
           title: "Тайлан амжилттай оноогдлоо",
           message: `Та ${staffNames}-д "${report.title}" тайланг оноож өглөө.`,
         },
-      });
-    } else {
-      await prisma.report.update({
-        where: { id: reportId },
-        data: { status: "assigned" },
       });
     }
 

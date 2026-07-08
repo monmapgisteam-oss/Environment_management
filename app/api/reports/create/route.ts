@@ -16,6 +16,9 @@ export async function POST(request: Request) {
     if (!currentUser || currentUser.role !== 'sender' || !currentUser.companyId) {
       return NextResponse.json({ error: 'Not authenticated as a sender' }, { status: 401 });
     }
+    if ((data.title || '').trim() === GENERAL_EVALUATION_CONCLUSION_TITLE) {
+      return NextResponse.json({ error: 'Ерөнхий үнэлгээний дүгнэлт илгээх хэсэг хаагдсан.' }, { status: 400 });
+    }
     const loginCompany = currentUser.company;
     if (!loginCompany) {
       return NextResponse.json({ error: 'No sender company found' }, { status: 400 });
