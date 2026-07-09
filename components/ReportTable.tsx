@@ -117,7 +117,7 @@ export default function ReportTable({ reports, role = 'sender', showStatusFilter
   // On roles that can show a second stacked action ("Гишүүдэд оноох" / "Үнэлэх"),
   // pin the action column to a fixed width so every button is identical across
   // rows. On the sender table there is only one action, so let it size tightly.
-  const actionColClass = role === 'sender' ? 'inline-flex' : 'flex w-[124px]';
+  const actionColClass = role === 'sender' ? 'inline-flex' : 'flex w-[140px]';
 
   return (
     <div className="space-y-6">
@@ -236,6 +236,9 @@ export default function ReportTable({ reports, role = 'sender', showStatusFilter
                       <div className="flex justify-end">
                         <div className={`${actionColClass} flex-col items-stretch gap-1.5`}>
                           <Link href={report.detailHref || `/report/${report.id}?role=${role ?? 'sender'}`} className="flex items-center justify-center rounded-lg border border-teal-200 bg-white px-3 py-2 text-xs font-semibold text-teal-700 transition hover:bg-teal-50 whitespace-nowrap">Дэлгэрэнгүй</Link>
+                          {role !== 'sender' && (
+                            <Link href={`/report/${report.id}/cover?role=${role === 'staff' ? 'staff' : 'reviewer'}`} className="flex items-center justify-center rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 whitespace-nowrap">Тайлангийн нүүр</Link>
+                          )}
                           {role === 'reviewer' && report.status !== 'completed' && report.status !== 'approved' && (
                             <Link href={`/reviewer/assign?report=${report.id}`} className="flex items-center justify-center rounded-lg bg-color-primary px-3 py-2 text-xs font-semibold text-white hover:bg-color-primary-dark transition whitespace-nowrap">Гишүүдэд оноох</Link>
                           )}

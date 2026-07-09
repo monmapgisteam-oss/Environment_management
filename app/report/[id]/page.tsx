@@ -307,6 +307,7 @@ export default async function ReportDetailPage(props: Props) {
       : isStaff
         ? '/evaluator'
         : '/sender';
+  const coverHref = `/report/${report.id}/cover?role=${isStaff ? 'staff' : 'reviewer'}`;
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -319,6 +320,17 @@ export default async function ReportDetailPage(props: Props) {
           <Header userName="Илгээх хэрэглэгч" companyName="Илгээх байгууллага" companyType="sender" />
         )}
         <main className="flex-1 min-w-0 p-6 space-y-5">
+          {(isReviewer || isStaff) && !isConclusion && (
+            <div className="flex justify-end">
+              <a
+                href={coverHref}
+                className="inline-flex h-10 items-center justify-center rounded-xl bg-[#0F766E] px-4 text-sm font-semibold text-white transition hover:bg-[#115E59]"
+              >
+                Тайлангийн нүүр
+              </a>
+            </div>
+          )}
+
           {/* Sender downloads the manager's scanned, physically-signed copy — top of screen. */}
           {isSenderView && signedScanDownloadUrl && (
             <div className="bg-white rounded-2xl border border-slate-200 p-6">
