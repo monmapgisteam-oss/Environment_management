@@ -12,6 +12,13 @@ const ROLE_LABEL: Record<string, string> = {
   evaluator: 'Үнэлгээний ажилтан',
 };
 
+const SIGNATURE_BY_EMAIL: Record<string, string> = {
+  'manager@tailan.mn': '1234',
+  'staff@tailan.mn': '1111',
+  'staff2@tailan.mn': '2222',
+  'staff3@tailan.mn': '3333',
+};
+
 async function fetchQrProfile(id: string) {
   return prisma.user.findFirst({
     where: {
@@ -20,6 +27,7 @@ async function fetchQrProfile(id: string) {
     },
     select: {
       name: true,
+      email: true,
       phone: true,
       position: true,
       role: true,
@@ -45,9 +53,9 @@ export default async function QrProfilePage(props: Props) {
   const phone = profile.phone || '-';
   const initial = profile.name.trim().charAt(0) || 'A';
   const signature =
-    profile.role === 'review_manager'
-      ? '1234'
-      : profile.evaluatorAssignments[0]?.evaluation?.signature || null;
+    SIGNATURE_BY_EMAIL[profile.email] ||
+    profile.evaluatorAssignments[0]?.evaluation?.signature ||
+    null;
 
   return (
     <main className="min-h-screen bg-slate-100 px-4 py-5 text-slate-900 sm:px-6">
