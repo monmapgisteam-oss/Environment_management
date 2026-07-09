@@ -84,15 +84,18 @@ function SidebarItem({ item }: { item: Item }) {
           {
             label: "Жилийн төлөвлөгөө",
             href: "/reviewer/reports?type=type-1",
-            active: pathname === "/reviewer/reports" && selectedType === "type-1",
+            active:
+              pathname === "/reviewer/reports" && selectedType === "type-1",
           },
           {
             label: "Биелэлтийн тайлан",
             href: "/reviewer/reports?type=type-2",
-            active: pathname === "/reviewer/reports" && selectedType === "type-2",
+            active:
+              pathname === "/reviewer/reports" && selectedType === "type-2",
           },
         ]
-      : item.label === "Надад оноогдсон тайлангууд" && item.href.startsWith("/evaluator")
+      : item.label === "Надад оноогдсон тайлангууд" &&
+          item.href.startsWith("/evaluator")
         ? [
             {
               label: "Жилийн төлөвлөгөө",
@@ -118,7 +121,12 @@ function SidebarItem({ item }: { item: Item }) {
       ),
   );
   for (const extraChild of extraChildren) {
-    if (!children.some((child) => child.href === extraChild.href || child.label === extraChild.label)) {
+    if (
+      !children.some(
+        (child) =>
+          child.href === extraChild.href || child.label === extraChild.label,
+      )
+    ) {
       children.push(extraChild);
     }
   }
@@ -187,9 +195,13 @@ function SidebarItem({ item }: { item: Item }) {
 
 function withEvaluatorConclusionItem(items: Item[], pathname: string) {
   const hasAssignedReports = items.some(
-    (item) => item.label === "Надад оноогдсон тайлангууд" && item.href.startsWith("/evaluator"),
+    (item) =>
+      item.label === "Надад оноогдсон тайлангууд" &&
+      item.href.startsWith("/evaluator"),
   );
-  const hasTopLevelConclusion = items.some((item) => item.href === "/evaluator/conclusions");
+  const hasTopLevelConclusion = items.some(
+    (item) => item.href === "/evaluator/conclusions",
+  );
   if (!hasAssignedReports || hasTopLevelConclusion) return items;
 
   const conclusionItem: Item = {
@@ -199,7 +211,8 @@ function withEvaluatorConclusionItem(items: Item[], pathname: string) {
   };
 
   return items.flatMap((item) =>
-    item.label === "Надад оноогдсон тайлангууд" && item.href.startsWith("/evaluator")
+    item.label === "Надад оноогдсон тайлангууд" &&
+    item.href.startsWith("/evaluator")
       ? [item, conclusionItem]
       : [item],
   );
@@ -207,9 +220,12 @@ function withEvaluatorConclusionItem(items: Item[], pathname: string) {
 
 function withReviewerConclusionItem(items: Item[], pathname: string) {
   const hasReceivedReports = items.some(
-    (item) => item.label === "Ирсэн тайлангууд" && item.href.startsWith("/reviewer"),
+    (item) =>
+      item.label === "Ирсэн тайлангууд" && item.href.startsWith("/reviewer"),
   );
-  const hasTopLevelConclusion = items.some((item) => item.href === "/reviewer/conclusions");
+  const hasTopLevelConclusion = items.some(
+    (item) => item.href === "/reviewer/conclusions",
+  );
   if (!hasReceivedReports || hasTopLevelConclusion) return items;
 
   const conclusionItem: Item = {
@@ -227,7 +243,10 @@ function withReviewerConclusionItem(items: Item[], pathname: string) {
 
 export default function Sidebar({ items, role }: Props) {
   const pathname = usePathname();
-  const navigationItems = withReviewerConclusionItem(withEvaluatorConclusionItem(items, pathname), pathname);
+  const navigationItems = withReviewerConclusionItem(
+    withEvaluatorConclusionItem(items, pathname),
+    pathname,
+  );
 
   return (
     <aside
@@ -237,7 +256,9 @@ export default function Sidebar({ items, role }: Props) {
       {/* Logo */}
       <div className="flex items-center px-5 h-16 border-b border-white/10">
         <span className="text-[12px] font-bold tracking-[0.14em] text-white leading-tight uppercase">
-          Тайлангийн<br />систем
+          Тайлангийн
+          <br />
+          систем
         </span>
       </div>
 

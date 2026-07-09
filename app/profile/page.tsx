@@ -5,6 +5,7 @@ import Sidebar from '@/components/Sidebar';
 import { getCurrentUser } from '@/lib/auth';
 import { adminNavItems } from '@/lib/adminNav';
 import { senderSidebarItems } from '@/lib/senderNav';
+import { createQrImageUrl, getPublicStaffQrUrl } from '@/lib/profileQr';
 
 type HeaderRole = 'sender' | 'reviewer' | 'staff' | 'admin';
 
@@ -60,14 +61,9 @@ export default async function ProfilePage() {
   const phone = user.phone || '-';
   const homeHref = ROLE_HOME[user.role] || '/';
   const headerRole = HEADER_ROLE[user.role] || 'sender';
-  const isManager = user.role === 'review_manager';
-  const qrPayload = JSON.stringify({
-    name: user.name,
-    position: user.position || '',
-    workplace,
-    phone: user.phone || '',
-  });
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=14&data=${encodeURIComponent(qrPayload)}`;
+  const showQrCode = user.role === 'review_manager' || user.role === 'evaluator';
+  const qrProfileUrl = await getPublicStaffQrUrl(user.id);
+  const qrUrl = createQrImageUrl(qrProfileUrl);
   const sidebarItems = sidebarItemsForRole(user.role);
 
   return (
@@ -106,7 +102,7 @@ export default async function ProfilePage() {
                 </div>
               </div>
 
-              <div className={`grid gap-0 ${isManager ? 'lg:grid-cols-[1fr_320px]' : ''}`}>
+              <div className={`grid gap-0 ${showQrCode ? 'lg:grid-cols-[1fr_320px]' : ''}`}>
                 <div className="grid gap-5 px-6 py-6 sm:grid-cols-2">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Нэр</p>
@@ -126,7 +122,7 @@ export default async function ProfilePage() {
                   </div>
                 </div>
 
-                {isManager && (
+                {showQrCode && (
                   <div className="border-t border-slate-100 bg-slate-50 px-6 py-6 lg:border-l lg:border-t-0">
                     <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">QR код</p>
                     <div className="mt-4 flex flex-col items-start gap-4">

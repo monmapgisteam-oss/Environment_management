@@ -5,6 +5,7 @@ import Sidebar from '@/components/Sidebar';
 import StatusBadge from '@/components/StatusBadge';
 import { formatDate } from '@/lib/utils';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
+import { createQrImageUrl, getPublicStaffQrUrl } from '@/lib/profileQr';
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -14,6 +15,7 @@ async function fetchStaffMember(id: string) {
   return prisma.user.findFirst({
     where: { id, role: 'evaluator' },
     include: {
+      company: { select: { name: true } },
       evaluatorAssignments: {
         where: { report: { title: { not: GENERAL_EVALUATION_CONCLUSION_TITLE } } },
         include: {
@@ -36,6 +38,8 @@ async function fetchReportTypes() {
 export default async function StaffProfilePage(props: Props) {
   const params = await props.params;
   const [member, reportTypes] = await Promise.all([fetchStaffMember(params.id), fetchReportTypes()]);
+  const staffWorkplace = member?.company?.name || 'Ажлын газар бүртгэгдээгүй';
+  const staffQrUrl = member ? createQrImageUrl(await getPublicStaffQrUrl(member.id)) : '';
 
   const sidebarChildren = reportTypes
     .filter((rt: any) => rt.slug !== 'type-5')
@@ -67,33 +71,55 @@ export default async function StaffProfilePage(props: Props) {
             </div>
           ) : (
             <>
-              <div className="bg-white rounded-2xl border border-slate-200 p-6">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-color-primary text-xl font-bold text-white">
-                    {member.name.charAt(0)}
-                  </div>
-                  <div className="min-w-0">
-                    <h1 className="text-xl font-bold text-slate-900 truncate">{member.name}</h1>
-                    <p className="text-sm text-slate-500">{member.position || 'Үнэлгээний ажилтан'}</p>
-                  </div>
-                </div>
+              <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                <div className="grid gap-0 lg:grid-cols-[1fr_320px]">
+                  <div className="p-6">
+                    <div className="flex items-center gap-4">
+                      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-color-primary text-xl font-bold text-white">
+                        {member.name.charAt(0)}
+                      </div>
+                      <div className="min-w-0">
+                        <h1 className="text-xl font-bold text-slate-900 truncate">{member.name}</h1>
+                        <p className="text-sm text-slate-500">{member.position || 'Үнэлгээний ажилтан'}</p>
+                      </div>
+                    </div>
 
-                <div className="mt-5 grid grid-cols-1 gap-4 border-t border-slate-100 pt-5 text-sm sm:grid-cols-2">
-                  <div>
-                    <p className="text-slate-500 text-xs">И-мэйл</p>
-                    <p className="font-medium text-slate-800 mt-0.5">{member.email}</p>
+                    <div className="mt-5 grid grid-cols-1 gap-4 border-t border-slate-100 pt-5 text-sm sm:grid-cols-2">
+                      <div>
+                        <p className="text-slate-500 text-xs">И-мэйл</p>
+                        <p className="font-medium text-slate-800 mt-0.5">{member.email}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-500 text-xs">Утасны дугаар</p>
+                        <p className="font-medium text-slate-800 mt-0.5">{member.phone || '-'}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-500 text-xs">Албан тушаал</p>
+                        <p className="font-medium text-slate-800 mt-0.5">{member.position || '-'}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-500 text-xs">Ажлын газар</p>
+                        <p className="font-medium text-slate-800 mt-0.5">{staffWorkplace}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-500 text-xs">Оноогдсон тайлангийн тоо</p>
+                        <p className="font-medium text-slate-800 mt-0.5">{member.evaluatorAssignments.length}</p>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-slate-500 text-xs">Утасны дугаар</p>
-                    <p className="font-medium text-slate-800 mt-0.5">{member.phone || '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-slate-500 text-xs">Албан тушаал</p>
-                    <p className="font-medium text-slate-800 mt-0.5">{member.position || '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-slate-500 text-xs">Оноогдсон тайлангийн тоо</p>
-                    <p className="font-medium text-slate-800 mt-0.5">{member.evaluatorAssignments.length}</p>
+
+                  <div className="border-t border-slate-100 bg-slate-50 px-6 py-6 lg:border-l lg:border-t-0">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">QR код</p>
+                    <div className="mt-4 flex flex-col items-start gap-4">
+                      <img
+                        src={staffQrUrl}
+                        alt="Хувийн мэдээлэл агуулсан QR код"
+                        className="h-[220px] w-[220px] rounded-xl border border-slate-200 bg-white p-3 shadow-sm"
+                      />
+                      <p className="text-sm leading-6 text-slate-500">
+                        QR код нь нэр, албан тушаал, ажлын газар, утасны дугаарыг агуулна.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
