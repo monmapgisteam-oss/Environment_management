@@ -78,9 +78,13 @@ export default async function ReportCoverPage(props: Props) {
     return <div className="p-8 text-center text-slate-500">Тайлангийн нүүр зөвхөн хүлээн авагч талд харагдана.</div>;
   }
 
-  const [report, managerUser] = await Promise.all([
+  const [report, managerUser, coverSignatureLogs] = await Promise.all([
     fetchReport(params.id),
     prisma.user.findFirst({ where: { role: 'review_manager' } }),
+    prisma.activityLog.findMany({
+      where: { reportId: params.id, action: 'cover_signature_verified' },
+      select: { userId: true, createdAt: true },
+    }),
   ]);
 
   if (!report) {
@@ -93,6 +97,10 @@ export default async function ReportCoverPage(props: Props) {
     Promise.all(staffUsers.map(personWithQr)),
     managerUser ? personWithQr(managerUser) : Promise.resolve(null),
   ]);
+  const verifiedSignatures = coverSignatureLogs.map((log) => ({
+    userId: log.userId,
+    verifiedAt: log.createdAt.toISOString(),
+  }));
 
   const locationLabel = [
     report.location?.province,
@@ -118,16 +126,30 @@ export default async function ReportCoverPage(props: Props) {
   };
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <Sidebar items={sidebarItemsFor(viewerRole)} />
+    <div className="print-portal cover-layout flex min-h-screen bg-background">
+      <div className="cover-chrome">
+        <Sidebar items={sidebarItemsFor(viewerRole)} />
+      </div>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <Header
-          userName={viewerRole === 'staff' ? 'Үнэлгээний ажилтан' : 'Хянах менежер'}
-          companyName="Хянах байгууллага"
-          role={viewerRole === 'staff' ? 'staff' : 'reviewer'}
-        />
-        <ReportCoverTemplate info={info} staff={staff} manager={manager} viewerRole={viewerRole} />
+        <div className="cover-chrome">
+          <Header
+            userName={viewerRole === 'staff' ? 'Үнэлгээний ажилтан' : 'Хянах менежер'}
+            companyName="Хянах байгууллага"
+            role={viewerRole === 'staff' ? 'staff' : 'reviewer'}
+          />
+        </div>
+        <div className="cover-main">
+          <ReportCoverTemplate
+            reportId={report.id}
+            info={info}
+            staff={staff}
+            manager={manager}
+            viewerRole={viewerRole}
+            currentUserId={currentUser?.id || null}
+            initialVerifiedSignatures={verifiedSignatures}
+          />
+        </div>
       </div>
     </div>
   );
