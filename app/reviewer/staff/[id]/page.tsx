@@ -5,7 +5,7 @@ import Sidebar from '@/components/Sidebar';
 import StatusBadge from '@/components/StatusBadge';
 import { formatDate } from '@/lib/utils';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
-import { createQrImageUrl, getPublicStaffQrUrl } from '@/lib/profileQr';
+import { createQrImageUrl, getPublicProfileQrUrl } from '@/lib/profileQr';
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -39,7 +39,7 @@ export default async function StaffProfilePage(props: Props) {
   const params = await props.params;
   const [member, reportTypes] = await Promise.all([fetchStaffMember(params.id), fetchReportTypes()]);
   const staffWorkplace = member?.company?.name || 'Ажлын газар бүртгэгдээгүй';
-  const staffQrUrl = member ? createQrImageUrl(await getPublicStaffQrUrl(member.id)) : '';
+  const staffQrUrl = member ? createQrImageUrl(await getPublicProfileQrUrl(member.id)) : '';
 
   const sidebarChildren = reportTypes
     .filter((rt: any) => rt.slug !== 'type-5')

@@ -5,7 +5,7 @@ import Sidebar from '@/components/Sidebar';
 import { getCurrentUser } from '@/lib/auth';
 import { adminNavItems } from '@/lib/adminNav';
 import { senderSidebarItems } from '@/lib/senderNav';
-import { createQrImageUrl, getPublicStaffQrUrl } from '@/lib/profileQr';
+import { createQrImageUrl, getPublicProfileQrUrl } from '@/lib/profileQr';
 
 type HeaderRole = 'sender' | 'reviewer' | 'staff' | 'admin';
 
@@ -62,7 +62,7 @@ export default async function ProfilePage() {
   const homeHref = ROLE_HOME[user.role] || '/';
   const headerRole = HEADER_ROLE[user.role] || 'sender';
   const showQrCode = user.role === 'review_manager' || user.role === 'evaluator';
-  const qrProfileUrl = await getPublicStaffQrUrl(user.id);
+  const qrProfileUrl = await getPublicProfileQrUrl(user.id);
   const qrUrl = createQrImageUrl(qrProfileUrl);
   const sidebarItems = sidebarItemsForRole(user.role);
 

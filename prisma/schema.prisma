@@ -180,11 +180,10 @@ model Evaluation {
   reportId     String
   totalScore   Int
   comment      String?
-  // Deprecated: legacy raw-PIN column, unused by the signature-verification
-  // flow. Never written to going forward — kept only so existing rows aren't
-  // dropped without a data migration decision.
+  // Display copy of the numeric signature for QR profile reveal. Verification
+  // still uses User.signaturePinHash; treat this value as private UI data.
   signature    String?
-  // Signature verification (safe metadata only — never the raw PIN).
+  // Signature verification metadata.
   status          String    @default("DRAFT")
   signatureStatus String    @default("PENDING")
   signedAt        DateTime?

@@ -133,8 +133,7 @@ export async function POST(request: Request) {
 
     // Verify the numeric signature against the signer's own registered PIN
     // hash. First-ever signature enrolls the PIN (hashed) since there's no
-    // separate PIN-setup flow; every later signature must match it. The raw
-    // PIN is never persisted — only the salted hash.
+    // separate PIN-setup flow; every later signature must match it.
     if (current.signaturePinHash) {
       if (!verifyPin(numericSignature, current.signaturePinHash)) {
         return NextResponse.json({ error: 'Гарын үсэг буруу байна.' }, { status: 400 });
@@ -168,6 +167,7 @@ export async function POST(request: Request) {
     const signedFields = {
       totalScore,
       comment: comment || null,
+      signature: numericSignature,
       status: 'SIGNED',
       signatureStatus: 'VERIFIED',
       signedAt,

@@ -10,7 +10,7 @@ function normalizeBaseUrl(value: string) {
   return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
 }
 
-export async function getPublicStaffQrUrl(userId: string) {
+export async function getPublicProfileQrUrl(userId: string) {
   const configuredUrl =
     process.env.NEXT_PUBLIC_APP_URL ||
     process.env.APP_URL ||
@@ -19,7 +19,7 @@ export async function getPublicStaffQrUrl(userId: string) {
 
   const configuredBaseUrl = configuredUrl ? normalizeBaseUrl(configuredUrl) : '';
   if (configuredBaseUrl) {
-    return `${configuredBaseUrl}/qr/staff/${userId}`;
+    return `${configuredBaseUrl}/qr/profile/${userId}`;
   }
 
   const headerStore = await headers();
@@ -28,5 +28,5 @@ export async function getPublicStaffQrUrl(userId: string) {
     headerStore.get('x-forwarded-proto') ||
     (host.startsWith('localhost') || host.startsWith('127.0.0.1') ? 'http' : 'https');
 
-  return `${protocol}://${host}/qr/staff/${userId}`;
+  return `${protocol}://${host}/qr/profile/${userId}`;
 }
