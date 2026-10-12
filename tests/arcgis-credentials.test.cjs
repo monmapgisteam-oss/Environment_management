@@ -59,3 +59,51 @@ test('Referer restrictions are optional and invalid URLs are rejected', () => {
   process.env.ARCGIS_HTTP_REFERER = 'file:///tmp/token';
   assert.throws(arcgisHeaders, /HTTP/);
 });
+
+test('an invalidated token is renewed and the request retried once', async () => {
+  const { arcgisRequest } = require('../lib/arcgis/service.ts');
+  process.env.ARCGIS_DATA_SERVICE_URL = 'https://example.com/server/rest/services/Hosted/App/FeatureServer';
+  let issued = 0;
+  const sent = [];
+  global.fetch = async (url, options) => {
+    if (String(url).endsWith('/oauth2/token')) {
+      issued++;
+      return new Response(JSON.stringify({ access_token: `token-${issued}`, expires_in: 7200 }));
+    }
+    sent.push(options.body.get('token'));
+    if (options.body.get('token') === 'token-1') return new Response(JSON.stringify({ error: { code: 498, message: 'Invalid Token' } }));
+    return new Response(JSON.stringify({ count: 3 }));
+  };
+  assert.deepEqual(await arcgisRequest('0/query'), { count: 3 });
+  assert.deepEqual(sent, ['token-1', 'token-2']);
+
+  // A token that keeps failing surfaces the error after a single retry.
+  global.fetch = async (url) => String(url).endsWith('/oauth2/token')
+    ? new Response(JSON.stringify({ access_token: 'bad', expires_in: 7200 }))
+    : new Response(JSON.stringify({ error: { code: 498, message: 'Invalid Token' } }));
+  clearCredentialCache();
+  await assert.rejects(arcgisRequest('0/query'), /code 498/);
+});
+
+test('a request that never connected is retried once; other network errors are not', async () => {
+  const { arcgisRequest } = require('../lib/arcgis/service.ts');
+  process.env.ARCGIS_DATA_TOKEN = 'static-token';
+  delete process.env.ARCGIS_CLIENT_ID;
+  delete process.env.ARCGIS_CLIENT_SECRET;
+  process.env.ARCGIS_DATA_SERVICE_URL = 'https://example.com/server/rest/services/Hosted/App/FeatureServer';
+  const failure = (code) => Object.assign(new TypeError('fetch failed'), { cause: { code } });
+  let calls = 0;
+  global.fetch = async () => {
+    calls++;
+    if (calls === 1) throw failure('UND_ERR_CONNECT_TIMEOUT');
+    return new Response(JSON.stringify({ count: 1 }));
+  };
+  assert.deepEqual(await arcgisRequest('0/query'), { count: 1 });
+  assert.equal(calls, 2);
+
+  // A reset after sending may have reached the server, so it is not repeated.
+  calls = 0;
+  global.fetch = async () => { calls++; throw failure('ECONNRESET'); };
+  await assert.rejects(arcgisRequest('0/query'), /fetch failed/);
+  assert.equal(calls, 1);
+});
