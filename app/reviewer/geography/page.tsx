@@ -1,4 +1,4 @@
-import prisma from '@/lib/prisma';
+import dataStore from '@/lib/arcgis/data';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import CompanyMapSection from '@/components/CompanyMapSection';
@@ -7,7 +7,7 @@ import { fetchReviewedCompanyPoints } from '@/lib/reviewedLocations';
 export default async function ReviewerGeographyPage() {
   const [points, reportTypes] = await Promise.all([
     fetchReviewedCompanyPoints(),
-    prisma.reportType.findMany({ where: { isActive: true }, orderBy: { name: 'asc' } }),
+    dataStore.reportType.findMany({ where: { isActive: true }, orderBy: { name: 'asc' } }),
   ]);
 
   const sidebarChildren = reportTypes

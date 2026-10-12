@@ -4,14 +4,12 @@ import { Fragment, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { HiSearch, HiChevronDown } from 'react-icons/hi';
 import { formatDate } from '@/lib/utils';
-import { SURVEY_EXCLUDED_OBJECT_IDS } from '@/lib/constants';
 import { normalizeSurveyReportType } from '@/lib/surveyReportType';
 
-// Same Survey123 FeatureServer the report pages match against by register —
-// here the manager/staff search it directly instead of only auto-matching
-// one report's register.
-const SURVEY_QUERY_URL =
-  'https://services.arcgis.com/HJzgwvlNIXssnQar/arcgis/rest/services/survey123_2d1e2fe0e49a4623a57f6536b6a6f7c1/FeatureServer/0/query';
+// Same survey layer the report pages match against by register — here the
+// manager/staff search it directly instead of only auto-matching one report's
+// register.
+const SURVEY_QUERY_URL = '/api/survey/features';
 
 type SurveyRow = {
   objectId: number;
@@ -47,22 +45,20 @@ export default function SurveyLookup({ role = 'reviewer' }: { role?: 'reviewer' 
     setLoading(true);
     setError('');
     try {
-      const excludeClause = `OBJECTID NOT IN (${SURVEY_EXCLUDED_OBJECT_IDS.join(',')})`;
-      const where = reg
-        ? encodeURIComponent(`UPPER(Register) LIKE UPPER('%${reg.replace(/'/g, "''")}%') AND ${excludeClause}`)
-        : encodeURIComponent(excludeClause);
-      const res = await fetch(`${SURVEY_QUERY_URL}?where=${where}&outFields=*&returnGeometry=false&f=json`);
+      const query = reg ? `?${new URLSearchParams({ register: reg, match: 'contains' })}` : '';
+      const res = await fetch(`${SURVEY_QUERY_URL}${query}`);
+      if (!res.ok) throw new Error('Survey lookup failed');
       const data = await res.json();
       const features = data.features || [];
       setRows(
         features.map((f: any) => ({
-          objectId: f.attributes.OBJECTID ?? f.attributes.objectid,
-          projectName: f.attributes.project_name ?? null,
-          organization: f.attributes.Organization ?? null,
-          reportType: normalizeSurveyReportType(f.attributes.Report_type) || null,
-          register: f.attributes.Register ?? null,
-          projectDate: f.attributes.Project_date ?? null,
-          description: f.attributes.Description ?? null,
+          objectId: f.properties.objectid,
+          projectName: f.properties.project_name ?? null,
+          organization: f.properties.Organization ?? null,
+          reportType: normalizeSurveyReportType(f.properties.Report_type) || null,
+          register: f.properties.Register ?? null,
+          projectDate: f.properties.Project_date ?? null,
+          description: f.properties.Description ?? null,
         })),
       );
     } catch {

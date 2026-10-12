@@ -1,11 +1,11 @@
-import prisma from '@/lib/prisma';
+import dataStore from '@/lib/arcgis/data';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import ReportTypesManager from '@/components/ReportTypesManager';
 import { adminNavItems } from '@/lib/adminNav';
 
 async function fetchReportTypes() {
-  return prisma.reportType.findMany({
+  return dataStore.reportType.findMany({
     include: { _count: { select: { reports: true } } },
     orderBy: { name: 'asc' },
   });

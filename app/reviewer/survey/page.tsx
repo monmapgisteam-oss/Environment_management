@@ -1,10 +1,10 @@
-import prisma from '@/lib/prisma';
+import dataStore from '@/lib/arcgis/data';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import SurveyLookup from '@/components/SurveyLookup';
 
 async function fetchReportTypes() {
-  return prisma.reportType.findMany({
+  return dataStore.reportType.findMany({
     where: { isActive: true },
     orderBy: { name: 'asc' },
   });

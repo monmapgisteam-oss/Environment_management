@@ -1,4 +1,4 @@
-import prisma from '@/lib/prisma';
+import dataStore from '@/lib/arcgis/data';
 import { isDocumentAttachment, parseAttachments } from '@/lib/attachments';
 import {
   CONCLUSION_TYPES,
@@ -7,10 +7,10 @@ import {
   type ConclusionSearchParams,
 } from '@/lib/conclusions';
 import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
-import { signAttachments } from '@/lib/supabase';
+import { signAttachments } from '@/lib/arcgis/storage';
 
 export async function fetchConclusionRows(search: ConclusionSearchParams = {}) {
-  const reports = await prisma.report.findMany({
+  const reports = await dataStore.report.findMany({
     where: {
       status: { not: 'draft' },
       title: GENERAL_EVALUATION_CONCLUSION_TITLE,

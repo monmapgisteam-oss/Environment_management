@@ -1,4 +1,4 @@
-import prisma from '@/lib/prisma';
+import dataStore from '@/lib/arcgis/data';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import ReportTable from '@/components/ReportTable';
@@ -6,14 +6,14 @@ import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
 
 async function fetchReportTypes() {
-  return prisma.reportType.findMany({
+  return dataStore.reportType.findMany({
     where: { isActive: true },
     orderBy: { name: 'asc' },
   });
 }
 
 async function fetchEvaluationReports() {
-  const reports = await prisma.report.findMany({
+  const reports = await dataStore.report.findMany({
     where: { status: 'completed', title: { not: GENERAL_EVALUATION_CONCLUSION_TITLE } },
     include: {
       reportType: true,

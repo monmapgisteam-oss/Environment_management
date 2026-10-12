@@ -1,4 +1,4 @@
-import prisma from '@/lib/prisma';
+import dataStore from '@/lib/arcgis/data';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import SignatureBadge from '@/components/SignatureBadge';
@@ -12,7 +12,7 @@ type Props = {
 };
 
 async function fetchReportDetail(reportId: string) {
-  return prisma.report.findUnique({
+  return dataStore.report.findUnique({
     where: { id: reportId },
     select: {
       id: true,
@@ -36,14 +36,14 @@ async function fetchReportDetail(reportId: string) {
 }
 
 async function fetchCriteria() {
-  return prisma.evaluationCriterion.findMany({
+  return dataStore.evaluationCriterion.findMany({
     where: { isActive: true },
     orderBy: { sortOrder: 'asc' },
   });
 }
 
 async function fetchReportTypes() {
-  return prisma.reportType.findMany({
+  return dataStore.reportType.findMany({
     where: { isActive: true },
     orderBy: { name: 'asc' },
   });

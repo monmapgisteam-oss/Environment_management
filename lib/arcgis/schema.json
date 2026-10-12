@@ -1,0 +1,911 @@
+{
+  "company": {
+    "name": "tailan_company",
+    "fields": {
+      "id": {
+        "type": "string",
+        "nullable": false,
+        "unique": true,
+        "default": "uuid",
+        "length": 128
+      },
+      "name": {
+        "type": "string",
+        "nullable": false,
+        "length": 4096
+      },
+      "registerNumber": {
+        "type": "string",
+        "nullable": false,
+        "unique": true,
+        "length": 128
+      },
+      "type": {
+        "type": "string",
+        "nullable": false,
+        "values": [
+          "sender",
+          "reviewer",
+          "admin"
+        ],
+        "length": 4096
+      },
+      "createdAt": {
+        "type": "date",
+        "nullable": false,
+        "default": "now"
+      },
+      "updatedAt": {
+        "type": "date",
+        "nullable": false,
+        "updatedAt": true
+      }
+    },
+    "relations": {
+      "users": {
+        "model": "user",
+        "many": true,
+        "nullable": false,
+        "local": "id",
+        "foreign": "companyId"
+      },
+      "reports": {
+        "model": "report",
+        "many": true,
+        "nullable": false,
+        "local": "id",
+        "foreign": "senderCompanyId"
+      }
+    },
+    "spatial": false
+  },
+  "user": {
+    "name": "tailan_user",
+    "fields": {
+      "id": {
+        "type": "string",
+        "nullable": false,
+        "unique": true,
+        "default": "uuid",
+        "length": 128
+      },
+      "name": {
+        "type": "string",
+        "nullable": false,
+        "length": 4096
+      },
+      "email": {
+        "type": "string",
+        "nullable": false,
+        "unique": true,
+        "length": 128
+      },
+      "password": {
+        "type": "string",
+        "nullable": false,
+        "length": 4096
+      },
+      "companyId": {
+        "type": "string",
+        "nullable": true,
+        "length": 128
+      },
+      "role": {
+        "type": "string",
+        "nullable": false,
+        "values": [
+          "admin",
+          "sender",
+          "review_manager",
+          "evaluator"
+        ],
+        "length": 4096
+      },
+      "phone": {
+        "type": "string",
+        "nullable": true,
+        "length": 4096
+      },
+      "position": {
+        "type": "string",
+        "nullable": true,
+        "length": 4096
+      },
+      "signaturePinHash": {
+        "type": "string",
+        "nullable": true,
+        "length": 4096
+      },
+      "createdAt": {
+        "type": "date",
+        "nullable": false,
+        "default": "now"
+      },
+      "updatedAt": {
+        "type": "date",
+        "nullable": false,
+        "updatedAt": true
+      }
+    },
+    "relations": {
+      "company": {
+        "model": "company",
+        "many": false,
+        "nullable": true,
+        "local": "companyId",
+        "foreign": "id"
+      },
+      "notifications": {
+        "model": "notification",
+        "many": true,
+        "nullable": false,
+        "local": "id",
+        "foreign": "userId"
+      },
+      "evaluatorAssignments": {
+        "model": "reportAssignment",
+        "many": true,
+        "nullable": false,
+        "local": "id",
+        "foreign": "evaluatorUserId"
+      },
+      "managerAssignments": {
+        "model": "reportAssignment",
+        "many": true,
+        "nullable": false,
+        "local": "id",
+        "foreign": "assignedByUserId"
+      },
+      "activityLogs": {
+        "model": "activityLog",
+        "many": true,
+        "nullable": false,
+        "local": "id",
+        "foreign": "userId"
+      }
+    },
+    "spatial": false
+  },
+  "reportType": {
+    "name": "tailan_reportType",
+    "fields": {
+      "id": {
+        "type": "string",
+        "nullable": false,
+        "unique": true,
+        "default": "uuid",
+        "length": 128
+      },
+      "name": {
+        "type": "string",
+        "nullable": false,
+        "length": 4096
+      },
+      "slug": {
+        "type": "string",
+        "nullable": false,
+        "unique": true,
+        "length": 128
+      },
+      "isActive": {
+        "type": "boolean",
+        "nullable": false,
+        "default": true
+      },
+      "createdAt": {
+        "type": "date",
+        "nullable": false,
+        "default": "now"
+      },
+      "updatedAt": {
+        "type": "date",
+        "nullable": false,
+        "updatedAt": true
+      }
+    },
+    "relations": {
+      "reports": {
+        "model": "report",
+        "many": true,
+        "nullable": false,
+        "local": "id",
+        "foreign": "reportTypeId"
+      }
+    },
+    "spatial": false
+  },
+  "report": {
+    "name": "tailan_report",
+    "fields": {
+      "id": {
+        "type": "string",
+        "nullable": false,
+        "unique": true,
+        "default": "uuid",
+        "length": 128
+      },
+      "reportNumber": {
+        "type": "string",
+        "nullable": false,
+        "unique": true,
+        "length": 128
+      },
+      "reportTypeId": {
+        "type": "string",
+        "nullable": false,
+        "length": 128
+      },
+      "senderCompanyId": {
+        "type": "string",
+        "nullable": false,
+        "length": 128
+      },
+      "title": {
+        "type": "string",
+        "nullable": false,
+        "length": 4096
+      },
+      "description": {
+        "type": "string",
+        "nullable": true,
+        "length": 1000000
+      },
+      "fileUrl": {
+        "type": "string",
+        "nullable": true,
+        "length": 1000000
+      },
+      "implementerName": {
+        "type": "string",
+        "nullable": true,
+        "length": 4096
+      },
+      "implementerRegister": {
+        "type": "string",
+        "nullable": true,
+        "length": 4096
+      },
+      "approvedDate": {
+        "type": "date",
+        "nullable": true
+      },
+      "hasGreenery": {
+        "type": "boolean",
+        "nullable": true
+      },
+      "treeCount": {
+        "type": "integer",
+        "nullable": true
+      },
+      "spentAmount": {
+        "type": "integer",
+        "nullable": true
+      },
+      "status": {
+        "type": "string",
+        "nullable": false,
+        "values": [
+          "draft",
+          "submitted",
+          "assigned",
+          "in_review",
+          "return_requested",
+          "needs_revision",
+          "completed",
+          "approved",
+          "rejected"
+        ],
+        "default": "draft",
+        "length": 4096
+      },
+      "finalScore": {
+        "type": "number",
+        "nullable": true
+      },
+      "returnReason": {
+        "type": "string",
+        "nullable": true,
+        "length": 4096
+      },
+      "returnRequestedBy": {
+        "type": "string",
+        "nullable": true,
+        "length": 4096
+      },
+      "year": {
+        "type": "integer",
+        "nullable": false
+      },
+      "submittedAt": {
+        "type": "date",
+        "nullable": true
+      },
+      "arcgisGlobalId": {
+        "type": "string",
+        "nullable": true,
+        "length": 128
+      },
+      "signedScanUrl": {
+        "type": "string",
+        "nullable": true,
+        "length": 4096
+      },
+      "signedScanName": {
+        "type": "string",
+        "nullable": true,
+        "length": 4096
+      },
+      "signedScanUploadedAt": {
+        "type": "date",
+        "nullable": true
+      },
+      "createdAt": {
+        "type": "date",
+        "nullable": false,
+        "default": "now"
+      },
+      "updatedAt": {
+        "type": "date",
+        "nullable": false,
+        "updatedAt": true
+      }
+    },
+    "relations": {
+      "reportType": {
+        "model": "reportType",
+        "many": false,
+        "nullable": false,
+        "local": "reportTypeId",
+        "foreign": "id"
+      },
+      "senderCompany": {
+        "model": "company",
+        "many": false,
+        "nullable": false,
+        "local": "senderCompanyId",
+        "foreign": "id"
+      },
+      "location": {
+        "model": "reportLocation",
+        "many": false,
+        "nullable": true,
+        "local": "id",
+        "foreign": "reportId"
+      },
+      "assignments": {
+        "model": "reportAssignment",
+        "many": true,
+        "nullable": false,
+        "local": "id",
+        "foreign": "reportId"
+      },
+      "evaluations": {
+        "model": "evaluation",
+        "many": true,
+        "nullable": false,
+        "local": "id",
+        "foreign": "reportId"
+      },
+      "notifications": {
+        "model": "notification",
+        "many": true,
+        "nullable": false,
+        "local": "id",
+        "foreign": "reportId"
+      },
+      "activityLogs": {
+        "model": "activityLog",
+        "many": true,
+        "nullable": false,
+        "local": "id",
+        "foreign": "reportId"
+      }
+    },
+    "spatial": false
+  },
+  "reportLocation": {
+    "name": "tailan_reportLocation",
+    "fields": {
+      "id": {
+        "type": "string",
+        "nullable": false,
+        "unique": true,
+        "default": "uuid",
+        "length": 128
+      },
+      "reportId": {
+        "type": "string",
+        "nullable": false,
+        "unique": true,
+        "length": 128
+      },
+      "province": {
+        "type": "string",
+        "nullable": false,
+        "length": 4096
+      },
+      "district": {
+        "type": "string",
+        "nullable": false,
+        "length": 4096
+      },
+      "khoroo": {
+        "type": "string",
+        "nullable": false,
+        "length": 4096
+      },
+      "addressDetail": {
+        "type": "string",
+        "nullable": true,
+        "length": 4096
+      },
+      "latitude": {
+        "type": "number",
+        "nullable": true
+      },
+      "longitude": {
+        "type": "number",
+        "nullable": true
+      },
+      "geometryType": {
+        "type": "string",
+        "nullable": true,
+        "length": 4096
+      },
+      "geometryFileUrl": {
+        "type": "string",
+        "nullable": true,
+        "length": 4096
+      },
+      "createdAt": {
+        "type": "date",
+        "nullable": false,
+        "default": "now"
+      },
+      "updatedAt": {
+        "type": "date",
+        "nullable": false,
+        "updatedAt": true
+      }
+    },
+    "relations": {
+      "report": {
+        "model": "report",
+        "many": false,
+        "nullable": false,
+        "local": "reportId",
+        "foreign": "id"
+      }
+    },
+    "spatial": true
+  },
+  "evaluationCriterion": {
+    "name": "tailan_evaluationCriterion",
+    "fields": {
+      "id": {
+        "type": "string",
+        "nullable": false,
+        "unique": true,
+        "default": "uuid",
+        "length": 128
+      },
+      "name": {
+        "type": "string",
+        "nullable": false,
+        "length": 4096
+      },
+      "maxScore": {
+        "type": "integer",
+        "nullable": false
+      },
+      "sortOrder": {
+        "type": "integer",
+        "nullable": false
+      },
+      "isActive": {
+        "type": "boolean",
+        "nullable": false,
+        "default": true
+      },
+      "createdAt": {
+        "type": "date",
+        "nullable": false,
+        "default": "now"
+      },
+      "updatedAt": {
+        "type": "date",
+        "nullable": false,
+        "updatedAt": true
+      }
+    },
+    "relations": {
+      "scores": {
+        "model": "evaluationScore",
+        "many": true,
+        "nullable": false,
+        "local": "id",
+        "foreign": "criterionId"
+      }
+    },
+    "spatial": false
+  },
+  "reportAssignment": {
+    "name": "tailan_reportAssignment",
+    "fields": {
+      "id": {
+        "type": "string",
+        "nullable": false,
+        "unique": true,
+        "default": "uuid",
+        "length": 128
+      },
+      "reportId": {
+        "type": "string",
+        "nullable": false,
+        "length": 128
+      },
+      "evaluatorUserId": {
+        "type": "string",
+        "nullable": false,
+        "length": 128
+      },
+      "assignedByUserId": {
+        "type": "string",
+        "nullable": false,
+        "length": 128
+      },
+      "status": {
+        "type": "string",
+        "nullable": false,
+        "values": [
+          "pending",
+          "submitted"
+        ],
+        "default": "pending",
+        "length": 4096
+      },
+      "deadline": {
+        "type": "date",
+        "nullable": true
+      },
+      "assignedAt": {
+        "type": "date",
+        "nullable": false,
+        "default": "now"
+      },
+      "submittedAt": {
+        "type": "date",
+        "nullable": true
+      }
+    },
+    "relations": {
+      "report": {
+        "model": "report",
+        "many": false,
+        "nullable": false,
+        "local": "reportId",
+        "foreign": "id"
+      },
+      "evaluator": {
+        "model": "user",
+        "many": false,
+        "nullable": false,
+        "local": "evaluatorUserId",
+        "foreign": "id"
+      },
+      "assignedBy": {
+        "model": "user",
+        "many": false,
+        "nullable": false,
+        "local": "assignedByUserId",
+        "foreign": "id"
+      },
+      "evaluation": {
+        "model": "evaluation",
+        "many": false,
+        "nullable": true,
+        "local": "id",
+        "foreign": "assignmentId"
+      }
+    },
+    "spatial": false
+  },
+  "evaluation": {
+    "name": "tailan_evaluation",
+    "fields": {
+      "id": {
+        "type": "string",
+        "nullable": false,
+        "unique": true,
+        "default": "uuid",
+        "length": 128
+      },
+      "assignmentId": {
+        "type": "string",
+        "nullable": false,
+        "unique": true,
+        "length": 128
+      },
+      "reportId": {
+        "type": "string",
+        "nullable": false,
+        "length": 128
+      },
+      "totalScore": {
+        "type": "integer",
+        "nullable": false
+      },
+      "comment": {
+        "type": "string",
+        "nullable": true,
+        "length": 1000000
+      },
+      "signature": {
+        "type": "string",
+        "nullable": true,
+        "length": 4096
+      },
+      "status": {
+        "type": "string",
+        "nullable": false,
+        "default": "DRAFT",
+        "length": 4096
+      },
+      "signatureStatus": {
+        "type": "string",
+        "nullable": false,
+        "default": "PENDING",
+        "length": 4096
+      },
+      "signedAt": {
+        "type": "date",
+        "nullable": true
+      },
+      "signatureId": {
+        "type": "string",
+        "nullable": true,
+        "unique": true,
+        "length": 128
+      },
+      "documentHash": {
+        "type": "string",
+        "nullable": true,
+        "length": 4096
+      },
+      "lockedAt": {
+        "type": "date",
+        "nullable": true
+      },
+      "arcgisGlobalId": {
+        "type": "string",
+        "nullable": true,
+        "length": 128
+      },
+      "submittedAt": {
+        "type": "date",
+        "nullable": false,
+        "default": "now"
+      },
+      "createdAt": {
+        "type": "date",
+        "nullable": false,
+        "default": "now"
+      },
+      "updatedAt": {
+        "type": "date",
+        "nullable": false,
+        "updatedAt": true
+      }
+    },
+    "relations": {
+      "assignment": {
+        "model": "reportAssignment",
+        "many": false,
+        "nullable": false,
+        "local": "assignmentId",
+        "foreign": "id"
+      },
+      "report": {
+        "model": "report",
+        "many": false,
+        "nullable": false,
+        "local": "reportId",
+        "foreign": "id"
+      },
+      "scores": {
+        "model": "evaluationScore",
+        "many": true,
+        "nullable": false,
+        "local": "id",
+        "foreign": "evaluationId"
+      }
+    },
+    "spatial": false
+  },
+  "evaluationScore": {
+    "name": "tailan_evaluationScore",
+    "fields": {
+      "id": {
+        "type": "string",
+        "nullable": false,
+        "unique": true,
+        "default": "uuid",
+        "length": 128
+      },
+      "evaluationId": {
+        "type": "string",
+        "nullable": false,
+        "length": 128
+      },
+      "criterionId": {
+        "type": "string",
+        "nullable": false,
+        "length": 128
+      },
+      "score": {
+        "type": "integer",
+        "nullable": false
+      }
+    },
+    "relations": {
+      "evaluation": {
+        "model": "evaluation",
+        "many": false,
+        "nullable": false,
+        "local": "evaluationId",
+        "foreign": "id"
+      },
+      "criterion": {
+        "model": "evaluationCriterion",
+        "many": false,
+        "nullable": false,
+        "local": "criterionId",
+        "foreign": "id"
+      }
+    },
+    "spatial": false
+  },
+  "notification": {
+    "name": "tailan_notification",
+    "fields": {
+      "id": {
+        "type": "string",
+        "nullable": false,
+        "unique": true,
+        "default": "uuid",
+        "length": 128
+      },
+      "userId": {
+        "type": "string",
+        "nullable": false,
+        "length": 128
+      },
+      "reportId": {
+        "type": "string",
+        "nullable": true,
+        "length": 128
+      },
+      "title": {
+        "type": "string",
+        "nullable": false,
+        "length": 4096
+      },
+      "message": {
+        "type": "string",
+        "nullable": false,
+        "length": 1000000
+      },
+      "isRead": {
+        "type": "boolean",
+        "nullable": false,
+        "default": false
+      },
+      "createdAt": {
+        "type": "date",
+        "nullable": false,
+        "default": "now"
+      }
+    },
+    "relations": {
+      "user": {
+        "model": "user",
+        "many": false,
+        "nullable": false,
+        "local": "userId",
+        "foreign": "id"
+      },
+      "report": {
+        "model": "report",
+        "many": false,
+        "nullable": true,
+        "local": "reportId",
+        "foreign": "id"
+      }
+    },
+    "spatial": false
+  },
+  "activityLog": {
+    "name": "tailan_activityLog",
+    "fields": {
+      "id": {
+        "type": "string",
+        "nullable": false,
+        "unique": true,
+        "default": "uuid",
+        "length": 128
+      },
+      "userId": {
+        "type": "string",
+        "nullable": false,
+        "length": 128
+      },
+      "reportId": {
+        "type": "string",
+        "nullable": true,
+        "length": 128
+      },
+      "action": {
+        "type": "string",
+        "nullable": false,
+        "length": 4096
+      },
+      "description": {
+        "type": "string",
+        "nullable": true,
+        "length": 1000000
+      },
+      "createdAt": {
+        "type": "date",
+        "nullable": false,
+        "default": "now"
+      }
+    },
+    "relations": {
+      "user": {
+        "model": "user",
+        "many": false,
+        "nullable": false,
+        "local": "userId",
+        "foreign": "id"
+      },
+      "report": {
+        "model": "report",
+        "many": false,
+        "nullable": true,
+        "local": "reportId",
+        "foreign": "id"
+      }
+    },
+    "spatial": false
+  },
+  "upload": {
+    "name": "tailan_upload",
+    "fields": {
+      "id": {
+        "type": "string",
+        "nullable": false,
+        "unique": true,
+        "default": "uuid",
+        "length": 128
+      },
+      "ownerUserId": {
+        "type": "string",
+        "nullable": false,
+        "length": 128
+      },
+      "name": {
+        "type": "string",
+        "nullable": false,
+        "length": 4096
+      },
+      "createdAt": {
+        "type": "date",
+        "nullable": false,
+        "default": "now"
+      }
+    },
+    "relations": {},
+    "spatial": false,
+    "attachments": true
+  }
+}

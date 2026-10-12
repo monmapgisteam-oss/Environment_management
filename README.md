@@ -4,10 +4,10 @@ Official report submission and evaluation system for managing reports, reviews, 
 
 ## Stack
 
-- **Framework:** Next.js 14 with App Router
+- **Framework:** Next.js 16 with App Router
 - **Language:** TypeScript
 - **Styling:** Tailwind CSS
-- **Database:** PostgreSQL with Prisma ORM
+- **Data and files:** Private ArcGIS Feature Service and attachments
 - **Authentication:** JWT with session cookies
 
 ## Features
@@ -28,89 +28,41 @@ Official report submission and evaluation system for managing reports, reviews, 
 - Notification system
 - Export capabilities (PDF, Excel)
 
-## Setup Instructions
+## Setup
 
-### Prerequisites
-- Node.js 18+
-- PostgreSQL 14+
-- npm or yarn
+Use Node.js 20.12 or newer. Install with `npm install`, then follow [SETUP.md](SETUP.md) to create a private ArcGIS service and its empty tables. PostgreSQL and Supabase are no longer runtime dependencies.
 
-### Installation
-
-1. **Clone and install dependencies**
 ```bash
-npm install
-```
-
-2. **Configure environment variables**
-```bash
-# .env
-DATABASE_URL="postgresql://postgres:password@localhost:5432/tailan"
-JWT_SECRET="your-secret-key"
-```
-
-3. **Set up database**
-```bash
-# Generate Prisma client
-npx prisma generate
-
-# Create and seed database
-npx prisma migrate dev --name init
-npx prisma db seed
-```
-
-4. **Start development server**
-```bash
+npm run arcgis:create     # create private service and empty application schema
+npm run arcgis:bootstrap  # optional: create the first administrator
 npm run dev
 ```
 
-Visit `http://localhost:3000`
+There are no demo accounts or imported records. Configure the bootstrap account in your local environment before running its command.
 
-### Demo Credentials
+## Data flow
 
-**Sender:**
-- Email: `sender1@tailan.mn`
-- Password: `Sender123!`
+Every application page and API reads/writes through `lib/arcgis/data.ts`. The repository uses ArcGIS REST queries and service-level `applyEdits`, including nested writes with rollback. `lib/arcgis/schema.json` defines the fields and relationships; no Prisma client is loaded.
 
-**Review Manager:**
-- Email: `manager@tailan.mn`
-- Password: `Manager123!`
+The private service contains a locations point layer, ten application tables, and an uploads table with attachments. Keeping locations separate preserves the application's existing record structure. User passwords are salted scrypt hashes. The service credential stays on the server; file viewers receive expiring application links.
 
-**Evaluator:**
-- Email: `evaluator1@tailan.mn`
-- Password: `Eval123!1`
+Survey records (layer 0 and the `repeat_1` table) live in the same private service and use the same credential. No data is read from other ArcGIS services.
 
-**Admin:**
-- Email: `admin@tailan.mn`
-- Password: `Admin123!`
+## Validation
 
-## Project Structure
-
-```
-/app                 # Next.js app directory
-  /api              # API routes
-  /login            # Authentication pages
-  /sender           # Sender dashboard
-  /reviewer         # Review manager dashboard
-  /evaluator        # Evaluator dashboard
-  /admin            # Admin dashboard
-/components         # Reusable React components
-/lib               # Utilities and helpers
-  /prisma          # Database schema and migrations
+```bash
+npm run lint          # TypeScript validation; replaces the removed next lint command
+npm test              # repository, storage, authentication, and schema tests
+npm run build
+npm run arcgis:verify # live service schema and privacy checks
 ```
 
-## Database Schema
+## Project structure
 
-Key tables:
-- `companies` - Organizations
-- `users` - Users with roles
-- `reports` - Submitted reports
-- `report_types` - Dynamic report categories
-- `evaluation_criteria` - Scoring criteria
-- `report_assignments` - Evaluator assignments
-- `evaluations` - Evaluation scores
-- `notifications` - System notifications
-- `activity_logs` - Action history
+- `app/`: role pages and API handlers
+- `components/`: reusable UI
+- `lib/arcgis/`: data repository, record types, schema, transport, and attachment storage
+- `scripts/arcgis.cjs`: service creation, provisioning, verification, and first-account setup
 
 ## UI Design
 

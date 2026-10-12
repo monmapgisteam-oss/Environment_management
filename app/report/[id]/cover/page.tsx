@@ -1,7 +1,7 @@
 import Header from '@/components/Header';
 import ReportCoverTemplate from '@/components/ReportCoverTemplate';
 import Sidebar from '@/components/Sidebar';
-import prisma from '@/lib/prisma';
+import dataStore from '@/lib/arcgis/data';
 import { getCurrentUser } from '@/lib/auth';
 import { createQrImageUrl, getPublicProfileQrUrl } from '@/lib/profileQr';
 import { formatDate, formatScore } from '@/lib/utils';
@@ -36,7 +36,7 @@ function sidebarItemsFor(role: ViewerRole) {
 }
 
 async function fetchReport(reportId: string) {
-  return prisma.report.findUnique({
+  return dataStore.report.findUnique({
     where: { id: reportId },
     include: {
       reportType: true,
@@ -80,8 +80,8 @@ export default async function ReportCoverPage(props: Props) {
 
   const [report, managerUser, coverSignatureLogs] = await Promise.all([
     fetchReport(params.id),
-    prisma.user.findFirst({ where: { role: 'review_manager' } }),
-    prisma.activityLog.findMany({
+    dataStore.user.findFirst({ where: { role: 'review_manager' } }),
+    dataStore.activityLog.findMany({
       where: { reportId: params.id, action: 'cover_signature_verified' },
       select: { userId: true, createdAt: true },
     }),

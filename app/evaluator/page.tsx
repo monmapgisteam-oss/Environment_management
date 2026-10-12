@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import prisma from '@/lib/prisma';
+import dataStore from '@/lib/arcgis/data';
 import { getCurrentUser } from '@/lib/auth';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
@@ -8,7 +8,7 @@ import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
 
 async function fetchReportTypes() {
-  return prisma.reportType.findMany({
+  return dataStore.reportType.findMany({
     where: { isActive: true },
     orderBy: { name: 'asc' },
   });
@@ -17,7 +17,7 @@ async function fetchReportTypes() {
 // Only the reports the manager distributed to THIS staff member, optionally
 // narrowed to a single report type (sidebar sub-item).
 async function fetchAssignedReports(evaluatorUserId: string, typeSlug?: string) {
-  const assignments = await prisma.reportAssignment.findMany({
+  const assignments = await dataStore.reportAssignment.findMany({
     where: {
       evaluatorUserId,
       report: {

@@ -1,9 +1,9 @@
-import prisma from '@/lib/prisma';
+import dataStore from '@/lib/arcgis/data';
 import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
-    const criteria = await prisma.evaluationCriterion.findMany({
+    const criteria = await dataStore.evaluationCriterion.findMany({
       where: { isActive: true },
       orderBy: { sortOrder: 'asc' },
     });

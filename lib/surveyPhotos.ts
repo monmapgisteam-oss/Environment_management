@@ -1,8 +1,10 @@
-const SERVICE_URL =
-  'https://services.arcgis.com/HJzgwvlNIXssnQar/arcgis/rest/services/survey123_2d1e2fe0e49a4623a57f6536b6a6f7c1/FeatureServer';
-const SURVEY_LAYER_ID = 0;
-const REPEAT_TABLE_ID = 1;
-const SURVEY_REPEAT_RELATIONSHIP_ID = 1;
+import {
+  SURVEY_LAYER_ID,
+  querySurvey,
+  querySurveyAttachments,
+  surveyAttachmentUrl,
+  surveyRepeatTableId,
+} from '@/lib/arcgis/survey';
 
 export type SurveyPhoto = {
   src: string;
@@ -44,21 +46,13 @@ async function fetchLayerAttachments(
   await Promise.all(
     chunk(objectIds, 100).map(async (ids) => {
       try {
-        const params = new URLSearchParams({
-          objectIds: ids.join(','),
-          f: 'json',
-        });
-        const res = await fetch(`${SERVICE_URL}/${layerId}/queryAttachments?${params.toString()}`, {
-          cache: 'no-store',
-        });
-        const json: { attachmentGroups?: AttachmentGroup[] } = await res.json();
-        (json.attachmentGroups || []).forEach((group) => {
+        (await querySurveyAttachments(layerId, ids)).forEach((group) => {
           const parentObjectId = parentForAttachmentObjectId(group.parentObjectId);
           if (parentObjectId === undefined) return;
           const photos = (group.attachmentInfos || [])
             .filter((attachment) => attachment.contentType?.startsWith('image/'))
             .map((attachment) => ({
-              src: `${SERVICE_URL}/${layerId}/${group.parentObjectId}/attachments/${attachment.id}`,
+              src: surveyAttachmentUrl(layerId, group.parentObjectId, attachment.id),
               alt: attachment.name || 'Survey123 photo',
             }));
           addPhotos(map, parentObjectId, photos);
@@ -72,6 +66,7 @@ async function fetchLayerAttachments(
   return map;
 }
 
+// Map each repeat row to its survey feature through parentglobalid.
 async function fetchRepeatParents(surveyObjectIds: number[]): Promise<Map<number, number>> {
   const repeatParentByObjectId = new Map<number, number>();
   if (surveyObjectIds.length === 0) return repeatParentByObjectId;
@@ -79,26 +74,26 @@ async function fetchRepeatParents(surveyObjectIds: number[]): Promise<Map<number
   await Promise.all(
     chunk(surveyObjectIds, 100).map(async (ids) => {
       try {
-        const params = new URLSearchParams({
-          objectIds: ids.join(','),
-          relationshipId: String(SURVEY_REPEAT_RELATIONSHIP_ID),
-          outFields: 'objectid',
-          returnGeometry: 'false',
-          f: 'json',
+        const parents = await querySurvey(SURVEY_LAYER_ID, {
+          where: `objectid IN (${ids.join(',')})`,
+          outFields: 'objectid,globalid',
         });
-        const res = await fetch(`${SERVICE_URL}/${SURVEY_LAYER_ID}/queryRelatedRecords?${params.toString()}`, {
-          cache: 'no-store',
+        const surveyByGlobalId = new Map(
+          parents
+            .filter((feature) => typeof feature.attributes.objectid === 'number' && feature.attributes.globalid)
+            .map((feature) => [String(feature.attributes.globalid).toLowerCase(), feature.attributes.objectid as number]),
+        );
+        if (surveyByGlobalId.size === 0) return;
+        const globalIds = Array.from(surveyByGlobalId.keys()).map((id) => `'${id.replace(/[^0-9a-f{}-]/gi, '')}'`);
+        const rows = await querySurvey(await surveyRepeatTableId(), {
+          where: `parentglobalid IN (${globalIds.join(',')})`,
+          outFields: 'objectid,parentglobalid',
         });
-        const json: any = await res.json();
-        (json.relatedRecordGroups || []).forEach((group: any) => {
-          const surveyObjectId = group.objectId;
-          if (typeof surveyObjectId !== 'number') return;
-          (group.relatedRecords || []).forEach((record: any) => {
-            const repeatObjectId = record.attributes?.objectid ?? record.attributes?.OBJECTID;
-            if (typeof repeatObjectId === 'number') {
-              repeatParentByObjectId.set(repeatObjectId, surveyObjectId);
-            }
-          });
+        rows.forEach((row) => {
+          const surveyObjectId = surveyByGlobalId.get(String(row.attributes.parentglobalid || '').toLowerCase());
+          if (typeof row.attributes.objectid === 'number' && surveyObjectId !== undefined) {
+            repeatParentByObjectId.set(row.attributes.objectid, surveyObjectId);
+          }
         });
       } catch {
         // Repeat records are optional for photo display.
@@ -116,7 +111,7 @@ export async function fetchSurveyPhotoMap(surveyObjectIds: number[]): Promise<Ma
     fetchRepeatParents(uniqueObjectIds),
   ]);
   const repeatPhotos = await fetchLayerAttachments(
-    REPEAT_TABLE_ID,
+    await surveyRepeatTableId().catch(() => -1),
     Array.from(repeatParents.keys()),
     (repeatObjectId) => repeatParents.get(repeatObjectId),
   );

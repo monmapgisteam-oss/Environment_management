@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
-import prisma from '@/lib/prisma';
+import dataStore from '@/lib/arcgis/data';
 import { hashPin, verifyPin } from '@/lib/signature';
 
 const KNOWN_SIGNATURES: Record<string, string> = {
@@ -25,7 +25,7 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
       return NextResponse.json({ error: 'Тоон гарын үсгээ зөв оруулна уу.' }, { status: 400 });
     }
 
-    const report = await prisma.report.findUnique({
+    const report = await dataStore.report.findUnique({
       where: { id: params.id },
       select: { id: true },
     });
@@ -34,7 +34,7 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
     }
 
     if (user.role === 'evaluator') {
-      const assignment = await prisma.reportAssignment.findFirst({
+      const assignment = await dataStore.reportAssignment.findFirst({
         where: { reportId: params.id, evaluatorUserId: user.id },
         select: { id: true },
       });
@@ -43,7 +43,7 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
       }
     }
 
-    const existing = await prisma.activityLog.findFirst({
+    const existing = await dataStore.activityLog.findFirst({
       where: {
         reportId: params.id,
         userId: user.id,
@@ -66,13 +66,13 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
         return NextResponse.json({ error: 'Тоон гарын үсэг буруу байна.' }, { status: 400 });
       }
     } else {
-      await prisma.user.update({
+      await dataStore.user.update({
         where: { id: user.id },
         data: { signaturePinHash: hashPin(numericSignature) },
       });
     }
 
-    const log = await prisma.activityLog.create({
+    const log = await dataStore.activityLog.create({
       data: {
         reportId: params.id,
         userId: user.id,

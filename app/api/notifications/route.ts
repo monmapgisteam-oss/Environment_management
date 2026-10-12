@@ -1,4 +1,4 @@
-import prisma from '@/lib/prisma';
+import dataStore from '@/lib/arcgis/data';
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { syncSurveyReportsForManagerNotifications } from '@/lib/surveyReports';
@@ -10,7 +10,7 @@ export async function PATCH(request: NextRequest) {
     if (ids.length === 0) {
       return NextResponse.json({ error: 'Missing id or ids' }, { status: 400 });
     }
-    await prisma.notification.updateMany({
+    await dataStore.notification.updateMany({
       where: { id: { in: ids } },
       data: { isRead: true },
     });
@@ -38,14 +38,14 @@ export async function GET() {
       }
     }
 
-    const notifications = await prisma.notification.findMany({
+    const notifications = await dataStore.notification.findMany({
       where: { userId: user.id },
       include: { report: true },
       orderBy: { createdAt: 'desc' },
       take: 20,
     });
 
-    const unreadCount = await prisma.notification.count({
+    const unreadCount = await dataStore.notification.count({
       where: { userId: user.id, isRead: false },
     });
 

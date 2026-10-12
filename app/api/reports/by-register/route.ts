@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import dataStore from '@/lib/arcgis/data';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
 
 // Reverse lookup for the "Тайлан хайх" (Survey123) table — given a
@@ -12,7 +12,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'register required' }, { status: 400 });
   }
 
-  const reports = await prisma.report.findMany({
+  const reports = await dataStore.report.findMany({
     where: {
       title: { not: GENERAL_EVALUATION_CONCLUSION_TITLE },
       OR: [{ implementerRegister: register }, { senderCompany: { registerNumber: register } }],

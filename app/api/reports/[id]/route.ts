@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import dataStore from '@/lib/arcgis/data';
 import { serializeDocumentAttachments, serializeReportAttachments } from '@/lib/attachments';
 import { findSenderCompanyByRegister } from '@/lib/reportCompanies';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
@@ -8,7 +8,7 @@ import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
 // pre-fill (type, location, attachments).
 export async function GET(_request: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
-  const report = await prisma.report.findUnique({
+  const report = await dataStore.report.findUnique({
     where: { id: params.id },
     include: { reportType: true, location: true },
   });
@@ -31,12 +31,12 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
     // Resolve the (possibly changed) report type the same way create does.
     const typeValue = data.reportType?.trim() || '';
     let reportType = typeValue
-      ? await prisma.reportType.findFirst({
+      ? await dataStore.reportType.findFirst({
           where: { OR: [{ id: typeValue }, { slug: typeValue }, { name: typeValue }] },
         })
       : null;
     if (!reportType) {
-      reportType = await prisma.reportType.findFirst({ where: { isActive: true } });
+      reportType = await dataStore.reportType.findFirst({ where: { isActive: true } });
     }
     if (!reportType) {
       return NextResponse.json({ error: 'No report type found' }, { status: 400 });
@@ -47,7 +47,7 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
       (data.latitude != null && data.longitude != null) || data.province || data.district || data.khoroo;
     const matchedCompany = await findSenderCompanyByRegister(data.implementerRegister);
 
-    const report = await prisma.report.update({
+    const report = await dataStore.report.update({
       where: { id: params.id },
       data: {
         reportTypeId: reportType.id,
@@ -102,12 +102,12 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
     if (status === 'submitted') {
       try {
         const isConclusion = report.title === GENERAL_EVALUATION_CONCLUSION_TITLE;
-        const managers = await prisma.user.findMany({
+        const managers = await dataStore.user.findMany({
           where: { role: 'review_manager' },
           select: { id: true },
         });
         if (managers.length > 0) {
-          await prisma.notification.createMany({
+          await dataStore.notification.createMany({
             data: managers.map((manager) => ({
               userId: manager.id,
               reportId: report.id,

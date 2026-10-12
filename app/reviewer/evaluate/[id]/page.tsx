@@ -1,11 +1,11 @@
-import prisma from '@/lib/prisma';
+import dataStore from '@/lib/arcgis/data';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import EvaluationTable from '@/components/EvaluationTable';
 import AttachmentList from '@/components/AttachmentList';
 import LocationMap from '@/components/LocationMapClient';
 import { parseAttachments } from '@/lib/attachments';
-import { signAttachments } from '@/lib/supabase';
+import { signAttachments } from '@/lib/arcgis/storage';
 import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
 import { splitScoringAttachments } from '@/lib/scoringAttachments';
@@ -15,7 +15,7 @@ type Props = {
 };
 
 async function fetchReport(id: string) {
-  const report = await prisma.report.findUnique({
+  const report = await dataStore.report.findUnique({
     where: { id, title: { not: GENERAL_EVALUATION_CONCLUSION_TITLE } },
     include: {
       reportType: true,
@@ -34,14 +34,14 @@ async function fetchReport(id: string) {
 }
 
 async function fetchCriteria() {
-  return prisma.evaluationCriterion.findMany({
+  return dataStore.evaluationCriterion.findMany({
     where: { isActive: true },
     orderBy: { sortOrder: 'asc' },
   });
 }
 
 async function fetchReportTypes() {
-  return prisma.reportType.findMany({
+  return dataStore.reportType.findMany({
     where: { isActive: true },
     orderBy: { name: 'asc' },
   });

@@ -1,278 +1,111 @@
-# Setup Guide - Тайлан илгээх, үнэлгээ өгөх систем
+# ArcGIS setup
 
-This guide will help you set up and run the full-stack reporting system.
+The application stores all operational data and uploaded files in a new **private hosted Feature Service**. Setup starts with empty tables. It does not copy or modify the old PostgreSQL database or Supabase bucket.
 
-## Prerequisites
+For a disposable, public test service only, set `ARCGIS_ALLOW_PUBLIC_TEST_SERVICE=true` before provisioning. This bypasses the privacy check, but does not grant schema-administration access and must never be used with real user records, password/PIN hashes, notifications, or uploads.
 
-Before starting, ensure you have installed:
-- **Node.js** 18 or higher
-- **PostgreSQL** 14 or higher
-- **npm** or **yarn**
+## 1. Install
 
-## Step 1: Database Setup
+Use Node.js 20.12 or later and run `npm install`.
 
-### Option A: PostgreSQL Local Installation
+## 2. Configure provisioning credentials
 
-#### For Windows:
-1. Download PostgreSQL from [postgresql.org](https://www.postgresql.org/download/windows/)
-2. Run the installer and follow the setup wizard
-3. Remember the **postgres** user password
-4. Note the port (default: 5432)
-
-#### For macOS:
-```bash
-# Using Homebrew
-brew install postgresql
-brew services start postgresql
-```
-
-#### For Linux:
-```bash
-sudo apt-get update
-sudo apt-get install postgresql postgresql-contrib
-sudo systemctl start postgresql
-```
-
-### Step 2: Create Database and User
-
-```bash
-# Connect to PostgreSQL
-psql -U postgres
-
-# Create database
-CREATE DATABASE tailan;
-
-# Create user (optional, for security)
-CREATE USER tailan_user WITH PASSWORD 'secure_password';
-GRANT ALL PRIVILEGES ON DATABASE tailan TO tailan_user;
-
-# Exit psql
-\q
-```
-
-## Step 3: Configure Environment Variables
-
-Edit the `.env` file in the project root:
+Put these values in `.env.local` (or the existing local `env` file for command-line setup):
 
 ```env
-DATABASE_URL="postgresql://postgres:your_password@localhost:5432/tailan?schema=public"
-JWT_SECRET="tailan-demo-secret-change-me"
-NODE_ENV="development"
+ARCGIS_PORTAL_URL="https://www.arcgis.com"
+ARCGIS_OWNER="your-arcgis-username"
+ARCGIS_ADMIN_TOKEN="your-owner-or-admin-token"
+ARCGIS_SERVICE_NAME="tailan_app"
 ```
 
-Replace:
-- `your_password` with your PostgreSQL **postgres** user password
-- `JWT_SECRET` with a strong random secret for production
+The account must be able to create hosted feature services and modify their schema. Keep credentials out of source control and out of `NEXT_PUBLIC_*` variables.
 
-## Step 4: Initialize Database Schema
+For an existing private service, you can obtain the provisioning credential through `npm run arcgis:login`. Configure the client ID/secret and service URL first, register `http://localhost:3000/` as the OAuth redirect URL, and stop any development server using port 3000. Open the local link and sign in as the service owner or an organization administrator. The helper uses authorization code flow with PKCE and state validation, verifies administration access, and saves only the provisioning token locally. It does not create tables; run `npm run arcgis:provision` afterward.
 
-Run Prisma migrations to create all tables:
+If the runtime credential only supports app authentication, register a separate OAuth credential for **user authentication** and configure `ARCGIS_OWNER_CLIENT_ID` (and `ARCGIS_OWNER_CLIENT_SECRET` if required). The owner login helper uses these values without changing runtime app authentication. Register the callback in **Redirect URLs**, independently of **Allowed referrers**. `npm run arcgis:login -- --restore-dev` restarts the project development server when sign-in completes or times out.
+
+Run:
 
 ```bash
-# Generate Prisma client
-npx prisma generate
-
-# Create database schema
-npx prisma migrate dev --name init
-
-# Seed database with sample data
-npx prisma db seed
+npm run arcgis:create
 ```
 
-This will:
-- Create all required database tables
-- Insert 3 sender companies
-- Insert 1 reviewer organization  
-- Insert system admin, review manager, and 5 evaluators
-- Create 10 sample reports
-- Create sample locations across Mongolia
+This creates a private service, writes its URL and server credential to `.env.local`, generates a JWT secret if missing, and provisions the empty datasets. It refuses to use a service shared publicly or with the organization. It never deletes existing datasets. If interrupted, rerun the command using the saved service URL.
 
-## Step 5: Run Development Server
+If you create the private service manually, configure `ARCGIS_DATA_SERVICE_URL`, `ARCGIS_DATA_TOKEN`, `ARCGIS_ADMIN_TOKEN`, `ARCGIS_PORTAL_URL`, and `JWT_SECRET`, then run `npm run arcgis:provision`.
+
+`npm run arcgis:schema` prints the proposed layer/table definitions without contacting ArcGIS.
+
+## 3. Schema
+
+| Dataset | Purpose |
+| --- | --- |
+| `tailan_company` | Companies and registration numbers |
+| `tailan_user` | User profiles, roles, password hashes, signature PIN hashes |
+| `tailan_reportType` | Report categories |
+| `tailan_report` | Reports, statuses, greenery, spending, attachment references |
+| `tailan_reportLocation` | Point layer: addresses and coordinates |
+| `tailan_evaluationCriterion` | Scoring criteria |
+| `tailan_reportAssignment` | Staff assignments and deadlines |
+| `tailan_evaluation` | Evaluations and signature metadata |
+| `tailan_evaluationScore` | Per-criterion scores |
+| `tailan_notification` | User notifications |
+| `tailan_activityLog` | Activity history |
+| `tailan_upload` | Upload ownership, filename, and binary attachments |
+
+There is one spatial layer and eleven tables in a single service. The extra upload table supports files uploaded before the sender creates a report. Table IDs are discovered by name, not hardcoded. Application fields use the `app_` prefix to avoid reserved ArcGIS field names. `app_id` and foreign-key strings link records; joins are handled by the repository rather than native relationship classes. Unique indexes enforce IDs, email addresses, registration numbers, report numbers, assignment/evaluation links, and signature IDs.
+
+Nested report/location and evaluation/score writes are submitted in a single service-level edit with `rollbackOnFailure=true`. Separate workflow API calls are not database transactions. Direct edits in ArcGIS must preserve the application IDs and references; ArcGIS does not enforce these foreign keys automatically.
+
+## 4. First account
+
+The tables remain empty until you explicitly create an account or submit data. To enable login, configure:
+
+```env
+ARCGIS_BOOTSTRAP_EMAIL="your-admin-email"
+ARCGIS_BOOTSTRAP_NAME="Administrator"
+ARCGIS_BOOTSTRAP_PASSWORD="a-long-unique-password"
+```
+
+Then run `npm run arcgis:bootstrap`. This creates only the first administrator and refuses to run again once users exist. It stores a salted scrypt hash, never the plain password. Remove the bootstrap password from the environment afterward.
+
+The existing application does not provide account creation UI. Additional users/companies must be provisioned through the typed repository or a trusted server-side administration script; passwords must be produced with `hashPassword` from `lib/password.ts`. Add report types through the admin settings page. Configure evaluation criteria in ArcGIS before assigning scores.
+
+## 5. Runtime and deployment
+
+The app requires a service URL, JWT secret, and either an OAuth client ID/secret or a static service token:
+
+```env
+ARCGIS_DATA_SERVICE_URL="https://.../FeatureServer"
+ARCGIS_CLIENT_ID="your-oauth-client-id"
+ARCGIS_CLIENT_SECRET="your-oauth-client-secret"
+JWT_SECRET="a-long-random-secret"
+```
+
+The OAuth application must have access to the private service and the required feature editing privileges. The server exchanges its client ID/secret for an access token, shares concurrent refresh requests, and renews the token one minute before it expires. The secret and access tokens never go to the browser. OAuth takes precedence when both client values are configured. Token issuance alone does not prove that the application can access or administer a particular feature service.
+
+If the credential restricts allowed HTTP Referers, set `ARCGIS_HTTP_REFERER` to the exact permitted URL, such as `http://localhost:3000/`. All authenticated service, attachment, and setup requests include that header. This is separate from the OAuth redirect URI. A valid application token may query the service but still receive 403 for schema administration; use the owner sign-in helper for that step.
+
+Alternatively, omit both OAuth client values and set `ARCGIS_DATA_TOKEN` to a server-side token with query/edit access. Static tokens require manual rotation. `ARCGIS_ADMIN_TOKEN` is a separate owner/admin credential used for provisioning; an OAuth application token may lack schema administration permission. The application reports token failures rather than silently falling back to PostgreSQL, Supabase, or in-memory data. Configure runtime variables on your deployment platform as well; `.env.local` is not committed.
+
+Use `node scripts/arcgis.cjs inspect-auth` to diagnose OAuth access to the portal, service, and administration endpoints without printing credentials. `node scripts/arcgis.cjs inspect` checks service privacy and administration access using the provisioning credential.
+
+Run `npm run dev` and open `http://localhost:3000`. The normal Next.js runtime reads `.env.local`; the legacy `env` filename is loaded only by setup tooling.
+
+Uploads are ArcGIS attachments. Durable references are stored in report records; viewers get signed `/api/attachments` links valid for one hour. The proxy streams file bytes without exposing the ArcGIS token. File uploads require an authenticated user.
+
+Survey records live in the same private service: layer 0 holds one point per report and the `repeat_1` table holds one score row per evaluator. Run `npm run arcgis:survey-schema` (needs `ARCGIS_ADMIN_TOKEN`) to create the survey fields and table on a new service. Browsers read survey points through `/api/survey/features` and photos through `/api/survey/attachments/...`, so the service token stays on the server. Set `ARCGIS_SYNC_DISABLED=true` to disable score writes to the survey records.
+
+## 6. Verification
 
 ```bash
-npm run dev
-```
-
-The application will start at `http://localhost:3000`
-
-## Step 6: Test the Application
-
-### Access the Home Page
-Visit: **http://localhost:3000**
-
-### Login with Demo Accounts
-
-**Sender Organization:**
-- Email: `sender1@tailan.mn`
-- Password: `Sender123!`
-- Dashboard: `/sender`
-
-**Review Manager:**
-- Email: `manager@tailan.mn`
-- Password: `Manager123!`
-- Dashboard: `/reviewer`
-
-**Evaluator:**
-- Email: `evaluator1@tailan.mn`
-- Password: `Eval123!1`
-- Dashboard: `/evaluator`
-
-**System Admin:**
-- Email: `admin@tailan.mn`
-- Password: `Admin123!`
-- Dashboard: `/admin`
-
-## Troubleshooting
-
-### Database Connection Error
-```
-Error: Can't reach database server at localhost:5432
-```
-
-**Solution:**
-1. Check PostgreSQL is running
-   ```bash
-   # Windows
-   sc query postgresql-x64-14
-   
-   # macOS
-   brew services list
-   
-   # Linux
-   sudo systemctl status postgresql
-   ```
-
-2. Verify DATABASE_URL in .env is correct
-
-3. Ensure database exists:
-   ```bash
-   psql -U postgres -l | grep tailan
-   ```
-
-### Port Already in Use
-```
-Error: Port 3000 is already in use
-```
-
-**Solution:**
-```bash
-# Kill the process on port 3000
-# Windows
-netstat -ano | findstr :3000
-taskkill /PID <PID> /F
-
-# macOS/Linux
-lsof -i :3000
-kill -9 <PID>
-```
-
-### Module Not Found Errors
-```bash
-# Clear dependencies and reinstall
-rm -rf node_modules package-lock.json
-npm install
-```
-
-### Prisma Client Issues
-```bash
-# Regenerate Prisma client
-npx prisma generate
-```
-
-## Development Commands
-
-```bash
-# Start dev server
-npm run dev
-
-# Build for production
-npm run build
-
-# Start production server
-npm start
-
-# Run linting
 npm run lint
-
-# Database operations
-npx prisma studio          # Open Prisma GUI
-npx prisma migrate dev     # Create new migration
-npx prisma db seed         # Seed database
+npm test
+npm run build
+npm run arcgis:verify
 ```
 
-## Project Structure
+The first three checks run without live service credentials. `arcgis:verify` checks the actual service's privacy, fields, unique indexes, geometry, attachments, and pagination support. Before deploying, exercise sender upload/submission, manager assignment, evaluator scoring/signing, notifications, and signed-scan download with real role accounts. Mocked tests do not substitute for that live acceptance check.
 
-```
-tailan/
-├── app/                   # Next.js app directory
-│   ├── api/              # API routes
-│   ├── login/            # Authentication pages
-│   ├── sender/           # Sender dashboard
-│   ├── reviewer/         # Review manager dashboard
-│   ├── evaluator/        # Evaluator dashboard
-│   ├── admin/            # Admin dashboard
-│   ├── geography/        # Geographic dashboard
-│   └── report/           # Report detail pages
-├── components/           # React components
-├── lib/                  # Utilities and helpers
-├── prisma/              # Database schema
-│   ├── schema.prisma
-│   └── seed.js
-└── package.json
-```
-
-## Key Features
-
-✅ **Role-Based Access Control** - Sender, Reviewer, Evaluator, Admin
-✅ **Report Management** - Submit, assign, evaluate, and track reports
-✅ **Dynamic Evaluation Criteria** - 8 customizable scoring criteria (100 points total)
-✅ **Geographic Information** - Location-based report tracking with coordinates
-✅ **Real-Time Notifications** - System notifications for key events
-✅ **Activity Logging** - Complete audit trail of all actions
-✅ **Responsive Design** - Mobile-friendly interface
-✅ **Professional UI** - Aqua-themed government dashboard style
-
-## Database Schema Overview
-
-### Core Tables
-- `companies` - Organizations (sender, reviewer, admin)
-- `users` - System users with roles
-- `reports` - Submitted reports with metadata
-- `report_locations` - Geographic information for each report
-- `report_assignments` - Evaluator assignments to reports
-- `evaluations` - Evaluation scores for reports
-- `evaluation_criteria` - Dynamic scoring criteria
-- `notifications` - System notifications
-- `activity_logs` - Action history
-
-## Security Considerations
-
-⚠️ **For Production:**
-1. Change `JWT_SECRET` to a strong random value
-2. Use environment-specific database URLs
-3. Enable HTTPS/TLS
-4. Implement rate limiting
-5. Set up proper user authentication (OAuth, SAML, etc.)
-6. Enable database backups
-7. Use strong passwords for all accounts
-8. Implement CORS policies
-
-## Additional Resources
-
-- [Next.js Documentation](https://nextjs.org/docs)
-- [Prisma Documentation](https://www.prisma.io/docs/)
-- [PostgreSQL Documentation](https://www.postgresql.org/docs/)
-- [Tailwind CSS Documentation](https://tailwindcss.com/docs)
-
-## Support
-
-For issues or questions:
-1. Check this setup guide
-2. Review the README.md
-3. Check application logs
-4. Review Prisma schema in `prisma/schema.prisma`
-
----
-
-**Last Updated:** 2026-06-24
-**Version:** 0.1.0 (MVP)
+Reference: [ArcGIS service edits](https://developers.arcgis.com/rest/services-reference/enterprise/apply-edits-feature-service/) and [schema provisioning](https://developers.arcgis.com/rest/services-reference/online/add-to-definition-feature-service/).

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import prisma from "@/lib/prisma";
+import dataStore from "@/lib/arcgis/data";
 import { getCurrentUser } from "@/lib/auth";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
@@ -8,7 +8,7 @@ import AttachmentList from "@/components/AttachmentList";
 import StaffReturnButton from "@/components/StaffReturnButton";
 import LocationMap from "@/components/LocationMapClient";
 import { parseAttachments } from "@/lib/attachments";
-import { signAttachments } from "@/lib/supabase";
+import { signAttachments } from "@/lib/arcgis/storage";
 import { formatDate } from "@/lib/utils";
 import { attachEffectiveSenderCompanies } from "@/lib/reportCompanies";
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from "@/lib/conclusions";
@@ -19,14 +19,14 @@ type Props = {
 };
 
 async function fetchCriteria() {
-  return prisma.evaluationCriterion.findMany({
+  return dataStore.evaluationCriterion.findMany({
     where: { isActive: true },
     orderBy: { sortOrder: "asc" },
   });
 }
 
 async function findStaffAssignment(reportId: string, evaluatorUserId: string) {
-  const assignments = await prisma.reportAssignment.findMany({
+  const assignments = await dataStore.reportAssignment.findMany({
     where: { reportId, evaluatorUserId, report: { title: { not: GENERAL_EVALUATION_CONCLUSION_TITLE } } },
     include: {
       report: {

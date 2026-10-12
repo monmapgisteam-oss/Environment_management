@@ -1,4 +1,4 @@
-import prisma from '@/lib/prisma';
+import dataStore from '@/lib/arcgis/data';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import LocationMap from '@/components/LocationMapClient';
@@ -9,7 +9,7 @@ type Props = {
 };
 
 async function fetchReportLocation(reportId: string) {
-  return prisma.report.findUnique({
+  return dataStore.report.findUnique({
     where: { id: reportId },
     select: { id: true, reportNumber: true, title: true, location: true },
   });

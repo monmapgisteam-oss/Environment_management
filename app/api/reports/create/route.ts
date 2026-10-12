@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import dataStore from '@/lib/arcgis/data';
 import { getCurrentUser } from '@/lib/auth';
 import { serializeDocumentAttachments, serializeReportAttachments } from '@/lib/attachments';
 import { resolveReportSenderCompany } from '@/lib/reportCompanies';
@@ -27,12 +27,12 @@ export async function POST(request: Request) {
 
     const typeValue = data.reportType?.trim() || '';
     let reportType = typeValue
-      ? await prisma.reportType.findFirst({
+      ? await dataStore.reportType.findFirst({
           where: { OR: [{ id: typeValue }, { slug: typeValue }, { name: typeValue }] },
         })
       : null;
     if (!reportType) {
-      reportType = await prisma.reportType.findFirst({ where: { isActive: true } });
+      reportType = await dataStore.reportType.findFirst({ where: { isActive: true } });
     }
     if (!reportType) {
       return NextResponse.json({ error: 'No report type found' }, { status: 400 });
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
 
     const status = data.status === 'draft' ? 'draft' : 'submitted';
 
-    const report = await prisma.report.create({
+    const report = await dataStore.report.create({
       data: {
         reportNumber,
         reportTypeId,
@@ -83,12 +83,12 @@ export async function POST(request: Request) {
     if (status === 'submitted') {
       try {
         const isConclusion = report.title === GENERAL_EVALUATION_CONCLUSION_TITLE;
-        const managers = await prisma.user.findMany({
+        const managers = await dataStore.user.findMany({
           where: { role: 'review_manager' },
           select: { id: true },
         });
         if (managers.length > 0) {
-          await prisma.notification.createMany({
+          await dataStore.notification.createMany({
             data: managers.map((manager) => ({
               userId: manager.id,
               reportId: report.id,

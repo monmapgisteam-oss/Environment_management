@@ -1,10 +1,10 @@
-import prisma from '@/lib/prisma';
+import dataStore from '@/lib/arcgis/data';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import { adminNavItems } from '@/lib/adminNav';
 
 async function fetchCriteria() {
-  return prisma.evaluationCriterion.findMany({
+  return dataStore.evaluationCriterion.findMany({
     where: { isActive: true },
     orderBy: { sortOrder: 'asc' },
   });

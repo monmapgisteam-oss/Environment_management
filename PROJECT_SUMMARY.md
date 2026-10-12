@@ -53,10 +53,9 @@ A complete full-stack web application for managing report submission, evaluation
 - Notification bell with unread count
 
 #### 7. **Database & Backend**
-- PostgreSQL with Prisma ORM
-- Complete relational schema (13 tables)
+- ArcGIS Enterprise Feature Service as the data store (`lib/arcgis/`)
+- Relational schema of 12 tables defined in `lib/arcgis/schema.json`
 - API routes for all CRUD operations
-- Database seeding with realistic sample data
 
 ### 📁 File Structure
 
@@ -102,12 +101,11 @@ tailan/
 │   └── ReportTable.tsx (Reusable table with search/filter/pagination)
 ├── lib/
 │   ├── auth.ts (JWT and session management)
-│   ├── prisma.ts (Database client)
+│   ├── arcgis/ (Feature Service data repository and schema)
 │   ├── utils.ts (Utility functions)
 │   └── constants.ts (Status labels and color mappings)
-├── prisma/
-│   ├── schema.prisma (Complete database schema)
-│   └── seed.js (Sample data seeding)
+├── scripts/
+│   └── arcgis.cjs (Feature Service provisioning and verification)
 ├── public/
 ├── package.json
 ├── tsconfig.json
@@ -186,13 +184,11 @@ tailan/
 # 1. Install dependencies
 npm install
 
-# 2. Setup PostgreSQL database
+# 2. Configure ArcGIS credentials in .env.local
 # Follow SETUP.md instructions
 
-# 3. Initialize database
-npx prisma generate
-npx prisma migrate dev --name init
-npx prisma db seed
+# 3. Create the application tables
+npm run arcgis:provision
 
 # 4. Run development server
 npm run dev
@@ -246,7 +242,7 @@ Every UI element, form label, and message is fully translated to Mongolian inclu
 - **Framework:** Next.js 14 (App Router)
 - **Language:** TypeScript
 - **Styling:** Tailwind CSS
-- **Database:** PostgreSQL with Prisma ORM
+- **Database:** ArcGIS Enterprise Feature Service
 - **Authentication:** JWT + cookies
 - **Runtime:** Node.js 18+
 - **Package Manager:** npm
@@ -256,7 +252,7 @@ Every UI element, form label, and message is fully translated to Mongolian inclu
 - **README.md** - Quick start and feature overview
 - **SETUP.md** - Detailed setup and troubleshooting
 - **Code Comments** - Throughout for clarity
-- **Prisma Schema** - Well-documented database structure
+- **lib/arcgis/schema.json** - Application data schema
 
 ## 🔒 Security Features
 

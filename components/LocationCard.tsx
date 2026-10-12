@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
-import { SURVEY_EXCLUDED_OBJECT_IDS } from "@/lib/constants";
 import { extractNominatimLocation, extractSurveyLocation, type AdministrativeLocation } from "@/lib/locationResolver";
 
 const MapPicker = dynamic(() => import("./MapPicker"), {
@@ -18,10 +17,9 @@ function MapPlaceholder() {
   );
 }
 
-// Survey123 service — used to resolve a company's location from its register
-// number, so entering РД drops the marker on the map automatically.
-const SURVEY_QUERY_URL =
-  "https://services.arcgis.com/HJzgwvlNIXssnQar/arcgis/rest/services/survey123_2d1e2fe0e49a4623a57f6536b6a6f7c1/FeatureServer/0/query";
+// Survey layer (served by the app) — used to resolve a company's location
+// from its register number, so entering РД drops the marker automatically.
+const SURVEY_QUERY_URL = "/api/survey/features";
 
 interface LocationData {
   lat?: number;
@@ -92,13 +90,7 @@ export default function LocationCard({ onLocationChange, initialLocation, regist
     setLooking(true);
     const handle = setTimeout(async () => {
       try {
-        const safe = reg.replace(/'/g, "''");
-        const where = encodeURIComponent(
-          `UPPER(Register)=UPPER('${safe}') AND OBJECTID NOT IN (${SURVEY_EXCLUDED_OBJECT_IDS.join(',')})`,
-        );
-        const res = await fetch(
-          `${SURVEY_QUERY_URL}?where=${where}&outFields=*&returnGeometry=true&f=geojson`,
-        );
+        const res = await fetch(`${SURVEY_QUERY_URL}?${new URLSearchParams({ register: reg })}`);
         const data = await res.json();
         if (cancelled) return;
         const feature = data.features?.[0];

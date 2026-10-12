@@ -5,7 +5,6 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { addBasemap } from '@/lib/basemap';
 import { createPinIcon, popupCard } from '@/lib/mapMarkers';
-import { SURVEY_EXCLUDED_OBJECT_IDS } from '@/lib/constants';
 import { normalizeSurveyReportType } from '@/lib/surveyReportType';
 
 interface MapPickerProps {
@@ -16,10 +15,9 @@ interface MapPickerProps {
   showSurveyLayer?: boolean;
 }
 
-// ArcGIS / Survey123 FeatureServer (point layer) shown as a toggleable overlay
-// so users can see existing surveyed report locations on the map.
-const SURVEY_LAYER_URL =
-  `https://services.arcgis.com/HJzgwvlNIXssnQar/arcgis/rest/services/survey123_2d1e2fe0e49a4623a57f6536b6a6f7c1/FeatureServer/0/query?where=${encodeURIComponent(`OBJECTID NOT IN (${SURVEY_EXCLUDED_OBJECT_IDS.join(',')})`)}&outFields=*&f=geojson`;
+// Survey layer points (served by the app from the private ArcGIS service)
+// shown as a toggleable overlay of existing surveyed report locations.
+const SURVEY_LAYER_URL = '/api/survey/features';
 
 function surveyPopup(props: Record<string, any>): string {
   return popupCard({

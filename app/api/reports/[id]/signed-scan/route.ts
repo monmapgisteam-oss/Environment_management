@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import dataStore from '@/lib/arcgis/data';
 
 // Manager uploads the scanned, physically-signed score sheet (after printing
 // the evaluation table and getting every evaluator's signature on paper) and
@@ -12,7 +12,7 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
       return NextResponse.json({ error: 'url required' }, { status: 400 });
     }
 
-    const report = await prisma.report.update({
+    const report = await dataStore.report.update({
       where: { id: params.id },
       data: {
         signedScanUrl: url,
@@ -25,7 +25,7 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
     try {
       const senderUsers = report.senderCompany.users;
       if (senderUsers.length > 0) {
-        await prisma.notification.createMany({
+        await dataStore.notification.createMany({
           data: senderUsers.map((u) => ({
             userId: u.id,
             reportId: report.id,

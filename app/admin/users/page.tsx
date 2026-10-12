@@ -1,11 +1,11 @@
-import prisma from '@/lib/prisma';
+import dataStore from '@/lib/arcgis/data';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import UsersView, { type UserRow } from '@/components/UsersView';
 import { adminNavItems } from '@/lib/adminNav';
 
 async function fetchUsers() {
-  return prisma.user.findMany({
+  return dataStore.user.findMany({
     where: { role: { not: 'admin' } },
     include: { company: { select: { name: true, registerNumber: true } } },
     orderBy: { name: 'asc' },

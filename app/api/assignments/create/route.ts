@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-import prisma from "@/lib/prisma";
+import dataStore from "@/lib/arcgis/data";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { materializeSurveyReportByObjectId } from "@/lib/surveyReports";
@@ -27,7 +27,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const targetReport = await prisma.report.findUnique({
+    const targetReport = await dataStore.report.findUnique({
       where: { id: reportId },
       select: { title: true },
     });
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
     let assignedByUserId =
       current?.role === "review_manager" ? current.id : null;
     if (!assignedByUserId) {
-      const manager = await prisma.user.findFirst({
+      const manager = await dataStore.user.findFirst({
         where: { role: "review_manager" },
       });
       if (!manager) {
@@ -57,7 +57,7 @@ export async function POST(request: Request) {
     }
 
     // Don't assign the same staff member to a report twice.
-    const existing = await prisma.reportAssignment.findMany({
+    const existing = await dataStore.reportAssignment.findMany({
       where: { reportId, evaluatorUserId: { in: evaluatorIds } },
       include: { evaluation: true },
     });
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
       : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
     if (toAssign.length > 0) {
-      await prisma.reportAssignment.createMany({
+      await dataStore.reportAssignment.createMany({
         data: toAssign.map((evaluatorUserId) => ({
           reportId,
           evaluatorUserId,
@@ -79,13 +79,13 @@ export async function POST(request: Request) {
         })),
       });
 
-      const report = await prisma.report.update({
+      const report = await dataStore.report.update({
         where: { id: reportId },
         data: { status: "assigned" },
       });
 
       // Let each newly assigned staff member know they have work to do.
-      await prisma.notification.createMany({
+      await dataStore.notification.createMany({
         data: toAssign.map((userId) => ({
           userId,
           reportId,
@@ -95,12 +95,12 @@ export async function POST(request: Request) {
       });
 
       // Confirm the distribution back to the manager who made it.
-      const assignedStaff = await prisma.user.findMany({
+      const assignedStaff = await dataStore.user.findMany({
         where: { id: { in: toAssign } },
         select: { name: true },
       });
       const staffNames = assignedStaff.map((s) => s.name).join(", ");
-      await prisma.notification.create({
+      await dataStore.notification.create({
         data: {
           userId: assignedByUserId,
           reportId,

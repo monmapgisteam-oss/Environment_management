@@ -1,4 +1,4 @@
-import prisma from '@/lib/prisma';
+import dataStore from '@/lib/arcgis/data';
 import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { syncEvaluationToSurvey } from '@/lib/arcgis';
@@ -7,7 +7,7 @@ import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
 import { uniqueAssignmentsByEvaluator } from '@/lib/reportAssignments';
 
 async function findOpenAssignment(reportId: string, evaluatorUserId?: string) {
-  const assignments = await prisma.reportAssignment.findMany({
+  const assignments = await dataStore.reportAssignment.findMany({
     where: {
       reportId,
       ...(evaluatorUserId ? { evaluatorUserId } : {}),
@@ -27,11 +27,11 @@ async function findOpenAssignment(reportId: string, evaluatorUserId?: string) {
 async function nextSignatureId(signedAt: Date) {
   const dayStart = new Date(Date.UTC(signedAt.getUTCFullYear(), signedAt.getUTCMonth(), signedAt.getUTCDate()));
   const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
-  let sequence = (await prisma.evaluation.count({ where: { signedAt: { gte: dayStart, lt: dayEnd } } })) + 1;
+  let sequence = (await dataStore.evaluation.count({ where: { signedAt: { gte: dayStart, lt: dayEnd } } })) + 1;
 
   for (;;) {
     const signatureId = generateSignatureId(sequence, signedAt);
-    const existing = await prisma.evaluation.findUnique({ where: { signatureId }, select: { id: true } });
+    const existing = await dataStore.evaluation.findUnique({ where: { signatureId }, select: { id: true } });
     if (!existing) return signatureId;
     sequence += 1;
   }
@@ -49,7 +49,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'reportId is required' }, { status: 400 });
     }
 
-    const targetReport = await prisma.report.findUnique({
+    const targetReport = await dataStore.report.findUnique({
       where: { id: reportId },
       select: { title: true },
     });
@@ -81,7 +81,7 @@ export async function POST(request: Request) {
     // unevaluated assignment (creating one if needed).
     let assignment;
     if (current.role === 'evaluator') {
-      const alreadySigned = await prisma.reportAssignment.findFirst({
+      const alreadySigned = await dataStore.reportAssignment.findFirst({
         where: {
           reportId,
           evaluatorUserId: current.id,
@@ -100,11 +100,11 @@ export async function POST(request: Request) {
       assignment = await findOpenAssignment(reportId);
       if (assignment?.evaluation?.status === 'SIGNED') assignment = null;
       if (!assignment) {
-        const manager = await prisma.user.findFirst({ where: { role: 'review_manager' } });
+        const manager = await dataStore.user.findFirst({ where: { role: 'review_manager' } });
         if (!manager) {
           return NextResponse.json({ error: 'No review manager found' }, { status: 500 });
         }
-        assignment = await prisma.reportAssignment.create({
+        assignment = await dataStore.reportAssignment.create({
           data: {
             reportId,
             evaluatorUserId: manager.id,
@@ -123,7 +123,7 @@ export async function POST(request: Request) {
     }
 
     // Every active criterion must be scored before a signature can be applied.
-    const criteria = await prisma.evaluationCriterion.findMany({ where: { isActive: true }, select: { id: true } });
+    const criteria = await dataStore.evaluationCriterion.findMany({ where: { isActive: true }, select: { id: true } });
     const criterionIds = new Set(criteria.map((c) => c.id));
     const scoredIds = new Set(scoreEntries.map((s) => s.criterionId));
     const complete = criterionIds.size > 0 && [...criterionIds].every((id) => scoredIds.has(id));
@@ -139,7 +139,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Гарын үсэг буруу байна.' }, { status: 400 });
       }
     } else {
-      await prisma.user.update({
+      await dataStore.user.update({
         where: { id: current.id },
         data: { signaturePinHash: hashPin(numericSignature) },
       });
@@ -159,7 +159,7 @@ export async function POST(request: Request) {
       signedAt: signedAt.toISOString(),
     });
 
-    await prisma.reportAssignment.update({
+    await dataStore.reportAssignment.update({
       where: { id: assignment.id },
       data: { status: 'submitted', submittedAt: signedAt },
     });
@@ -180,14 +180,14 @@ export async function POST(request: Request) {
     // Re-scoring updates the existing (unsigned) evaluation; otherwise create a new one.
     let evaluationId: string;
     if (assignment.evaluation) {
-      await prisma.evaluationScore.deleteMany({ where: { evaluationId: assignment.evaluation.id } });
-      await prisma.evaluation.update({
+      await dataStore.evaluationScore.deleteMany({ where: { evaluationId: assignment.evaluation.id } });
+      await dataStore.evaluation.update({
         where: { id: assignment.evaluation.id },
         data: { ...signedFields, scores: { create: scoreEntries } },
       });
       evaluationId = assignment.evaluation.id;
     } else {
-      const created = await prisma.evaluation.create({
+      const created = await dataStore.evaluation.create({
         data: { assignmentId: assignment.id, reportId, ...signedFields, scores: { create: scoreEntries } },
       });
       evaluationId = created.id;
@@ -196,7 +196,7 @@ export async function POST(request: Request) {
     // The report is only finished once EVERY assigned staff member has signed
     // off. The final score (эцсийн оноо) is the arithmetic mean of each
     // signed, verified evaluator's total score — unsigned scores never count.
-    const assignments = await prisma.reportAssignment.findMany({
+    const assignments = await dataStore.reportAssignment.findMany({
       where: { reportId },
       include: { evaluation: true },
     });
@@ -210,7 +210,7 @@ export async function POST(request: Request) {
     // (e.g. 90.6666… → 90.7) everywhere it is displayed.
     const avgScore = Math.round(rawAvg * 10) / 10;
 
-    const updatedReport = await prisma.report.update({
+    const updatedReport = await dataStore.report.update({
       where: { id: reportId },
       data: {
         // Hold the final score back until all evaluators have signed off.
@@ -223,10 +223,10 @@ export async function POST(request: Request) {
     // Notify the sender and every review manager only when the whole evaluation is complete.
     if (allDone) {
       const senderUsers = updatedReport.senderCompany.users;
-      const managers = await prisma.user.findMany({ where: { role: 'review_manager' } });
+      const managers = await dataStore.user.findMany({ where: { role: 'review_manager' } });
       const recipients = [...senderUsers, ...managers];
       if (recipients.length > 0) {
-        await prisma.notification.createMany({
+        await dataStore.notification.createMany({
           data: recipients.map((u) => ({
             userId: u.id,
             reportId,
@@ -237,9 +237,9 @@ export async function POST(request: Request) {
       }
     }
 
-    // Mirror this evaluator's scores into the Survey123 service. Self-contained
-    // and failure-tolerant: it no-ops without an API key and never throws, so a
-    // problem here can't break score submission.
+    // Mirror this evaluator's scores into the survey records of the private
+    // Feature Service. Failure-tolerant: it never throws, so a problem here
+    // can't break score submission.
     await syncEvaluationToSurvey({
       reportId,
       evaluationId,

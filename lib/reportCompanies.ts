@@ -1,4 +1,4 @@
-import prisma from '@/lib/prisma';
+import dataStore from '@/lib/arcgis/data';
 
 type CompanyIdentity = {
   id: string;
@@ -19,7 +19,7 @@ export async function findSenderCompanyByRegister(register: unknown): Promise<Co
   const normalized = normalizeRegister(register);
   if (!normalized) return null;
 
-  const companies = await prisma.company.findMany({
+  const companies = await dataStore.company.findMany({
     where: { type: 'sender' },
     select: { id: true, name: true, registerNumber: true },
   });
@@ -42,7 +42,7 @@ export async function attachEffectiveSenderCompanies<T extends ReportWithCompany
   );
   if (registers.length === 0) return reports;
 
-  const companies = await prisma.company.findMany({
+  const companies = await dataStore.company.findMany({
     where: { type: 'sender' },
     select: { id: true, name: true, registerNumber: true },
   });

@@ -1,11 +1,8 @@
 import type { CompanyPoint } from '@/components/CompanyMap';
-import { SURVEY_EXCLUDED_OBJECT_IDS } from '@/lib/constants';
+import { SURVEY_LAYER_ID, querySurvey } from '@/lib/arcgis/survey';
 import { fetchSurveyPhotoMap } from '@/lib/surveyPhotos';
 import { normalizeSurveyReportType } from '@/lib/surveyReportType';
 
-const SERVICE_URL =
-  'https://services.arcgis.com/HJzgwvlNIXssnQar/arcgis/rest/services/survey123_2d1e2fe0e49a4623a57f6536b6a6f7c1/FeatureServer';
-const SURVEY_LAYER_ID = 0;
 const REVERSE_GEOCODE_URL = 'https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/reverseGeocode';
 const PROVINCE_NAME_OVERRIDES: Record<string, string> = {
   ulaanbaatar: 'Улаанбаатар',
@@ -133,22 +130,12 @@ export async function fetchSurveyMapPoints(
   options: FetchSurveyMapPointsOptions = {},
 ): Promise<CompanyPoint[]> {
   try {
-    const params = new URLSearchParams({
-      where: `OBJECTID NOT IN (${SURVEY_EXCLUDED_OBJECT_IDS.join(',')})`,
-      outFields: '*',
-      returnGeometry: 'true',
-      resultRecordCount: '2000',
-      f: 'json',
-    });
-    const res = await fetch(`${SERVICE_URL}/${SURVEY_LAYER_ID}/query?${params.toString()}`, {
-      cache: 'no-store',
-    });
-    const json: any = await res.json();
+    const surveyFeatures = await querySurvey(SURVEY_LAYER_ID, { returnGeometry: true, resultRecordCount: 2000 });
     const registerSet =
       options.registers && options.registers.length > 0
         ? new Set(options.registers.map(normalizeRegister).filter(Boolean))
         : null;
-    const features: SurveyFeature[] = (json.features || []).flatMap((feature: RawSurveyFeature) => {
+    const features: SurveyFeature[] = surveyFeatures.flatMap((feature: RawSurveyFeature) => {
       const x = feature.geometry?.x;
       const y = feature.geometry?.y;
       if (typeof x !== 'number' || typeof y !== 'number') return [];

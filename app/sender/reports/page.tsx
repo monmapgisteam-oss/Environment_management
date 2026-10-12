@@ -1,4 +1,4 @@
-import prisma from '@/lib/prisma';
+import dataStore from '@/lib/arcgis/data';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import ReportTable from '@/components/ReportTable';
@@ -9,7 +9,7 @@ import { senderSidebarItems } from '@/lib/senderNav';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
 
 async function fetchSenderReports(companyId: string) {
-  const reports = await prisma.report.findMany({
+  const reports = await dataStore.report.findMany({
     where: {
       status: { not: 'draft' },
       title: { not: GENERAL_EVALUATION_CONCLUSION_TITLE },

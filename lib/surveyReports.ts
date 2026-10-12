@@ -1,12 +1,9 @@
-import prisma from '@/lib/prisma';
-import { SURVEY_EXCLUDED_OBJECT_IDS } from '@/lib/constants';
+import dataStore from '@/lib/arcgis/data';
 import { fetchSurveyPhotoMap, type SurveyPhoto } from '@/lib/surveyPhotos';
 import { findSenderCompanyByRegister, normalizeRegister } from '@/lib/reportCompanies';
 import { normalizeSurveyReportType } from '@/lib/surveyReportType';
 
-const SERVICE_URL =
-  'https://services.arcgis.com/HJzgwvlNIXssnQar/arcgis/rest/services/survey123_2d1e2fe0e49a4623a57f6536b6a6f7c1/FeatureServer';
-const SURVEY_LAYER_ID = 0;
+import { SURVEY_LAYER_ID, querySurvey } from '@/lib/arcgis/survey';
 
 type RawSurveyFeature = {
   attributes?: Record<string, any>;
@@ -51,10 +48,6 @@ type FetchSurveyReportsOptions = {
   registers?: string[];
 };
 
-function surveyWhere() {
-  return `OBJECTID NOT IN (${SURVEY_EXCLUDED_OBJECT_IDS.join(',')})`;
-}
-
 function toNumber(value: unknown): number | null {
   return typeof value === 'number' ? value : null;
 }
@@ -75,7 +68,7 @@ function firstString(attrs: Record<string, any>, names: string[]): string | null
 async function fetchCompanyMap(registers: string[]) {
   const normalizedRegisters = Array.from(new Set(registers.map(normalizeRegister).filter(Boolean)));
   if (normalizedRegisters.length === 0) return new Map<string, CompanyMatch>();
-  const companies = await prisma.company.findMany({
+  const companies = await dataStore.company.findMany({
     select: { id: true, name: true, registerNumber: true },
   });
   return new Map(
@@ -138,18 +131,10 @@ function toSurveyReport(
 export async function fetchSurveyReports(options: FetchSurveyReportsOptions = {}): Promise<SurveyReport[]> {
   try {
     if (options.registers && options.registers.length === 0) return [];
-    const params = new URLSearchParams({
-      where: surveyWhere(),
-      outFields: '*',
-      returnGeometry: 'true',
-      resultRecordCount: '2000',
-      f: 'json',
+    const features: RawSurveyFeature[] = await querySurvey(SURVEY_LAYER_ID, {
+      returnGeometry: true,
+      resultRecordCount: 2000,
     });
-    const res = await fetch(`${SERVICE_URL}/${SURVEY_LAYER_ID}/query?${params.toString()}`, {
-      cache: 'no-store',
-    });
-    const json: any = await res.json();
-    const features: RawSurveyFeature[] = json.features || [];
     const objectIds = features
       .map((feature) => feature.attributes?.objectid ?? feature.attributes?.OBJECTID)
       .filter((id: unknown): id is number => typeof id === 'number');
@@ -183,17 +168,11 @@ export async function fetchSurveyReports(options: FetchSurveyReportsOptions = {}
 
 export async function fetchSurveyReportByObjectId(objectId: number): Promise<SurveyReport | null> {
   try {
-    const params = new URLSearchParams({
-      where: `OBJECTID=${objectId} AND ${surveyWhere()}`,
-      outFields: '*',
-      returnGeometry: 'true',
-      f: 'json',
+    if (!Number.isInteger(objectId)) return null;
+    const [feature] = await querySurvey(SURVEY_LAYER_ID, {
+      where: `objectid=${objectId}`,
+      returnGeometry: true,
     });
-    const res = await fetch(`${SERVICE_URL}/${SURVEY_LAYER_ID}/query?${params.toString()}`, {
-      cache: 'no-store',
-    });
-    const json: any = await res.json();
-    const feature: RawSurveyFeature | undefined = (json.features || [])[0];
     if (!feature) return null;
     const register = normalizeRegister(feature.attributes?.Register);
     const [photoMap, companyByRegister] = await Promise.all([
@@ -207,12 +186,12 @@ export async function fetchSurveyReportByObjectId(objectId: number): Promise<Sur
 }
 
 async function resolveSurveyReportType(reportTypeName: string | null) {
-  const types = await prisma.reportType.findMany({
+  const types = await dataStore.reportType.findMany({
     where: { isActive: true },
     orderBy: { name: 'asc' },
   });
   if (types.length === 0) {
-    return prisma.reportType.create({
+    return dataStore.reportType.create({
       data: { name: reportTypeName || 'Survey123', slug: `survey123-${Date.now()}`, isActive: true },
     });
   }
@@ -237,7 +216,7 @@ async function resolveSurveyCompany(survey: SurveyReport) {
   if (matched) return matched;
 
   const registerNumber = register || `SURVEY-${survey.objectId}`;
-  return prisma.company.create({
+  return dataStore.company.create({
     data: {
       name: survey.organization || registerNumber,
       registerNumber,
@@ -249,7 +228,7 @@ async function resolveSurveyCompany(survey: SurveyReport) {
 
 export async function materializeSurveyReportByObjectId(objectId: number) {
   const reportNumber = `S123-${objectId}`;
-  const existing = await prisma.report.findUnique({
+  const existing = await dataStore.report.findUnique({
     where: { reportNumber },
   });
   if (existing) return existing;
@@ -267,7 +246,7 @@ export async function materializeSurveyReportByObjectId(objectId: number) {
     survey.submittedAt ? new Date(survey.submittedAt) : survey.projectDate ? new Date(survey.projectDate) : new Date();
   const attachments = survey.photos.map((photo) => ({ url: photo.src, name: photo.alt || 'Survey123 photo' }));
 
-  return prisma.report.create({
+  return dataStore.report.create({
     data: {
       reportNumber,
       reportTypeId: reportType.id,
@@ -300,7 +279,7 @@ export async function materializeSurveyReportByObjectId(objectId: number) {
 }
 
 export async function syncSurveyReportsForManagerNotifications() {
-  const managers = await prisma.user.findMany({
+  const managers = await dataStore.user.findMany({
     where: { role: 'review_manager' },
     select: { id: true },
   });
@@ -310,7 +289,7 @@ export async function syncSurveyReportsForManagerNotifications() {
   if (surveyReports.length === 0) return { reportsCreated: 0, notificationsCreated: 0 };
 
   const reportNumbers = surveyReports.map((report) => report.reportNumber);
-  const existingReports = await prisma.report.findMany({
+  const existingReports = await dataStore.report.findMany({
     where: { reportNumber: { in: reportNumbers } },
     select: { reportNumber: true },
   });
@@ -329,11 +308,11 @@ export async function syncSurveyReportsForManagerNotifications() {
   }
   if (materializedIds.length === 0) return { reportsCreated: 0, notificationsCreated: 0 };
 
-  const materializedReports = await prisma.report.findMany({
+  const materializedReports = await dataStore.report.findMany({
     where: { id: { in: materializedIds } },
     include: { senderCompany: true },
   });
-  const existingNotifications = await prisma.notification.findMany({
+  const existingNotifications = await dataStore.notification.findMany({
     where: {
       reportId: { in: materializedIds },
       userId: { in: managers.map((manager) => manager.id) },
@@ -354,7 +333,7 @@ export async function syncSurveyReportsForManagerNotifications() {
   );
 
   if (notifications.length > 0) {
-    await prisma.notification.createMany({ data: notifications });
+    await dataStore.notification.createMany({ data: notifications });
   }
 
   return { reportsCreated: materializedIds.length, notificationsCreated: notifications.length };

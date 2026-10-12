@@ -1,4 +1,4 @@
-import prisma from '@/lib/prisma';
+import dataStore from '@/lib/arcgis/data';
 import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 
@@ -19,14 +19,14 @@ export async function POST(request: Request) {
     }
 
     // Staff can only flag a report that was actually assigned to them.
-    const assignment = await prisma.reportAssignment.findFirst({
+    const assignment = await dataStore.reportAssignment.findFirst({
       where: { reportId, evaluatorUserId: user.id },
     });
     if (!assignment) {
       return NextResponse.json({ error: 'Танд энэ тайлан оноогдоогүй байна.' }, { status: 403 });
     }
 
-    const report = await prisma.report.update({
+    const report = await dataStore.report.update({
       where: { id: reportId },
       data: {
         status: 'return_requested',
@@ -36,12 +36,12 @@ export async function POST(request: Request) {
     });
 
     // Notify every review manager that a staff member wants this returned.
-    const managers = await prisma.user.findMany({
+    const managers = await dataStore.user.findMany({
       where: { role: 'review_manager' },
       select: { id: true },
     });
     if (managers.length > 0) {
-      await prisma.notification.createMany({
+      await dataStore.notification.createMany({
         data: managers.map((manager) => ({
           userId: manager.id,
           reportId,

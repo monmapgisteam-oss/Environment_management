@@ -1,10 +1,10 @@
-import prisma from '@/lib/prisma';
+import dataStore from '@/lib/arcgis/data';
 import { NextResponse } from 'next/server';
 import { STAFF_EMAILS } from '@/lib/constants';
 
 export async function GET() {
   try {
-    const evaluators = await prisma.user.findMany({
+    const evaluators = await dataStore.user.findMany({
       where: { role: 'evaluator', email: { in: STAFF_EMAILS } },
       select: { id: true, name: true, position: true },
     });

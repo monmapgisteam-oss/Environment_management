@@ -1,4 +1,4 @@
-import prisma from '@/lib/prisma';
+import dataStore from '@/lib/arcgis/data';
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 
@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Зурвасаа бичнэ үү.' }, { status: 400 });
     }
 
-    const admins = await prisma.user.findMany({
+    const admins = await dataStore.user.findMany({
       where: { role: 'admin' },
       select: { id: true },
     });
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     const title = 'Санал хүсэлт';
     const fullMessage = `${user.name}${companyName}: ${message}`;
 
-    await prisma.notification.createMany({
+    await dataStore.notification.createMany({
       data: admins.map((admin) => ({
         userId: admin.id,
         title,

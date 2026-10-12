@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import prisma from '@/lib/prisma';
+import dataStore from '@/lib/arcgis/data';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import StatusBadge from '@/components/StatusBadge';
@@ -12,7 +12,7 @@ type Props = {
 };
 
 async function fetchStaffMember(id: string) {
-  return prisma.user.findFirst({
+  return dataStore.user.findFirst({
     where: { id, role: 'evaluator' },
     include: {
       company: { select: { name: true } },
@@ -29,7 +29,7 @@ async function fetchStaffMember(id: string) {
 }
 
 async function fetchReportTypes() {
-  return prisma.reportType.findMany({
+  return dataStore.reportType.findMany({
     where: { isActive: true },
     orderBy: { name: 'asc' },
   });

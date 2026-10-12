@@ -1,87 +1,26 @@
-import prisma from '@/lib/prisma';
-import { SURVEY_EXCLUDED_OBJECT_IDS } from '@/lib/constants';
+import dataStore from '@/lib/arcgis/data';
+import { SURVEY_LAYER_ID, editSurvey, querySurvey, surveyRepeatTableId } from '@/lib/arcgis/survey';
 import { fetchSurveyPhotoMap, type SurveyPhoto } from '@/lib/surveyPhotos';
 import { normalizeSurveyReportType } from '@/lib/surveyReportType';
 
 // ---------------------------------------------------------------------------
-// ArcGIS / Survey123 write-back integration.
+// Survey write-back integration.
 //
-// When an evaluator submits their scores, we mirror the result into the hosted
-// Survey123 feature service:
-//   * Layer 0 ("survey")   – one feature per report (organisation + report info)
-//   * Table 1 ("repeat_1") – one row per evaluator (Member_name + Q1..Q8)
+// When an evaluator submits their scores, we mirror the result into the
+// survey records of the private application Feature Service:
+//   * Layer 0 ("Tailan")              – one feature per report (organisation + report info)
+//   * Table "repeat_1"                – one row per evaluator (Member_name + Q1..Q8)
 //
-// Authentication uses an ArcGIS API key (ARCGIS_API_KEY). If the key is absent
-// every function here no-ops, so scoring keeps working before the key is set.
+// Requests use the same server-side application credential as the data layer.
+// Set ARCGIS_SYNC_DISABLED=true to turn the integration off entirely.
 // ---------------------------------------------------------------------------
 
-const SERVICE_URL =
-  'https://services.arcgis.com/HJzgwvlNIXssnQar/arcgis/rest/services/survey123_2d1e2fe0e49a4623a57f6536b6a6f7c1/FeatureServer';
-const SURVEY_LAYER_ID = 0; // report features
-const REPEAT_TABLE_ID = 1; // per-evaluator score rows
-
-function apiKey(): string {
-  return process.env.ARCGIS_API_KEY?.trim() || '';
-}
-
-function hasApiKey(): boolean {
-  return apiKey().length > 0;
-}
-
-// The Survey123 service accepts anonymous adds, so the write-back is always on.
-// An API key is optional — it additionally enables in-place updates (re-scoring)
-// and deletes, which anonymous editing cannot do under ownership access control.
-// Set ARCGIS_SYNC_DISABLED=true to turn the integration off entirely.
 export function arcgisEnabled(): boolean {
   return process.env.ARCGIS_SYNC_DISABLED?.trim().toLowerCase() !== 'true';
 }
 
-type EditResult = { objectId?: number; globalId?: string; success?: boolean; error?: any };
-
-// POST helper for the ArcGIS REST add/update endpoints. Returns the first edit
-// result, or null on any transport/service error.
-async function postFeatures(
-  layerId: number,
-  op: 'addFeatures' | 'updateFeatures',
-  features: any[],
-  useGlobalIds = false,
-): Promise<EditResult | null> {
-  const body = new URLSearchParams();
-  body.set('f', 'json');
-  // Token only when an API key is configured; otherwise edit anonymously.
-  if (hasApiKey()) body.set('token', apiKey());
-  body.set('rollbackOnFailure', 'true');
-  if (useGlobalIds) body.set('useGlobalIds', 'true');
-  body.set('features', JSON.stringify(features));
-
-  const res = await fetch(`${SERVICE_URL}/${layerId}/${op}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: body.toString(),
-    // ArcGIS edits should never be cached.
-    cache: 'no-store',
-  });
-  const json: any = await res.json();
-  if (json?.error) {
-    console.error('[arcgis]', op, 'service error:', json.error?.message || json.error);
-    return null;
-  }
-  const result: EditResult | undefined = (json.addResults || json.updateResults || [])[0];
-  if (!result || result.success === false) {
-    console.error('[arcgis]', op, 'edit failed:', result?.error || 'unknown');
-    return null;
-  }
-  return result;
-}
-
 function epoch(d: Date | null | undefined): number | null {
   return d ? new Date(d).getTime() : null;
-}
-
-// Appended to every Layer 0 WHERE clause to hide test/junk rows we can't
-// delete from the shared service (see SURVEY_EXCLUDED_OBJECT_IDS).
-function excludeJunkClause(): string {
-  return ` AND OBJECTID NOT IN (${SURVEY_EXCLUDED_OBJECT_IDS.join(',')})`;
 }
 
 export type SurveyInfo = {
@@ -103,13 +42,8 @@ export async function fetchSurveyInfoByRegister(register: string): Promise<Surve
   if (!reg) return null;
   try {
     const safe = reg.replace(/'/g, "''");
-    const where = encodeURIComponent(`UPPER(Register)=UPPER('${safe}')${excludeJunkClause()}`);
-    const res = await fetch(
-      `${SERVICE_URL}/${SURVEY_LAYER_ID}/query?where=${where}&outFields=*&returnGeometry=false&f=json`,
-      { cache: 'no-store' },
-    );
-    const json: any = await res.json();
-    const attrs = (json.features || [])[0]?.attributes;
+    const [feature] = await querySurvey(SURVEY_LAYER_ID, { where: `UPPER(Register)=UPPER('${safe}')` });
+    const attrs = feature?.attributes;
     if (!attrs) return null;
     const objectId = attrs.objectid ?? attrs.OBJECTID;
     const photos =
@@ -135,14 +69,12 @@ export async function fetchSurveyInfoByRegister(register: string): Promise<Surve
 // have already filled the Survey123 form). Returns its GlobalID, or null.
 async function findReportFeatureByRegister(register: string): Promise<string | null> {
   if (!register) return null;
-  const where = encodeURIComponent(`Register='${register.replace(/'/g, "''")}'${excludeJunkClause()}`);
   try {
-    const res = await fetch(
-      `${SERVICE_URL}/${SURVEY_LAYER_ID}/query?where=${where}&outFields=globalid&returnGeometry=false&f=json`,
-      { cache: 'no-store' },
-    );
-    const json: any = await res.json();
-    const attrs = (json.features || [])[0]?.attributes;
+    const [feature] = await querySurvey(SURVEY_LAYER_ID, {
+      where: `Register='${register.replace(/'/g, "''")}'`,
+      outFields: 'globalid',
+    });
+    const attrs = feature?.attributes;
     return attrs?.globalid ?? attrs?.GlobalID ?? null;
   } catch {
     return null;
@@ -180,13 +112,13 @@ async function ensureReportFeature(report: any): Promise<string | null> {
       };
     }
 
-    const result = await postFeatures(SURVEY_LAYER_ID, 'addFeatures', [feature]);
+    const result = await editSurvey(SURVEY_LAYER_ID, 'addFeatures', [feature]);
     globalId = result?.globalId ?? null;
   }
 
   if (!globalId) return null;
 
-  await prisma.report.update({
+  await dataStore.report.update({
     where: { id: report.id },
     data: { arcgisGlobalId: globalId },
   });
@@ -208,20 +140,14 @@ async function upsertMemberRow(
 
   if (evaluation.arcgisGlobalId) {
     // Re-scoring: update the existing row in place (matched by GlobalID).
-    // Updates require an API key — anonymous editing can't modify existing rows
-    // (ownership access control), so without a key we leave the original row.
-    if (!hasApiKey()) {
-      console.warn('[arcgis] re-score not synced (set ARCGIS_API_KEY to enable updates):', evaluation.id);
-      return;
-    }
     attributes.globalid = evaluation.arcgisGlobalId;
-    await postFeatures(REPEAT_TABLE_ID, 'updateFeatures', [{ attributes }], true);
+    await editSurvey(await surveyRepeatTableId(), 'updateFeatures', [{ attributes }], true);
     return;
   }
 
-  const result = await postFeatures(REPEAT_TABLE_ID, 'addFeatures', [{ attributes }]);
+  const result = await editSurvey(await surveyRepeatTableId(), 'addFeatures', [{ attributes }]);
   if (result?.globalId) {
-    await prisma.evaluation.update({
+    await dataStore.evaluation.update({
       where: { id: evaluation.id },
       data: { arcgisGlobalId: result.globalId },
     });
@@ -229,7 +155,7 @@ async function upsertMemberRow(
 }
 
 /**
- * Mirror one evaluator's submitted scores into the Survey123 service.
+ * Mirror one evaluator's submitted scores into the survey records.
  * Never throws — any failure is logged and the local evaluation is unaffected.
  */
 export async function syncEvaluationToSurvey(params: {
@@ -241,15 +167,15 @@ export async function syncEvaluationToSurvey(params: {
 
   try {
     const [report, evaluation, criteria] = await Promise.all([
-      prisma.report.findUnique({
+      dataStore.report.findUnique({
         where: { id: params.reportId },
         include: { reportType: true, senderCompany: true, location: true },
       }),
-      prisma.evaluation.findUnique({
+      dataStore.evaluation.findUnique({
         where: { id: params.evaluationId },
         include: { scores: true },
       }),
-      prisma.evaluationCriterion.findMany({
+      dataStore.evaluationCriterion.findMany({
         where: { isActive: true },
         orderBy: { sortOrder: 'asc' },
       }),

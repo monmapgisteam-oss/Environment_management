@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import dataStore from '@/lib/arcgis/data';
 import { createToken } from '@/lib/auth';
+import { verifyPassword } from '@/lib/password';
 
 // Landing page for each role after a successful login.
 const ROLE_HOME: Record<string, string> = {
@@ -12,12 +13,15 @@ const ROLE_HOME: Record<string, string> = {
 
 export async function POST(request: Request) {
   const { email, password, allowedRoles } = await request.json();
-  const user = await prisma.user.findUnique({
+  if (typeof email !== 'string' || !email.trim() || typeof password !== 'string') {
+    return NextResponse.json({ error: 'Email and password are required.' }, { status: 400 });
+  }
+  const user = await dataStore.user.findUnique({
     where: { email },
     include: { company: true },
   });
 
-  if (!user || user.password !== password) {
+  if (!user || !verifyPassword(password, user.password)) {
     return NextResponse.json({ error: 'Имэйл эсвэл нууц үг буруу.' }, { status: 401 });
   }
 

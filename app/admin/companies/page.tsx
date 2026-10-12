@@ -1,4 +1,4 @@
-import prisma from '@/lib/prisma';
+import dataStore from '@/lib/arcgis/data';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import CompaniesView, { type CompanyRow } from '@/components/CompaniesView';
@@ -9,7 +9,7 @@ import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
 
 async function fetchCompanyRows(): Promise<CompanyRow[]> {
   const [companies, rawReports, surveyReports] = await Promise.all([
-    prisma.company.findMany({
+    dataStore.company.findMany({
       orderBy: { name: 'asc' },
       include: {
         users: {
@@ -18,7 +18,7 @@ async function fetchCompanyRows(): Promise<CompanyRow[]> {
         },
       },
     }),
-    prisma.report.findMany({
+    dataStore.report.findMany({
       where: { status: { not: 'draft' }, title: { not: GENERAL_EVALUATION_CONCLUSION_TITLE } },
       include: { senderCompany: true, reportType: true, location: true },
       orderBy: { submittedAt: 'desc' },

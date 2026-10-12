@@ -1,4 +1,4 @@
-import prisma from '@/lib/prisma';
+import dataStore from '@/lib/arcgis/data';
 import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 
@@ -17,7 +17,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Зөвхөн хянах менежер хүсэлтийг шийднэ.' }, { status: 403 });
     }
 
-    await prisma.report.update({
+    await dataStore.report.update({
       where: { id: reportId },
       data: {
         status: 'in_review',

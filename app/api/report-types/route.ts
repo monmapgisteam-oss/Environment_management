@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import dataStore from '@/lib/arcgis/data';
 
 function slugify(name: string) {
   return name
@@ -20,11 +20,11 @@ export async function POST(request: Request) {
     let slug = slugify(name);
     // Guard against colliding with an existing slug (e.g. two types with
     // similar names) by appending a short suffix instead of failing.
-    if (await prisma.reportType.findUnique({ where: { slug } })) {
+    if (await dataStore.reportType.findUnique({ where: { slug } })) {
       slug = `${slug}-${Date.now().toString(36)}`;
     }
 
-    const reportType = await prisma.reportType.create({
+    const reportType = await dataStore.reportType.create({
       data: { name, slug, isActive: true },
     });
     return NextResponse.json(reportType, { status: 201 });

@@ -1,4 +1,4 @@
-import prisma from '@/lib/prisma';
+import dataStore from '@/lib/arcgis/data';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import AssignBoard from '@/components/AssignBoard';
@@ -9,14 +9,14 @@ import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
 import { uniqueAssignmentsByEvaluator } from '@/lib/reportAssignments';
 
 async function fetchReportTypes() {
-  return prisma.reportType.findMany({
+  return dataStore.reportType.findMany({
     where: { isActive: true },
     orderBy: { name: 'asc' },
   });
 }
 
 async function fetchStaff() {
-  const staff = await prisma.user.findMany({
+  const staff = await dataStore.user.findMany({
     where: { role: 'evaluator', email: { in: STAFF_EMAILS } },
     select: {
       id: true,
@@ -40,7 +40,7 @@ async function fetchStaff() {
 
 async function fetchDistributableReports() {
   const [rawReports, surveyReports] = await Promise.all([
-    prisma.report.findMany({
+    dataStore.report.findMany({
       where: {
         status: { in: ['submitted', 'assigned', 'in_review', 'needs_revision'] },
         title: { not: GENERAL_EVALUATION_CONCLUSION_TITLE },

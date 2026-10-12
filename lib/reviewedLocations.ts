@@ -1,15 +1,10 @@
-import prisma from '@/lib/prisma';
+import dataStore from '@/lib/arcgis/data';
 import type { CompanyPoint } from '@/components/CompanyMap';
-import { SURVEY_EXCLUDED_OBJECT_IDS } from '@/lib/constants';
+import { SURVEY_LAYER_ID, querySurvey } from '@/lib/arcgis/survey';
 import { fetchSurveyMapPoints } from '@/lib/surveyMapPoints';
 import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
 import { resolveReportPointLocations } from '@/lib/locationResolver';
-
-// Survey123 Layer 0 query endpoint. Used as a coordinate fallback when a
-// report's own picked location is missing.
-const SURVEY_QUERY_URL =
-  'https://services.arcgis.com/HJzgwvlNIXssnQar/arcgis/rest/services/survey123_2d1e2fe0e49a4623a57f6536b6a6f7c1/FeatureServer/0/query';
 
 type SurveyRecord = { coords?: [number, number] };
 type ReportForPoint = any & { pointScore?: number | null };
@@ -20,17 +15,14 @@ type FetchReviewedCompanyPointsOptions = {
 
 async function fetchSurveyCoordsByRegister(): Promise<Record<string, SurveyRecord>> {
   try {
-    const where = encodeURIComponent(`OBJECTID NOT IN (${SURVEY_EXCLUDED_OBJECT_IDS.join(',')})`);
-    const res = await fetch(
-      `${SURVEY_QUERY_URL}?where=${where}&outFields=Register&returnGeometry=true&f=geojson`,
-      { cache: 'no-store' },
-    );
-    const json: any = await res.json();
+    // Survey layer 0 is the coordinate fallback when a report's own picked
+    // location is missing.
+    const features = await querySurvey(SURVEY_LAYER_ID, { outFields: 'Register', returnGeometry: true });
     const map: Record<string, SurveyRecord> = {};
-    (json.features || []).forEach((f: any) => {
-      const reg = (f.properties?.Register ?? '').toString().trim();
+    features.forEach((f) => {
+      const reg = (f.attributes.Register ?? '').toString().trim();
       if (!reg) return;
-      map[reg.toUpperCase()] = { coords: f.geometry?.coordinates };
+      map[reg.toUpperCase()] = { coords: f.geometry ? [f.geometry.x, f.geometry.y] : undefined };
     });
     return map;
   } catch {
@@ -48,7 +40,7 @@ export async function fetchReviewedCompanyPoints(
 ): Promise<CompanyPoint[]> {
   const [reportRows, surveyCoords] = await Promise.all([
     options.evaluatorUserId
-      ? prisma.reportAssignment.findMany({
+      ? dataStore.reportAssignment.findMany({
           where: {
             evaluatorUserId: options.evaluatorUserId,
             report: { title: { not: GENERAL_EVALUATION_CONCLUSION_TITLE } },
@@ -61,7 +53,7 @@ export async function fetchReviewedCompanyPoints(
           },
           orderBy: { submittedAt: 'desc' },
         })
-      : prisma.report.findMany({
+      : dataStore.report.findMany({
           where: { status: { not: 'draft' }, title: { not: GENERAL_EVALUATION_CONCLUSION_TITLE } },
           include: { senderCompany: true, reportType: true, location: true },
           orderBy: { submittedAt: 'desc' },

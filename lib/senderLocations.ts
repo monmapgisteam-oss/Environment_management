@@ -1,6 +1,6 @@
-import prisma from '@/lib/prisma';
+import dataStore from '@/lib/arcgis/data';
 import type { CompanyPoint } from '@/components/CompanyMap';
-import { SURVEY_EXCLUDED_OBJECT_IDS } from '@/lib/constants';
+import { SURVEY_LAYER_ID, querySurvey } from '@/lib/arcgis/survey';
 import { fetchSurveyMapPoints } from '@/lib/surveyMapPoints';
 import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
@@ -9,22 +9,14 @@ import { resolveReportPointLocations } from '@/lib/locationResolver';
 // Same Survey123 fallback lookup as fetchReviewedCompanyPoints, kept
 // separate since this one scopes to a single sender company instead of
 // every company the review organisation has touched.
-const SURVEY_QUERY_URL =
-  'https://services.arcgis.com/HJzgwvlNIXssnQar/arcgis/rest/services/survey123_2d1e2fe0e49a4623a57f6536b6a6f7c1/FeatureServer/0/query';
-
 async function fetchSurveyCoordsByRegister(): Promise<Record<string, [number, number]>> {
   try {
-    const where = encodeURIComponent(`OBJECTID NOT IN (${SURVEY_EXCLUDED_OBJECT_IDS.join(',')})`);
-    const res = await fetch(
-      `${SURVEY_QUERY_URL}?where=${where}&outFields=Register&returnGeometry=true&f=geojson`,
-      { cache: 'no-store' },
-    );
-    const json: any = await res.json();
+    const features = await querySurvey(SURVEY_LAYER_ID, { outFields: 'Register', returnGeometry: true });
     const map: Record<string, [number, number]> = {};
-    (json.features || []).forEach((f: any) => {
-      const reg = (f.properties?.Register ?? '').toString().trim();
-      if (!reg || !f.geometry?.coordinates) return;
-      map[reg.toUpperCase()] = f.geometry.coordinates;
+    features.forEach((f) => {
+      const reg = (f.attributes.Register ?? '').toString().trim();
+      if (!reg || !f.geometry) return;
+      map[reg.toUpperCase()] = [f.geometry.x, f.geometry.y];
     });
     return map;
   } catch {
@@ -39,8 +31,8 @@ async function fetchSurveyCoordsByRegister(): Promise<Record<string, [number, nu
  */
 export async function fetchSenderCompanyPoints(companyId: string): Promise<CompanyPoint[]> {
   const [company, rawReports, surveyCoords] = await Promise.all([
-    prisma.company.findUnique({ where: { id: companyId } }),
-    prisma.report.findMany({
+    dataStore.company.findUnique({ where: { id: companyId } }),
+    dataStore.report.findMany({
       where: {
         status: { not: 'draft' },
         title: { not: GENERAL_EVALUATION_CONCLUSION_TITLE },

@@ -1,4 +1,4 @@
-import prisma from '@/lib/prisma';
+import dataStore from '@/lib/arcgis/data';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import { adminNavItems } from '@/lib/adminNav';
@@ -9,7 +9,7 @@ import { formatDate } from '@/lib/utils';
 // null and title "Санал хүсэлт", addressed to every admin, so we dedupe by
 // message+timestamp before listing it here.
 async function fetchFeedback() {
-  const rows = await prisma.notification.findMany({
+  const rows = await dataStore.notification.findMany({
     where: { reportId: null, title: 'Санал хүсэлт' },
     orderBy: { createdAt: 'desc' },
   });

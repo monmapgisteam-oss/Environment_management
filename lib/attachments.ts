@@ -13,16 +13,14 @@ export function isReportAttachment(file: Attachment): boolean {
 }
 
 // Builds a URL that forces a file download (Content-Disposition: attachment)
-// instead of opening in the browser. Supabase Storage honours the `download`
-// query param and uses its value as the saved filename, so the monitoring team
-// gets the sender's original file name. Falls back to the plain URL for any
-// non-Supabase/legacy links.
+// instead of opening in the browser. The attachment proxy uses the `download`
+// parameter as the saved filename. Preserve relative links on the current host.
 export function downloadUrl(file: Attachment): string {
   try {
     const u = new URL(file.url, 'http://localhost');
     if (u.protocol === 'http:' || u.protocol === 'https:') {
       u.searchParams.set('download', file.name || '');
-      return u.toString();
+      return file.url.startsWith('/') ? `${u.pathname}${u.search}${u.hash}` : u.toString();
     }
   } catch {
     // ignore and fall through

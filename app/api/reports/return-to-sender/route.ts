@@ -1,4 +1,4 @@
-import prisma from '@/lib/prisma';
+import dataStore from '@/lib/arcgis/data';
 import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 
@@ -17,7 +17,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Зөвхөн хянах менежер тайлан буцаана.' }, { status: 403 });
     }
 
-    const report = await prisma.report.update({
+    const report = await dataStore.report.update({
       where: { id: reportId },
       data: {
         status: 'needs_revision',
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     // Notify the sender company so they can revise and resubmit.
     const senderUsers = report.senderCompany.users;
     if (senderUsers.length > 0) {
-      await prisma.notification.createMany({
+      await dataStore.notification.createMany({
         data: senderUsers.map((u) => ({
           userId: u.id,
           reportId,

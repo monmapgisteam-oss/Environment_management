@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import { HiBriefcase, HiOfficeBuilding, HiPhone, HiShieldCheck } from 'react-icons/hi';
 import QrSignatureReveal from '@/components/QrSignatureReveal';
-import prisma from '@/lib/prisma';
+import dataStore from '@/lib/arcgis/data';
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -20,7 +20,7 @@ const SIGNATURE_BY_EMAIL: Record<string, string> = {
 };
 
 async function fetchQrProfile(id: string) {
-  return prisma.user.findFirst({
+  return dataStore.user.findFirst({
     where: {
       id,
       role: { in: ['review_manager', 'evaluator'] },

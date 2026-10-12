@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import prisma from '@/lib/prisma';
+import dataStore from '@/lib/arcgis/data';
 import ConclusionSectionPage from '@/components/ConclusionSectionPage';
 import { getCurrentUser } from '@/lib/auth';
 import { fetchConclusionRows } from '@/lib/conclusionReports';
@@ -10,7 +10,7 @@ type Props = {
 };
 
 async function fetchReportTypes() {
-  return prisma.reportType.findMany({
+  return dataStore.reportType.findMany({
     where: { isActive: true },
     orderBy: { name: 'asc' },
   });

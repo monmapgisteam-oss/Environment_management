@@ -1,4 +1,4 @@
-import prisma from '@/lib/prisma';
+import dataStore from '@/lib/arcgis/data';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import ReportTable from '@/components/ReportTable';
@@ -7,14 +7,14 @@ import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
 import { HiInbox, HiUserGroup, HiClock, HiCheckCircle } from 'react-icons/hi';
 
 async function fetchReportTypes() {
-  return prisma.reportType.findMany({
+  return dataStore.reportType.findMany({
     where: { isActive: true },
     orderBy: { name: 'asc' },
   });
 }
 
 async function fetchReviewerReports() {
-  const reports = await prisma.report.findMany({
+  const reports = await dataStore.report.findMany({
     // Drafts belong to the sender only; never surface them to the reviewer.
     where: { status: { not: 'draft' }, title: { not: GENERAL_EVALUATION_CONCLUSION_TITLE } },
     include: {

@@ -1,4 +1,4 @@
-import prisma from '@/lib/prisma';
+import dataStore from '@/lib/arcgis/data';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import CompanyMapSection from '@/components/CompanyMapSection';
@@ -12,7 +12,7 @@ import { resolveReportPointLocations } from '@/lib/locationResolver';
 async function fetchData() {
   // Every report location that actually has coordinates, with the company
   // that submitted it and its review outcome (for search/filter/score color).
-  return prisma.reportLocation.findMany({
+  return dataStore.reportLocation.findMany({
     where: {
       latitude: { not: null },
       longitude: { not: null },

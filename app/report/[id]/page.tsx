@@ -1,4 +1,4 @@
-import prisma from '@/lib/prisma';
+import dataStore from '@/lib/arcgis/data';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import StatusBadge from '@/components/StatusBadge';
@@ -8,7 +8,7 @@ import LocationMap from '@/components/LocationMapClient';
 import ScanPrintPanel from '@/components/ScanPrintPanel';
 import SignatureBadge from '@/components/SignatureBadge';
 import { parseAttachments, downloadUrl } from '@/lib/attachments';
-import { signAttachments, createSignedUrl } from '@/lib/supabase';
+import { signAttachments, createSignedUrl } from '@/lib/arcgis/storage';
 import { formatDate, formatScore } from '@/lib/utils';
 import { getCurrentUser } from '@/lib/auth';
 import { fetchSurveyReportByObjectId } from '@/lib/surveyReports';
@@ -149,7 +149,7 @@ async function SurveyReportDetail({ objectId, role }: { objectId: number; role?:
 }
 
 async function fetchReportDetail(reportId: string) {
-  const report = await prisma.report.findUnique({
+  const report = await dataStore.report.findUnique({
     where: { id: reportId },
     include: {
       reportType: true,
@@ -173,14 +173,14 @@ async function fetchReportDetail(reportId: string) {
 }
 
 async function fetchCriteria() {
-  return prisma.evaluationCriterion.findMany({
+  return dataStore.evaluationCriterion.findMany({
     where: { isActive: true },
     orderBy: { sortOrder: 'asc' },
   });
 }
 
 async function fetchReportTypes() {
-  return prisma.reportType.findMany({
+  return dataStore.reportType.findMany({
     where: { isActive: true },
     orderBy: { name: 'asc' },
   });

@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import prisma from '@/lib/prisma';
+import dataStore from '@/lib/arcgis/data';
 import { getCurrentUser } from '@/lib/auth';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
@@ -67,7 +67,7 @@ function uniqueEvaluatedAssignmentsByReport(assignments: any[]) {
 // Reports THIS staff member has already scored (their assignment has an
 // evaluation). Not the merely-assigned ones.
 async function fetchEvaluatedReports(evaluatorUserId: string) {
-  const assignments = await prisma.reportAssignment.findMany({
+  const assignments = await dataStore.reportAssignment.findMany({
     where: {
       evaluatorUserId,
       evaluation: { isNot: null },

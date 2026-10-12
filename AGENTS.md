@@ -2,18 +2,17 @@
 
 ## Project Structure & Module Organization
 
-This is a private Next.js App Router project for a report submission and evaluation system. Route pages and API handlers live under `app/`; major user areas include `app/sender`, `app/reviewer`, `app/evaluator`, `app/admin`, `app/geography`, and `app/api`. Reusable UI lives in `components/`. Shared utilities, auth, Prisma access, map helpers, constants, and clients live in `lib/`. Database schema and seed scripts are in `prisma/`. Static files belong in `public/`; local uploads under `public/uploads` are ignored.
+This is a private Next.js App Router project for a report submission and evaluation system. Route pages and API handlers live under `app/`; major user areas include `app/sender`, `app/reviewer`, `app/evaluator`, `app/admin`, `app/geography`, and `app/api`. Reusable UI lives in `components/`. Shared utilities, auth, map helpers, constants, and clients live in `lib/`. All application data is stored in a private ArcGIS Enterprise Feature Service: the data repository, schema, and transport live in `lib/arcgis/`, and provisioning scripts are in `scripts/`. Static files belong in `public/`; local uploads under `public/uploads` are ignored.
 
 ## Build, Test, and Development Commands
 
-- `npm install`: install dependencies and run `postinstall`, which generates the Prisma client.
+- `npm install`: install dependencies.
 - `npm run dev`: start the local Next.js development server.
-- `npm run build`: run `prisma generate` and create a production Next.js build.
+- `npm run build`: create a production Next.js build.
 - `npm run start`: serve the production build locally.
-- `npm run lint`: run the configured Next.js lint command.
-- `npm run prisma:generate`: regenerate Prisma client after schema changes.
-- `npm run prisma:seed`: seed the database with sample data.
-- `npx prisma migrate dev --name <change>`: create and apply a local migration.
+- `npm run lint`: type-check the project with `tsc --noEmit`.
+- `npm run arcgis:provision`: add missing application tables to the Feature Service (needs `ARCGIS_ADMIN_TOKEN`).
+- `npm run arcgis:verify`: check that the Feature Service matches `lib/arcgis/schema.json`.
 
 ## Coding Style & Naming Conventions
 
@@ -29,4 +28,4 @@ Recent commit messages are short and informal, so keep new commits concise but d
 
 ## Security & Configuration Tips
 
-Keep secrets in `.env` or `.env.local`; these files are ignored. Required local values include `DATABASE_URL` and `JWT_SECRET`. Do not commit generated build output, `node_modules`, local uploads, or database credentials. Run `npm run prisma:generate` after changing `prisma/schema.prisma`.
+Keep secrets in `.env` or `.env.local`; these files are ignored. Required local values include `JWT_SECRET`, `ARCGIS_PORTAL_URL`, `ARCGIS_DATA_SERVICE_URL`, `ARCGIS_CLIENT_ID`, `ARCGIS_CLIENT_SECRET`, and `ARCGIS_HTTP_REFERER`. Do not commit generated build output, `node_modules`, local uploads, or ArcGIS credentials. Run `npm run arcgis:provision` after changing `lib/arcgis/schema.json`.

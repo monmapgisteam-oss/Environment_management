@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import dataStore from '@/lib/arcgis/data';
 
 // Rename and/or activate-deactivate a report type. Deactivating (not
 // deleting) keeps existing reports of that type intact while hiding it from
@@ -20,7 +20,7 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
       update.isActive = data.isActive;
     }
 
-    const reportType = await prisma.reportType.update({
+    const reportType = await dataStore.reportType.update({
       where: { id: params.id },
       data: update,
     });
