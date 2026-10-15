@@ -16,10 +16,17 @@ export async function POST(request: Request) {
   if (typeof email !== 'string' || !email.trim() || typeof password !== 'string') {
     return NextResponse.json({ error: 'Email and password are required.' }, { status: 400 });
   }
-  const user = await dataStore.user.findUnique({
-    where: { email },
-    include: { company: true },
-  });
+  let user;
+  try {
+    user = await dataStore.user.findUnique({
+      where: { email },
+      include: { company: true },
+    });
+  } catch (error) {
+    // Usually a missing or wrong ARCGIS_* variable in the deployment environment.
+    console.error('[auth/login] ArcGIS user lookup failed:', error);
+    return NextResponse.json({ error: 'Login service unavailable.', detail: (error as Error).message }, { status: 503 });
+  }
 
   if (!user || !verifyPassword(password, user.password)) {
     return NextResponse.json({ error: 'Имэйл эсвэл нууц үг буруу.' }, { status: 401 });
