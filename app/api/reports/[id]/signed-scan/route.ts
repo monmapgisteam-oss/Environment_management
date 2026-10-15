@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import dataStore from '@/lib/arcgis/data';
+import dataStore from '@/lib/db';
 
 // Manager uploads the scanned, physically-signed score sheet (after printing
 // the evaluation table and getting every evaluator's signature on paper) and

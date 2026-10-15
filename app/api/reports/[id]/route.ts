@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import dataStore from '@/lib/arcgis/data';
+import dataStore from '@/lib/db';
 import { serializeDocumentAttachments, serializeReportAttachments } from '@/lib/attachments';
 import { findSenderCompanyByRegister } from '@/lib/reportCompanies';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import dataStore from '@/lib/arcgis/data';
+import dataStore from '@/lib/db';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import StatusBadge from '@/components/StatusBadge';

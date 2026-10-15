@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { SURVEY_LAYER_ID, querySurvey } from '@/lib/arcgis/survey';
+import { SURVEY_LAYER_ID, querySurvey } from '@/lib/db/survey';
 import { hasSurveySession } from '@/lib/surveySession';
 
 // Survey layer 0 as GeoJSON for browser maps and lookups.
@@ -7,14 +7,12 @@ import { hasSurveySession } from '@/lib/surveySession';
 export async function GET(request: Request) {
   if (!(await hasSurveySession())) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const params = new URL(request.url).searchParams;
-  const register = (params.get('register') || '').trim().slice(0, 100).replace(/'/g, "''");
-  const where = !register
-    ? '1=1'
-    : params.get('match') === 'contains'
-      ? `UPPER(Register) LIKE UPPER('%${register.replace(/[%_]/g, '')}%')`
-      : `UPPER(Register)=UPPER('${register}')`;
+  const register = (params.get('register') || '').trim().slice(0, 100);
+  const filter = register
+    ? { register, registerMatch: params.get('match') === 'contains' ? 'contains' as const : 'iexact' as const }
+    : undefined;
   try {
-    const features = await querySurvey(SURVEY_LAYER_ID, { where, returnGeometry: true, resultRecordCount: 2000 });
+    const features = await querySurvey(SURVEY_LAYER_ID, { filter, returnGeometry: true, resultRecordCount: 2000 });
     return NextResponse.json({
       type: 'FeatureCollection',
       features: features.map((feature) => ({

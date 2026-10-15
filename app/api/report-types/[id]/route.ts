@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import dataStore from '@/lib/arcgis/data';
+import dataStore from '@/lib/db';
 
 // Rename and/or activate-deactivate a report type. Deactivating (not
 // deleting) keeps existing reports of that type intact while hiding it from

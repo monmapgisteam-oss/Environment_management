@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-This is a private Next.js App Router project for a report submission and evaluation system. Route pages and API handlers live under `app/`; major user areas include `app/sender`, `app/reviewer`, `app/evaluator`, `app/admin`, `app/geography`, and `app/api`. Reusable UI lives in `components/`. Shared utilities, auth, map helpers, constants, and clients live in `lib/`. All application data is stored in a private ArcGIS Enterprise Feature Service: the data repository, schema, and transport live in `lib/arcgis/`, and provisioning scripts are in `scripts/`. Static files belong in `public/`; local uploads under `public/uploads` are ignored.
+This is a private Next.js App Router project for a report submission and evaluation system. Route pages and API handlers live under `app/`; major user areas include `app/sender`, `app/reviewer`, `app/evaluator`, `app/admin`, `app/geography`, and `app/api`. Reusable UI lives in `components/`. Shared utilities, auth, map helpers, constants, and clients live in `lib/`. All application data and files are stored in Convex: server-only functions and the repository engine live in `convex/`, the data client, schema, and storage helpers in `lib/db/`, and the one-time ArcGIS migration script in `scripts/`. Static files belong in `public/`; local uploads under `public/uploads` are ignored.
 
 ## Build, Test, and Development Commands
 
@@ -11,8 +11,9 @@ This is a private Next.js App Router project for a report submission and evaluat
 - `npm run build`: create a production Next.js build.
 - `npm run start`: serve the production build locally.
 - `npm run lint`: type-check the project with `tsc --noEmit`.
-- `npm run arcgis:provision`: add missing application tables to the Feature Service (needs `ARCGIS_ADMIN_TOKEN`).
-- `npm run arcgis:verify`: check that the Feature Service matches `lib/arcgis/schema.json`.
+- `npm test`: run the repository engine tests in `tests/`.
+- `npm run convex:dev`: push Convex functions and schema to the dev deployment and watch for changes.
+- `npm run convex:deploy`: push Convex functions and schema to the production deployment.
 
 ## Coding Style & Naming Conventions
 
@@ -28,4 +29,4 @@ Recent commit messages are short and informal, so keep new commits concise but d
 
 ## Security & Configuration Tips
 
-Keep secrets in `.env` or `.env.local`; these files are ignored. Required local values include `JWT_SECRET`, `ARCGIS_PORTAL_URL`, `ARCGIS_DATA_SERVICE_URL`, `ARCGIS_CLIENT_ID`, `ARCGIS_CLIENT_SECRET`, and `ARCGIS_HTTP_REFERER`. Do not commit generated build output, `node_modules`, local uploads, or ArcGIS credentials. Run `npm run arcgis:provision` after changing `lib/arcgis/schema.json`.
+Keep secrets in `.env` or `.env.local`; these files are ignored. Required local values include `JWT_SECRET`, `CONVEX_DEPLOYMENT`, `CONVEX_URL`, and `CONVEX_SERVER_SECRET` (also set on the Convex deployment with `npx convex env set`). Do not commit generated build output, `node_modules`, local uploads, or secrets. After changing `lib/db/schema.json`, update `lib/db/models.ts` and run `npx convex dev --once`.

@@ -1,4 +1,4 @@
-import dataStore from '@/lib/arcgis/data';
+import dataStore from '@/lib/db';
 import ConclusionSectionPage from '@/components/ConclusionSectionPage';
 import { fetchConclusionRows } from '@/lib/conclusionReports';
 import type { ConclusionSearchParams } from '@/lib/conclusions';

@@ -1,7 +1,7 @@
-import dataStore from '@/lib/arcgis/data';
+import dataStore from '@/lib/db';
 import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
-import { syncEvaluationToSurvey } from '@/lib/arcgis';
+import { syncEvaluationToSurvey } from '@/lib/surveySync';
 import { computeDocumentHash, generateSignatureId, hashPin, verifyPin } from '@/lib/signature';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
 import { uniqueAssignmentsByEvaluator } from '@/lib/reportAssignments';

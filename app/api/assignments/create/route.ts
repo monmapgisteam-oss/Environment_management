@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-import dataStore from "@/lib/arcgis/data";
+import dataStore from "@/lib/db";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { materializeSurveyReportByObjectId } from "@/lib/surveyReports";

@@ -1,4 +1,4 @@
-import dataStore from '@/lib/arcgis/data';
+import dataStore from '@/lib/db';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import CompaniesView, { type CompanyRow } from '@/components/CompaniesView';

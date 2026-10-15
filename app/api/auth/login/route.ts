@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import dataStore from '@/lib/arcgis/data';
+import dataStore from '@/lib/db';
 import { createToken } from '@/lib/auth';
 import { verifyPassword } from '@/lib/password';
 
@@ -23,11 +23,9 @@ export async function POST(request: Request) {
       include: { company: true },
     });
   } catch (error) {
-    // Usually a missing or wrong ARCGIS_* variable in the deployment environment.
-    console.error('[auth/login] ArcGIS user lookup failed:', error);
-    const cause = (error as { cause?: { code?: string; message?: string } }).cause;
-    const detail = [(error as Error).message, cause?.code, cause?.message].filter(Boolean).join(' | ');
-    return NextResponse.json({ error: 'Login service unavailable.', detail }, { status: 503 });
+    // Usually a missing CONVEX_URL or CONVEX_SERVER_SECRET in the deployment.
+    console.error('[auth/login] user lookup failed:', error);
+    return NextResponse.json({ error: 'Login service unavailable.' }, { status: 503 });
   }
 
   if (!user || !verifyPassword(password, user.password)) {

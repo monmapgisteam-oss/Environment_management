@@ -1,4 +1,4 @@
-import dataStore from '@/lib/arcgis/data';
+import dataStore from '@/lib/db';
 import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 

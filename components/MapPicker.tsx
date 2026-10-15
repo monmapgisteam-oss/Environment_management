@@ -15,7 +15,7 @@ interface MapPickerProps {
   showSurveyLayer?: boolean;
 }
 
-// Survey layer points (served by the app from the private ArcGIS service)
+// Survey layer points (served by the app from Convex)
 // shown as a toggleable overlay of existing surveyed report locations.
 const SURVEY_LAYER_URL = '/api/survey/features';
 

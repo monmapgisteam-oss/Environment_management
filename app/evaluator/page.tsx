@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import dataStore from '@/lib/arcgis/data';
+import dataStore from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';

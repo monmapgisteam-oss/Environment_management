@@ -7,7 +7,7 @@ Official report submission and evaluation system for managing reports, reviews, 
 - **Framework:** Next.js 16 with App Router
 - **Language:** TypeScript
 - **Styling:** Tailwind CSS
-- **Data and files:** Private ArcGIS Feature Service and attachments
+- **Data and files:** Convex (database and file storage), accessed only from the server
 - **Authentication:** JWT with session cookies
 
 ## Features
@@ -30,39 +30,37 @@ Official report submission and evaluation system for managing reports, reviews, 
 
 ## Setup
 
-Use Node.js 20.12 or newer. Install with `npm install`, then follow [SETUP.md](SETUP.md) to create a private ArcGIS service and its empty tables. PostgreSQL and Supabase are no longer runtime dependencies.
+Use Node.js 20.12 or newer. Install with `npm install`, then follow [SETUP.md](SETUP.md) to link a Convex deployment and copy the data from ArcGIS.
 
 ```bash
-npm run arcgis:create     # create private service and empty application schema
-npm run arcgis:bootstrap  # optional: create the first administrator
+npx convex dev --once       # link the deployment and push functions and schema
+npm run migrate:arcgis      # one time: copy ArcGIS data into an empty deployment
 npm run dev
 ```
 
-There are no demo accounts or imported records. Configure the bootstrap account in your local environment before running its command.
-
 ## Data flow
 
-Every application page and API reads/writes through `lib/arcgis/data.ts`. The repository uses ArcGIS REST queries and service-level `applyEdits`, including nested writes with rollback. `lib/arcgis/schema.json` defines the fields and relationships; no Prisma client is loaded.
+Every application page and API reads/writes through `lib/db` (a Prisma-style repository). Queries run inside Convex (`convex/engine.ts`), so each write, including nested writes, is a single transaction. `lib/db/schema.json` defines the fields and relationships.
 
-The private service contains a locations point layer, ten application tables, and an uploads table with attachments. Keeping locations separate preserves the application's existing record structure. User passwords are salted scrypt hashes. The service credential stays on the server; file viewers receive expiring application links.
+Convex functions are called only by the Next.js server and check `CONVEX_SERVER_SECRET`. User passwords are salted scrypt hashes; sessions are JWT cookies. Uploaded files live in Convex storage, and file viewers receive expiring application links.
 
-Survey records (layer 0 and the `repeat_1` table) live in the same private service and use the same credential. No data is read from other ArcGIS services.
+Survey123 records (layer 0 features and layer 1 evaluator rows) and their photos were copied from ArcGIS into Convex. New Survey123 field-app submissions no longer reach the app.
 
 ## Validation
 
 ```bash
 npm run lint          # TypeScript validation; replaces the removed next lint command
-npm test              # repository, storage, authentication, and schema tests
+npm test              # repository engine tests
 npm run build
-npm run arcgis:verify # live service schema and privacy checks
 ```
 
 ## Project structure
 
 - `app/`: role pages and API handlers
 - `components/`: reusable UI
-- `lib/arcgis/`: data repository, record types, schema, transport, and attachment storage
-- `scripts/arcgis.cjs`: service creation, provisioning, verification, and first-account setup
+- `convex/`: Convex schema, repository engine, and server-only functions
+- `lib/db/`: data repository client, record types, schema, file storage, and survey records
+- `scripts/migrate-arcgis-to-convex.mjs`: one-time ArcGIS to Convex data copy
 
 ## UI Design
 

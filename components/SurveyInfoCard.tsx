@@ -1,4 +1,4 @@
-import type { SurveyInfo } from '@/lib/arcgis';
+import type { SurveyInfo } from '@/lib/surveySync';
 import { formatDate } from '@/lib/utils';
 
 // The company's own Survey123 submission, matched by register number.

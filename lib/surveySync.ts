@@ -1,5 +1,5 @@
-import dataStore from '@/lib/arcgis/data';
-import { SURVEY_LAYER_ID, editSurvey, querySurvey, surveyRepeatTableId } from '@/lib/arcgis/survey';
+import dataStore from '@/lib/db';
+import { SURVEY_LAYER_ID, SURVEY_REPEAT_LAYER_ID, addSurveyRecord, querySurvey, updateSurveyRecord } from '@/lib/db/survey';
 import { fetchSurveyPhotoMap, type SurveyPhoto } from '@/lib/surveyPhotos';
 import { normalizeSurveyReportType } from '@/lib/surveyReportType';
 
@@ -7,16 +7,15 @@ import { normalizeSurveyReportType } from '@/lib/surveyReportType';
 // Survey write-back integration.
 //
 // When an evaluator submits their scores, we mirror the result into the
-// survey records of the private application Feature Service:
-//   * Layer 0 ("Tailan")              – one feature per report (organisation + report info)
-//   * Table "repeat_1"                – one row per evaluator (Member_name + Q1..Q8)
+// survey records stored in Convex:
+//   * Layer 0                         – one feature per report (organisation + report info)
+//   * Layer 1 (formerly repeat_1)     – one row per evaluator (Member_name + Q1..Q8)
 //
-// Requests use the same server-side application credential as the data layer.
-// Set ARCGIS_SYNC_DISABLED=true to turn the integration off entirely.
+// Set SURVEY_SYNC_DISABLED=true to turn the integration off entirely.
 // ---------------------------------------------------------------------------
 
-export function arcgisEnabled(): boolean {
-  return process.env.ARCGIS_SYNC_DISABLED?.trim().toLowerCase() !== 'true';
+export function surveySyncEnabled(): boolean {
+  return process.env.SURVEY_SYNC_DISABLED?.trim().toLowerCase() !== 'true';
 }
 
 function epoch(d: Date | null | undefined): number | null {
@@ -41,8 +40,7 @@ export async function fetchSurveyInfoByRegister(register: string): Promise<Surve
   const reg = (register || '').trim();
   if (!reg) return null;
   try {
-    const safe = reg.replace(/'/g, "''");
-    const [feature] = await querySurvey(SURVEY_LAYER_ID, { where: `UPPER(Register)=UPPER('${safe}')` });
+    const [feature] = await querySurvey(SURVEY_LAYER_ID, { filter: { register: reg, registerMatch: 'iexact' } });
     const attrs = feature?.attributes;
     if (!attrs) return null;
     const objectId = attrs.objectid ?? attrs.OBJECTID;
@@ -71,8 +69,7 @@ async function findReportFeatureByRegister(register: string): Promise<string | n
   if (!register) return null;
   try {
     const [feature] = await querySurvey(SURVEY_LAYER_ID, {
-      where: `Register='${register.replace(/'/g, "''")}'`,
-      outFields: 'globalid',
+      filter: { register, registerMatch: 'exact' },
     });
     const attrs = feature?.attributes;
     return attrs?.globalid ?? attrs?.GlobalID ?? null;
@@ -103,17 +100,12 @@ async function ensureReportFeature(report: any): Promise<string | null> {
       Description: report.description ?? null,
     };
 
-    const feature: any = { attributes };
-    if (report.location?.latitude != null && report.location?.longitude != null) {
-      feature.geometry = {
-        x: report.location.longitude,
-        y: report.location.latitude,
-        spatialReference: { wkid: 4326 },
-      };
-    }
+    const geometry = report.location?.latitude != null && report.location?.longitude != null
+      ? { x: report.location.longitude, y: report.location.latitude }
+      : null;
 
-    const result = await editSurvey(SURVEY_LAYER_ID, 'addFeatures', [feature]);
-    globalId = result?.globalId ?? null;
+    const result = await addSurveyRecord(SURVEY_LAYER_ID, attributes, geometry);
+    globalId = result.globalId;
   }
 
   if (!globalId) return null;
@@ -140,13 +132,12 @@ async function upsertMemberRow(
 
   if (evaluation.arcgisGlobalId) {
     // Re-scoring: update the existing row in place (matched by GlobalID).
-    attributes.globalid = evaluation.arcgisGlobalId;
-    await editSurvey(await surveyRepeatTableId(), 'updateFeatures', [{ attributes }], true);
+    await updateSurveyRecord(SURVEY_REPEAT_LAYER_ID, evaluation.arcgisGlobalId, attributes);
     return;
   }
 
-  const result = await editSurvey(await surveyRepeatTableId(), 'addFeatures', [{ attributes }]);
-  if (result?.globalId) {
+  const result = await addSurveyRecord(SURVEY_REPEAT_LAYER_ID, attributes);
+  if (result.globalId) {
     await dataStore.evaluation.update({
       where: { id: evaluation.id },
       data: { arcgisGlobalId: result.globalId },
@@ -163,7 +154,7 @@ export async function syncEvaluationToSurvey(params: {
   evaluationId: string;
   evaluatorName: string;
 }): Promise<void> {
-  if (!arcgisEnabled()) return;
+  if (!surveySyncEnabled()) return;
 
   try {
     const [report, evaluation, criteria] = await Promise.all([
@@ -199,6 +190,6 @@ export async function syncEvaluationToSurvey(params: {
 
     await upsertMemberRow(parentGlobalId, evaluation, params.evaluatorName, qScores);
   } catch (err) {
-    console.error('[arcgis] syncEvaluationToSurvey failed:', err);
+    console.error('[survey] syncEvaluationToSurvey failed:', err);
   }
 }

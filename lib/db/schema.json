@@ -1,6 +1,6 @@
 {
   "company": {
-    "name": "tailan_company",
+    "name": "company",
     "fields": {
       "id": {
         "type": "string",
@@ -56,11 +56,10 @@
         "local": "id",
         "foreign": "senderCompanyId"
       }
-    },
-    "spatial": false
+    }
   },
   "user": {
-    "name": "tailan_user",
+    "name": "user",
     "fields": {
       "id": {
         "type": "string",
@@ -163,11 +162,10 @@
         "local": "id",
         "foreign": "userId"
       }
-    },
-    "spatial": false
+    }
   },
   "reportType": {
-    "name": "tailan_reportType",
+    "name": "reportType",
     "fields": {
       "id": {
         "type": "string",
@@ -211,11 +209,10 @@
         "local": "id",
         "foreign": "reportTypeId"
       }
-    },
-    "spatial": false
+    }
   },
   "report": {
-    "name": "tailan_report",
+    "name": "report",
     "fields": {
       "id": {
         "type": "string",
@@ -400,11 +397,10 @@
         "local": "id",
         "foreign": "reportId"
       }
-    },
-    "spatial": false
+    }
   },
   "reportLocation": {
-    "name": "tailan_reportLocation",
+    "name": "reportLocation",
     "fields": {
       "id": {
         "type": "string",
@@ -476,11 +472,10 @@
         "local": "reportId",
         "foreign": "id"
       }
-    },
-    "spatial": true
+    }
   },
   "evaluationCriterion": {
-    "name": "tailan_evaluationCriterion",
+    "name": "evaluationCriterion",
     "fields": {
       "id": {
         "type": "string",
@@ -526,11 +521,10 @@
         "local": "id",
         "foreign": "criterionId"
       }
-    },
-    "spatial": false
+    }
   },
   "reportAssignment": {
-    "name": "tailan_reportAssignment",
+    "name": "reportAssignment",
     "fields": {
       "id": {
         "type": "string",
@@ -607,11 +601,10 @@
         "local": "id",
         "foreign": "assignmentId"
       }
-    },
-    "spatial": false
+    }
   },
   "evaluation": {
-    "name": "tailan_evaluation",
+    "name": "evaluation",
     "fields": {
       "id": {
         "type": "string",
@@ -719,11 +712,10 @@
         "local": "id",
         "foreign": "evaluationId"
       }
-    },
-    "spatial": false
+    }
   },
   "evaluationScore": {
-    "name": "tailan_evaluationScore",
+    "name": "evaluationScore",
     "fields": {
       "id": {
         "type": "string",
@@ -762,11 +754,10 @@
         "local": "criterionId",
         "foreign": "id"
       }
-    },
-    "spatial": false
+    }
   },
   "notification": {
-    "name": "tailan_notification",
+    "name": "notification",
     "fields": {
       "id": {
         "type": "string",
@@ -821,11 +812,10 @@
         "local": "reportId",
         "foreign": "id"
       }
-    },
-    "spatial": false
+    }
   },
   "activityLog": {
-    "name": "tailan_activityLog",
+    "name": "activityLog",
     "fields": {
       "id": {
         "type": "string",
@@ -875,11 +865,10 @@
         "local": "reportId",
         "foreign": "id"
       }
-    },
-    "spatial": false
+    }
   },
   "upload": {
-    "name": "tailan_upload",
+    "name": "upload",
     "fields": {
       "id": {
         "type": "string",
@@ -902,10 +891,13 @@
         "type": "date",
         "nullable": false,
         "default": "now"
+      },
+      "storageId": {
+        "type": "string",
+        "nullable": true
       }
     },
     "relations": {},
-    "spatial": false,
     "attachments": true
   }
 }

@@ -1,4 +1,4 @@
-import dataStore from '@/lib/arcgis/data';
+import dataStore from '@/lib/db';
 
 type CompanyIdentity = {
   id: string;

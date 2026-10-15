@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import dataStore from '@/lib/arcgis/data';
+import dataStore from '@/lib/db';
 import ConclusionSectionPage from '@/components/ConclusionSectionPage';
 import { getCurrentUser } from '@/lib/auth';
 import { fetchConclusionRows } from '@/lib/conclusionReports';

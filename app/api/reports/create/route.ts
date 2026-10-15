@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import dataStore from '@/lib/arcgis/data';
+import dataStore from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
 import { serializeDocumentAttachments, serializeReportAttachments } from '@/lib/attachments';
 import { resolveReportSenderCompany } from '@/lib/reportCompanies';

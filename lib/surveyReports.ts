@@ -1,9 +1,9 @@
-import dataStore from '@/lib/arcgis/data';
+import dataStore from '@/lib/db';
 import { fetchSurveyPhotoMap, type SurveyPhoto } from '@/lib/surveyPhotos';
 import { findSenderCompanyByRegister, normalizeRegister } from '@/lib/reportCompanies';
 import { normalizeSurveyReportType } from '@/lib/surveyReportType';
 
-import { SURVEY_LAYER_ID, querySurvey } from '@/lib/arcgis/survey';
+import { SURVEY_LAYER_ID, querySurvey } from '@/lib/db/survey';
 
 type RawSurveyFeature = {
   attributes?: Record<string, any>;
@@ -170,7 +170,7 @@ export async function fetchSurveyReportByObjectId(objectId: number): Promise<Sur
   try {
     if (!Number.isInteger(objectId)) return null;
     const [feature] = await querySurvey(SURVEY_LAYER_ID, {
-      where: `objectid=${objectId}`,
+      filter: { objectIds: [objectId] },
       returnGeometry: true,
     });
     if (!feature) return null;

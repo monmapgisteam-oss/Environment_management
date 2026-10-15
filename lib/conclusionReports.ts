@@ -1,4 +1,4 @@
-import dataStore from '@/lib/arcgis/data';
+import dataStore from '@/lib/db';
 import { isDocumentAttachment, parseAttachments } from '@/lib/attachments';
 import {
   CONCLUSION_TYPES,
@@ -7,7 +7,7 @@ import {
   type ConclusionSearchParams,
 } from '@/lib/conclusions';
 import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
-import { signAttachments } from '@/lib/arcgis/storage';
+import { signAttachments } from '@/lib/db/storage';
 
 export async function fetchConclusionRows(search: ConclusionSearchParams = {}) {
   const reports = await dataStore.report.findMany({

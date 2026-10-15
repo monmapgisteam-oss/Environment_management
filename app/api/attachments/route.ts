@@ -1,4 +1,4 @@
-import { fetchAttachment, verifyAttachmentToken } from '@/lib/arcgis/storage';
+import { fetchAttachment, verifyAttachmentToken } from '@/lib/db/storage';
 
 export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;

@@ -1,5 +1,5 @@
 import type { CompanyPoint } from '@/components/CompanyMap';
-import { SURVEY_LAYER_ID, querySurvey } from '@/lib/arcgis/survey';
+import { SURVEY_LAYER_ID, querySurvey } from '@/lib/db/survey';
 import { fetchSurveyPhotoMap } from '@/lib/surveyPhotos';
 import { normalizeSurveyReportType } from '@/lib/surveyReportType';
 

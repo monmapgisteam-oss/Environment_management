@@ -1,4 +1,4 @@
-import dataStore from '@/lib/arcgis/data';
+import dataStore from '@/lib/db';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import StatusBadge from '@/components/StatusBadge';
@@ -8,7 +8,7 @@ import LocationMap from '@/components/LocationMapClient';
 import ScanPrintPanel from '@/components/ScanPrintPanel';
 import SignatureBadge from '@/components/SignatureBadge';
 import { parseAttachments, downloadUrl } from '@/lib/attachments';
-import { signAttachments, createSignedUrl } from '@/lib/arcgis/storage';
+import { signAttachments, createSignedUrl } from '@/lib/db/storage';
 import { formatDate, formatScore } from '@/lib/utils';
 import { getCurrentUser } from '@/lib/auth';
 import { fetchSurveyReportByObjectId } from '@/lib/surveyReports';

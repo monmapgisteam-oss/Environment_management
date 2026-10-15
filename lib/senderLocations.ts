@@ -1,6 +1,6 @@
-import dataStore from '@/lib/arcgis/data';
+import dataStore from '@/lib/db';
 import type { CompanyPoint } from '@/components/CompanyMap';
-import { SURVEY_LAYER_ID, querySurvey } from '@/lib/arcgis/survey';
+import { SURVEY_LAYER_ID, querySurvey } from '@/lib/db/survey';
 import { fetchSurveyMapPoints } from '@/lib/surveyMapPoints';
 import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
@@ -11,7 +11,7 @@ import { resolveReportPointLocations } from '@/lib/locationResolver';
 // every company the review organisation has touched.
 async function fetchSurveyCoordsByRegister(): Promise<Record<string, [number, number]>> {
   try {
-    const features = await querySurvey(SURVEY_LAYER_ID, { outFields: 'Register', returnGeometry: true });
+    const features = await querySurvey(SURVEY_LAYER_ID, { returnGeometry: true });
     const map: Record<string, [number, number]> = {};
     features.forEach((f) => {
       const reg = (f.attributes.Register ?? '').toString().trim();

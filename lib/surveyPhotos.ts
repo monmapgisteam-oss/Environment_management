@@ -2,9 +2,9 @@ import {
   SURVEY_LAYER_ID,
   querySurvey,
   querySurveyAttachments,
+  SURVEY_REPEAT_LAYER_ID,
   surveyAttachmentUrl,
-  surveyRepeatTableId,
-} from '@/lib/arcgis/survey';
+} from '@/lib/db/survey';
 
 export type SurveyPhoto = {
   src: string;
@@ -75,8 +75,7 @@ async function fetchRepeatParents(surveyObjectIds: number[]): Promise<Map<number
     chunk(surveyObjectIds, 100).map(async (ids) => {
       try {
         const parents = await querySurvey(SURVEY_LAYER_ID, {
-          where: `objectid IN (${ids.join(',')})`,
-          outFields: 'objectid,globalid',
+          filter: { objectIds: ids },
         });
         const surveyByGlobalId = new Map(
           parents
@@ -84,10 +83,8 @@ async function fetchRepeatParents(surveyObjectIds: number[]): Promise<Map<number
             .map((feature) => [String(feature.attributes.globalid).toLowerCase(), feature.attributes.objectid as number]),
         );
         if (surveyByGlobalId.size === 0) return;
-        const globalIds = Array.from(surveyByGlobalId.keys()).map((id) => `'${id.replace(/[^0-9a-f{}-]/gi, '')}'`);
-        const rows = await querySurvey(await surveyRepeatTableId(), {
-          where: `parentglobalid IN (${globalIds.join(',')})`,
-          outFields: 'objectid,parentglobalid',
+        const rows = await querySurvey(SURVEY_REPEAT_LAYER_ID, {
+          filter: { parentGlobalIds: Array.from(surveyByGlobalId.keys()) },
         });
         rows.forEach((row) => {
           const surveyObjectId = surveyByGlobalId.get(String(row.attributes.parentglobalid || '').toLowerCase());
@@ -111,7 +108,7 @@ export async function fetchSurveyPhotoMap(surveyObjectIds: number[]): Promise<Ma
     fetchRepeatParents(uniqueObjectIds),
   ]);
   const repeatPhotos = await fetchLayerAttachments(
-    await surveyRepeatTableId().catch(() => -1),
+    SURVEY_REPEAT_LAYER_ID,
     Array.from(repeatParents.keys()),
     (repeatObjectId) => repeatParents.get(repeatObjectId),
   );

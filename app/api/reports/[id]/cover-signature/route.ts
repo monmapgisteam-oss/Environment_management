@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
-import dataStore from '@/lib/arcgis/data';
+import dataStore from '@/lib/db';
 import { hashPin, verifyPin } from '@/lib/signature';
 
 const KNOWN_SIGNATURES: Record<string, string> = {

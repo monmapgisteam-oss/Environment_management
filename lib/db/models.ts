@@ -1,4 +1,4 @@
-// Application records stored in the ArcGIS feature service. IDs survive migration.
+// Application records stored in Convex. IDs survive migration from ArcGIS.
 export type Company = {
   id: string;
   name: string;
@@ -140,7 +140,7 @@ export type ActivityLog = {
   createdAt: Date;
 };
 
-export type Upload = { id: string; ownerUserId: string; name: string; createdAt: Date };
+export type Upload = { id: string; ownerUserId: string; name: string; storageId: string | null; createdAt: Date };
 
 export type Models = {
   company: Company;

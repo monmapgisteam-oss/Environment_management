@@ -1,7 +1,7 @@
 import Header from '@/components/Header';
 import ReportCoverTemplate from '@/components/ReportCoverTemplate';
 import Sidebar from '@/components/Sidebar';
-import dataStore from '@/lib/arcgis/data';
+import dataStore from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
 import { createQrImageUrl, getPublicProfileQrUrl } from '@/lib/profileQr';
 import { formatDate, formatScore } from '@/lib/utils';

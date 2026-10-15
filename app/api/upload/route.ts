@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
-import { uploadAttachment } from '@/lib/arcgis/storage';
+import { uploadAttachment } from '@/lib/db/storage';
 import { getCurrentUser } from '@/lib/auth';
 
-// Files and upload ownership records both live in the private feature service.
+// Files live in Convex storage; upload ownership records in the upload table.
 export async function POST(request: Request) {
   try {
     const current = await getCurrentUser();
