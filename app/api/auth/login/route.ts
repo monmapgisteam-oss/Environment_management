@@ -25,7 +25,9 @@ export async function POST(request: Request) {
   } catch (error) {
     // Usually a missing or wrong ARCGIS_* variable in the deployment environment.
     console.error('[auth/login] ArcGIS user lookup failed:', error);
-    return NextResponse.json({ error: 'Login service unavailable.', detail: (error as Error).message }, { status: 503 });
+    const cause = (error as { cause?: { code?: string; message?: string } }).cause;
+    const detail = [(error as Error).message, cause?.code, cause?.message].filter(Boolean).join(' | ');
+    return NextResponse.json({ error: 'Login service unavailable.', detail }, { status: 503 });
   }
 
   if (!user || !verifyPassword(password, user.password)) {
