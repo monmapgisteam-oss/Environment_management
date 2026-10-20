@@ -56,11 +56,16 @@ npm run build
 
 ## Project structure
 
-- `app/`: role pages and API handlers
-- `components/`: reusable UI
-- `convex/`: Convex schema, repository engine, and server-only functions
-- `lib/db/`: data repository client, record types, schema, file storage, and survey records
-- `scripts/migrate-arcgis-to-convex.mjs`: one-time ArcGIS to Convex data copy
+- `app/`: pages and API handlers. Each portal (`admin`, `reviewer`, `evaluator`, `sender`) and the shared `report` and `profile` areas have a `layout.tsx` that checks the user's role and renders the sidebar and header (`components/layout/AppShell.tsx`). Pages render only their `<main>` content.
+- `proxy.ts`: redirects requests without a valid session away from the portals before they render.
+- `components/`: UI grouped by feature: `layout`, `ui`, `auth`, `reports`, `evaluation`, `submit`, `map`, `survey`, `conclusions`, `signature`, `admin`.
+- `lib/auth/`: session tokens (`session.ts`), `getCurrentUser`, `requireUser` for pages, `getApiUser` for API routes, and report access checks.
+- `lib/nav.ts`: sidebar menus for every portal.
+- `lib/reports/`, `lib/map/`, `lib/survey/`: domain helpers.
+- `lib/db/`: data repository client, record types, schema, file storage, and survey records.
+- `convex/`: Convex schema, repository engine, and server-only functions.
+- `scripts/migrate-arcgis-to-convex.mjs`: one-time ArcGIS to Convex data copy.
+- `tests/`: Node test runner tests (`npm test`).
 
 ## UI Design
 
