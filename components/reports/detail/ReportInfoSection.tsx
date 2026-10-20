@@ -45,7 +45,9 @@ export default function ReportInfoSection({ report, isConclusion, isSenderView }
         <div>
           <p className="text-slate-500 text-xs">{isConclusion ? 'Дүгнэлтийн төрөл' : 'Тайлангийн төрөл'}</p>
           <p className="font-medium text-slate-800 mt-0.5">
-            {isConclusion ? GENERAL_EVALUATION_CONCLUSION_TITLE : report.reportType.name}
+            {isConclusion
+              ? GENERAL_EVALUATION_CONCLUSION_TITLE
+              : [report.reportType.name, report.reportCategory].filter(Boolean).join(' · ')}
           </p>
         </div>
         <div>

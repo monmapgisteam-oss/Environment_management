@@ -33,6 +33,15 @@ export const REPORT_TYPES = [
   { id: 'type-5', name: 'Нэмэлт мэдээ' },
 ];
 
+// Sector of the project a plan or performance report covers. The sender picks
+// one when submitting; it is stored on the report as `reportCategory`.
+export const REPORT_CATEGORIES = [
+  'Уул уурхай, газрын тос',
+  'Дэд бүтэц, барилга, ШТС',
+  'Аялал жуулчлал, үйлчилгээ',
+  'Үйлдвэрлэл',
+];
+
 export const PROVINCES = [
   'Улаанбаатар',
   'Дархан-Уул',

@@ -4,6 +4,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { serializeDocumentAttachments, serializeReportAttachments } from '@/lib/reports/attachments';
 import { resolveReportSenderCompany } from '@/lib/reports/companies';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
+import { REPORT_CATEGORIES } from '@/lib/constants';
 
 export async function POST(request: Request) {
   try {
@@ -54,6 +55,7 @@ export async function POST(request: Request) {
           data.attachmentKind === 'document'
             ? serializeDocumentAttachments(data.fileUrl)
             : serializeReportAttachments(data.fileUrl),
+        reportCategory: REPORT_CATEGORIES.includes(data.reportCategory) ? data.reportCategory : null,
         implementerName: data.implementerName || null,
         implementerRegister: data.implementerRegister?.trim() || null,
         approvedDate: data.approvedDate ? new Date(data.approvedDate) : null,

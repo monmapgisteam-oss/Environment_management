@@ -4,6 +4,7 @@ import { canAccessReport, getApiUser, unauthorized } from '@/lib/auth';
 import { serializeDocumentAttachments, serializeReportAttachments } from '@/lib/reports/attachments';
 import { findSenderCompanyByRegister } from '@/lib/reports/companies';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
+import { REPORT_CATEGORIES } from '@/lib/constants';
 
 // Returns a single report with everything the sender's edit form needs to
 // pre-fill (type, location, attachments).
@@ -73,6 +74,7 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
           data.attachmentKind === 'document'
             ? serializeDocumentAttachments(data.fileUrl)
             : serializeReportAttachments(data.fileUrl),
+        reportCategory: REPORT_CATEGORIES.includes(data.reportCategory) ? data.reportCategory : null,
         implementerName: data.implementerName || null,
         implementerRegister: data.implementerRegister?.trim() || null,
         approvedDate: data.approvedDate ? new Date(data.approvedDate) : null,

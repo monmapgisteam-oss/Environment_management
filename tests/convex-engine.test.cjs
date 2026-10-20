@@ -68,3 +68,14 @@ test('ordering, pagination, _count and nested writes', async () => {
   assert.equal(updated.status, 'submitted');
   await assert.rejects(write(store, 'report', 'update', { where: { title: 'R' }, data: {} }, uuid), /unique key/);
 });
+
+test('report category accepts only the listed sectors', async () => {
+  const { store, company } = await seed();
+  const type = await write(store, 'reportType', 'create', { data: { name: 'T', slug: 't' } }, uuid);
+  const base = { reportTypeId: type.id, senderCompanyId: company.id, title: 'R', year: 2026 };
+  const report = await write(store, 'report', 'create', { data: { ...base, reportNumber: 'N1', reportCategory: 'Үйлдвэрлэл' } }, uuid);
+  assert.equal(report.reportCategory, 'Үйлдвэрлэл');
+  const withoutCategory = await write(store, 'report', 'create', { data: { ...base, reportNumber: 'N2' } }, uuid);
+  assert.equal(withoutCategory.reportCategory, null);
+  await assert.rejects(write(store, 'report', 'create', { data: { ...base, reportNumber: 'N3', reportCategory: 'Other' } }, uuid));
+});

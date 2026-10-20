@@ -35,6 +35,7 @@ export type Report = {
   id: string;
   reportNumber: string;
   reportTypeId: string;
+  reportCategory: string | null;
   senderCompanyId: string;
   title: string;
   description: string | null;

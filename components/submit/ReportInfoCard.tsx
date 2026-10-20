@@ -1,5 +1,7 @@
+import { REPORT_CATEGORIES } from '@/lib/constants';
+
 type ReportInfoFields = {
-  reportType: string;
+  reportCategory: string;
   reportNumber: string;
   title: string;
   implementerName: string;
@@ -11,12 +13,11 @@ type ReportInfoFields = {
 interface ReportInfoCardProps {
   formData: ReportInfoFields;
   handleChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void;
-  lockedType?: string;
 }
 
 const inputClass = 'w-full h-11 rounded-xl border border-[#D9E4F0] bg-white px-4 text-sm text-color-text-main placeholder:text-color-text-muted focus:outline-none focus:border-color-primary focus:ring-2 focus:ring-color-primary/10 transition';
 
-export default function ReportInfoCard({ formData, handleChange, lockedType }: ReportInfoCardProps) {
+export default function ReportInfoCard({ formData, handleChange }: ReportInfoCardProps) {
   return (
     <div className="border border-[#E8F0FE] rounded-2xl p-6">
       {/* Header */}
@@ -38,25 +39,18 @@ export default function ReportInfoCard({ formData, handleChange, lockedType }: R
           <label className="block text-sm font-medium text-color-text-main mb-1.5">
             Тайлангийн төрөл <span className="text-red-500">*</span>
           </label>
-          {lockedType ? (
-            <div className={inputClass + ' flex items-center bg-slate-50 cursor-not-allowed'}>
-              <span className="text-color-text-main">{lockedType}</span>
-              <input type="hidden" name="reportType" value={lockedType} />
-            </div>
-          ) : (
-            <select
-              name="reportType"
-              value={formData.reportType}
-              onChange={handleChange}
-              required
-              className={inputClass + ' appearance-none'}
-            >
-              <option value="">Сонгоно уу</option>
-              <option value="Жилийн төлөвлөгөө">Жилийн төлөвлөгөө</option>
-              <option value="Биелэлтийн тайлан">Биелэлтийн тайлан</option>
-              <option value="Нэмэлт мэдээлэл">Нэмэлт мэдээлэл</option>
-            </select>
-          )}
+          <select
+            name="reportCategory"
+            value={formData.reportCategory}
+            onChange={handleChange}
+            required
+            className={inputClass + ' appearance-none'}
+          >
+            <option value="">Сонгоно уу</option>
+            {REPORT_CATEGORIES.map((category) => (
+              <option key={category} value={category}>{category}</option>
+            ))}
+          </select>
         </div>
         <div>
           <label className="block text-sm font-medium text-color-text-main mb-1.5">

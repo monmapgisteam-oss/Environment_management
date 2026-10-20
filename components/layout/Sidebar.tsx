@@ -5,7 +5,6 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import {
   HiViewGrid,
-  HiUpload,
   HiCalendar,
   HiTrendingUp,
   HiDocumentText,
@@ -43,7 +42,6 @@ type Props = {
 const iconMap: Record<string, ReactNode> = {
   "Удирдлагын хуудас": <HiViewGrid size={18} />,
   "Хяналтын самбар": <HiViewGrid size={18} />,
-  "Тайлан илгээх": <HiUpload size={18} />,
   "Жилийн төлөвлөгөө": <HiCalendar size={18} />,
   "Биелэлтийн тайлан": <HiTrendingUp size={18} />,
   "Ерөнхий үнэлгээний дүгнэлт": <HiDocumentText size={18} />,

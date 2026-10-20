@@ -232,6 +232,17 @@
         "nullable": false,
         "length": 128
       },
+      "reportCategory": {
+        "type": "string",
+        "nullable": true,
+        "values": [
+          "Уул уурхай, газрын тос",
+          "Дэд бүтэц, барилга, ШТС",
+          "Аялал жуулчлал, үйлчилгээ",
+          "Үйлдвэрлэл"
+        ],
+        "length": 4096
+      },
       "senderCompanyId": {
         "type": "string",
         "nullable": false,

@@ -39,5 +39,5 @@ test('sender submit links match on the type query', () => {
   const nav = senderNav();
   assert.equal(active(nav, '/sender/submit?type=performance'), '/sender/submit?type=performance');
   assert.equal(active(nav, '/sender/submit?type=additional'), '/sender/submit?type=additional');
-  assert.equal(active(nav, '/sender/submit?edit=abc'), '/sender/submit');
+  assert.equal(active(nav, '/sender/submit?edit=abc'), null);
 });

@@ -43,14 +43,8 @@ function additionalSlug(reportTypes: NavReportType[]) {
 export function senderNav(): NavItem[] {
   return [
     { label: 'Хяналтын самбар', href: '/sender' },
-    {
-      label: 'Тайлан илгээх',
-      href: '/sender/submit',
-      children: [
-        { label: 'Жилийн төлөвлөгөө', href: '/sender/submit?type=plan' },
-        { label: 'Биелэлтийн тайлан', href: '/sender/submit?type=performance' },
-      ],
-    },
+    { label: 'Жилийн төлөвлөгөө', href: '/sender/submit?type=plan' },
+    { label: 'Биелэлтийн тайлан', href: '/sender/submit?type=performance' },
     { label: 'Нэмэлт мэдээлэл', href: '/sender/submit?type=additional' },
     { label: 'Миний тайлангууд', href: '/sender/reports', match: ['/report/'] },
     { label: 'Газарзүйн мэдээлэл', href: '/sender/geography' },

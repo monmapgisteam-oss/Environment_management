@@ -20,6 +20,7 @@ export type SubmitLocation = {
 
 export type ReportFormData = {
   reportType: string;
+  reportCategory: string;
   reportNumber: string;
   title: string;
   implementerName: string;
@@ -41,6 +42,7 @@ type ReportStatus = "submitted" | "draft";
 type EditableReport = {
   title?: string | null;
   reportType?: { name?: string | null } | null;
+  reportCategory?: string | null;
   reportNumber?: string | null;
   implementerName?: string | null;
   implementerRegister?: string | null;
@@ -114,6 +116,7 @@ export function useReportSubmission() {
   const [location, setLocation] = useState<SubmitLocation | null>(null);
   const [formData, setFormData] = useState<ReportFormData>({
     reportType: "",
+    reportCategory: "",
     reportNumber: "",
     title: "",
     implementerName: "",
@@ -172,6 +175,7 @@ export function useReportSubmission() {
       setEditSubmitType(null);
       setFormData({
         reportType: r.reportType?.name || "",
+        reportCategory: r.reportCategory || "",
         reportNumber: r.reportNumber || "",
         title: r.title || "",
         implementerName: r.implementerName || "",
@@ -328,6 +332,7 @@ export function useReportSubmission() {
     setSubmitError("");
     setFormData({
       reportType: isGeneralEvaluation ? PERFORMANCE_REPORT_LABEL : activeType?.label || "",
+      reportCategory: "",
       reportNumber: "",
       title: isGeneralEvaluation ? GENERAL_EVALUATION_LABEL : "",
       implementerName: "",

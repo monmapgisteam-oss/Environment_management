@@ -70,7 +70,6 @@ export default function SubmitReportPage() {
                     <ReportInfoCard
                       formData={form.formData}
                       handleChange={form.handleChange}
-                      lockedType={form.activeType?.label}
                     />
                   </div>
                   {/* Right: Attachment */}
