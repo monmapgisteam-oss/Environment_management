@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
 import dataStore from '@/lib/db';
+import { getApiUser, unauthorized } from '@/lib/auth';
 
 // Rename and/or activate-deactivate a report type. Deactivating (not
 // deleting) keeps existing reports of that type intact while hiding it from
 // new-report pickers.
 export async function PATCH(request: Request, props: { params: Promise<{ id: string }> }) {
+  if (!(await getApiUser('admin'))) return unauthorized();
   const params = await props.params;
   try {
     const data = await request.json();

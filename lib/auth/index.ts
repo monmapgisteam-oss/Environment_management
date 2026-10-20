@@ -1,37 +1,15 @@
-import jwt from 'jsonwebtoken';
 import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
+import { NextResponse } from 'next/server';
 import dataStore from '@/lib/db';
+import { attachEffectiveSenderCompanies } from '@/lib/reports/companies';
+import { LOGIN_PATH, SESSION_COOKIE, verifyToken, type Role } from './session';
 
-function sessionSecret() {
-  if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET is required.');
-  return process.env.JWT_SECRET;
-}
-const COOKIE_NAME = 'tailan_session';
-
-export type SessionPayload = {
-  userId: string;
-  role: string;
-  companyId?: string;
-  companyType?: string;
-};
-
-export function createToken(payload: SessionPayload) {
-  return jwt.sign(payload, sessionSecret(), { expiresIn: '8h', audience: 'tailan-session' });
-}
-
-export function verifyToken(token: string) {
-  try {
-    const payload = jwt.verify(token, sessionSecret(), { audience: 'tailan-session' });
-    if (typeof payload === 'string' || typeof payload.userId !== 'string' || !payload.userId || typeof payload.role !== 'string') return null;
-    return payload as SessionPayload;
-  } catch {
-    return null;
-  }
-}
+export * from './session';
 
 export async function getCurrentUser() {
   const cookieStore = await cookies();
-  const token = cookieStore.get(COOKIE_NAME)?.value;
+  const token = cookieStore.get(SESSION_COOKIE)?.value;
   if (!token) return null;
   const payload = verifyToken(token);
   if (!payload) return null;
@@ -40,4 +18,44 @@ export async function getCurrentUser() {
     include: { company: true },
   });
   return user ? { ...user, company: user.company } : null;
+}
+
+export type CurrentUser = NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>;
+
+// For pages and layouts: returns the signed-in user, or redirects to the login
+// portal of the first allowed role. With no roles, any signed-in user passes.
+export async function requireUser(...roles: Role[]): Promise<CurrentUser> {
+  const user = await getCurrentUser();
+  if (!user || (roles.length > 0 && !roles.includes(user.role))) {
+    redirect(roles.length > 0 ? LOGIN_PATH[roles[0]] : '/');
+  }
+  return user;
+}
+
+// For API routes: returns the signed-in user when their role is allowed, or
+// null so the route can answer with `unauthorized()`.
+export async function getApiUser(...roles: Role[]): Promise<CurrentUser | null> {
+  const user = await getCurrentUser();
+  if (!user || (roles.length > 0 && !roles.includes(user.role))) return null;
+  return user;
+}
+
+export function unauthorized() {
+  return NextResponse.json({ error: 'Та энэ үйлдлийг хийх эрхгүй байна.' }, { status: 403 });
+}
+
+// Senders may only open reports of their own company. The company is the one
+// stored on the report or the one its implementer register resolves to.
+// Review staff and admins may open every report.
+export async function canAccessReport(
+  user: CurrentUser,
+  report: { senderCompanyId: string; implementerRegister?: string | null },
+) {
+  if (user.role !== 'sender') return true;
+  if (!user.companyId) return false;
+  if (report.senderCompanyId === user.companyId) return true;
+  const [effective] = await attachEffectiveSenderCompanies([
+    { senderCompany: { id: report.senderCompanyId }, implementerRegister: report.implementerRegister },
+  ]);
+  return effective.senderCompany.id === user.companyId;
 }

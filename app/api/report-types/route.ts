@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import dataStore from '@/lib/db';
+import { getApiUser, unauthorized } from '@/lib/auth';
 
 function slugify(name: string) {
   return name
@@ -10,6 +11,7 @@ function slugify(name: string) {
 }
 
 export async function POST(request: Request) {
+  if (!(await getApiUser('admin'))) return unauthorized();
   try {
     const data = await request.json();
     const name = (data.name || '').trim();

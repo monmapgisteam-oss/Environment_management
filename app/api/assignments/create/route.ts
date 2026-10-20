@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 import dataStore from "@/lib/db";
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { getApiUser, unauthorized } from "@/lib/auth";
 import { materializeSurveyReportByObjectId } from "@/lib/survey/reports";
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from "@/lib/reports/conclusions";
 
@@ -15,6 +15,9 @@ async function resolveAssignableReportId(reportId: string) {
 
 export async function POST(request: Request) {
   try {
+    const current = await getApiUser("review_manager");
+    if (!current) return unauthorized();
+
     const data = await request.json();
     const rawReportId = String(data.reportId || "");
     const reportId: string = rawReportId ? await resolveAssignableReportId(rawReportId) : "";
@@ -38,23 +41,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // The distributing manager comes from the session; fall back to any review
-    // manager so the flow keeps working during testing.
-    const current = await getCurrentUser();
-    let assignedByUserId =
-      current?.role === "review_manager" ? current.id : null;
-    if (!assignedByUserId) {
-      const manager = await dataStore.user.findFirst({
-        where: { role: "review_manager" },
-      });
-      if (!manager) {
-        return NextResponse.json(
-          { error: "Менежер олдсонгүй." },
-          { status: 500 },
-        );
-      }
-      assignedByUserId = manager.id;
-    }
+    const assignedByUserId = current.id;
 
     // Don't assign the same staff member to a report twice.
     const existing = await dataStore.reportAssignment.findMany({

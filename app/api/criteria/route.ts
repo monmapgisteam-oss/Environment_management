@@ -1,7 +1,9 @@
 import dataStore from '@/lib/db';
 import { NextResponse } from 'next/server';
+import { getApiUser, unauthorized } from '@/lib/auth';
 
 export async function GET() {
+  if (!(await getApiUser())) return unauthorized();
   try {
     const criteria = await dataStore.evaluationCriterion.findMany({
       where: { isActive: true },

@@ -1,15 +1,7 @@
 import { NextResponse } from 'next/server';
 import dataStore from '@/lib/db';
-import { createToken } from '@/lib/auth';
+import { createToken, isRole, ROLE_HOME, SESSION_COOKIE, SESSION_MAX_AGE_SECONDS } from '@/lib/auth/session';
 import { verifyPassword } from '@/lib/auth/password';
-
-// Landing page for each role after a successful login.
-const ROLE_HOME: Record<string, string> = {
-  sender: '/sender',
-  review_manager: '/reviewer',
-  evaluator: '/evaluator',
-  admin: '/admin',
-};
 
 export async function POST(request: Request) {
   const { email, password, allowedRoles } = await request.json();
@@ -28,7 +20,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Login service unavailable.' }, { status: 503 });
   }
 
-  if (!user || !verifyPassword(password, user.password)) {
+  if (!user || !verifyPassword(password, user.password) || !isRole(user.role)) {
     return NextResponse.json({ error: 'Имэйл эсвэл нууц үг буруу.' }, { status: 401 });
   }
 
@@ -49,12 +41,13 @@ export async function POST(request: Request) {
   const response = NextResponse.json({
     success: true,
     role: user.role,
-    redirect: ROLE_HOME[user.role] || '/',
+    redirect: ROLE_HOME[user.role],
   });
-  response.cookies.set('tailan_session', token, {
+  response.cookies.set(SESSION_COOKIE, token, {
     httpOnly: true,
+    sameSite: 'lax',
     path: '/',
-    maxAge: 8 * 60 * 60,
+    maxAge: SESSION_MAX_AGE_SECONDS,
   });
   return response;
 }

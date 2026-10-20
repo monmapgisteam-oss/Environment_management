@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import dataStore from '@/lib/db';
+import { canAccessReport, getApiUser, unauthorized } from '@/lib/auth';
 import { serializeDocumentAttachments, serializeReportAttachments } from '@/lib/reports/attachments';
 import { findSenderCompanyByRegister } from '@/lib/reports/companies';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
@@ -8,6 +9,8 @@ import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
 // pre-fill (type, location, attachments).
 export async function GET(_request: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
+  const user = await getApiUser();
+  if (!user) return unauthorized();
   const report = await dataStore.report.findUnique({
     where: { id: params.id },
     include: { reportType: true, location: true },
@@ -15,6 +18,7 @@ export async function GET(_request: Request, props: { params: Promise<{ id: stri
   if (!report) {
     return NextResponse.json({ error: 'Report not found' }, { status: 404 });
   }
+  if (!(await canAccessReport(user, report))) return unauthorized();
   return NextResponse.json(report);
 }
 
@@ -23,6 +27,17 @@ export async function GET(_request: Request, props: { params: Promise<{ id: stri
 export async function PUT(request: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   try {
+    const user = await getApiUser('sender');
+    if (!user) return unauthorized();
+    const existing = await dataStore.report.findUnique({ where: { id: params.id } });
+    if (!existing) {
+      return NextResponse.json({ error: 'Report not found' }, { status: 404 });
+    }
+    // Only the sender's own drafts and returned reports can be changed.
+    if (!(await canAccessReport(user, existing)) || !['draft', 'needs_revision'].includes(existing.status)) {
+      return unauthorized();
+    }
+
     const data = await request.json();
     if ((data.title || '').trim() === GENERAL_EVALUATION_CONCLUSION_TITLE) {
       return NextResponse.json({ error: 'Ерөнхий үнэлгээний дүгнэлт илгээх хэсэг хаагдсан.' }, { status: 400 });

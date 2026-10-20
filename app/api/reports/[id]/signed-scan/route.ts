@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
 import dataStore from '@/lib/db';
+import { getApiUser, unauthorized } from '@/lib/auth';
 
 // Manager uploads the scanned, physically-signed score sheet (after printing
 // the evaluation table and getting every evaluator's signature on paper) and
 // it's attached to the report for the sender to download.
 export async function POST(request: Request, props: { params: Promise<{ id: string }> }) {
+  if (!(await getApiUser('review_manager'))) return unauthorized();
   const params = await props.params;
   try {
     const { url, name } = await request.json();

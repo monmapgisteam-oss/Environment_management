@@ -76,6 +76,9 @@ export async function POST(request: Request) {
     if (!current) {
       return NextResponse.json({ error: 'Нэвтрээгүй байна.' }, { status: 401 });
     }
+    if (current.role !== 'evaluator' && current.role !== 'review_manager') {
+      return NextResponse.json({ error: 'Үнэлгээ өгөх эрхгүй байна.' }, { status: 403 });
+    }
 
     // A staff member scores their own assignment; a manager falls back to any
     // unevaluated assignment (creating one if needed).
