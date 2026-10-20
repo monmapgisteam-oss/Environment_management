@@ -1,5 +1,15 @@
+type ReportInfoFields = {
+  reportType: string;
+  reportNumber: string;
+  title: string;
+  implementerName: string;
+  implementerRegister: string;
+  approvedDate: string;
+  description: string;
+};
+
 interface ReportInfoCardProps {
-  formData: any;
+  formData: ReportInfoFields;
   handleChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void;
   lockedType?: string;
 }

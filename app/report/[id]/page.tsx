@@ -1,15 +1,19 @@
 import dataStore from '@/lib/db';
-import StatusBadge from '@/components/ui/StatusBadge';
 import AttachmentList from '@/components/reports/AttachmentList';
 import ManagerReturnPanel from '@/components/reports/ManagerReturnPanel';
-import LocationMap from '@/components/map/LocationMapClient';
-import ScanPrintPanel from '@/components/reports/ScanPrintPanel';
-import SignatureBadge from '@/components/signature/SignatureBadge';
-import { parseAttachments, downloadUrl } from '@/lib/reports/attachments';
+import SurveyReportDetail from '@/components/reports/detail/SurveyReportDetail';
+import ReportCoverLink from '@/components/reports/detail/ReportCoverLink';
+import SignedScanCard from '@/components/reports/detail/SignedScanCard';
+import AssignedStaffCard from '@/components/reports/detail/AssignedStaffCard';
+import ReportInfoSection from '@/components/reports/detail/ReportInfoSection';
+import RevisionNotice from '@/components/reports/detail/RevisionNotice';
+import EvaluationSection from '@/components/reports/detail/EvaluationSection';
+import ReportActions from '@/components/reports/detail/ReportActions';
+import type { AssignedStaffMember, EvaluationSummary, ViewerRole } from '@/components/reports/detail/types';
+import { parseAttachments } from '@/lib/reports/attachments';
 import { signAttachments, createSignedUrl } from '@/lib/db/storage';
-import { formatDate, formatScore } from '@/lib/utils';
 import { canAccessReport, requireUser, type CurrentUser } from '@/lib/auth';
-import { fetchSurveyReportByObjectId } from '@/lib/survey/reports';
+import { fetchSurveyReportByObjectId, type SurveyReport } from '@/lib/survey/reports';
 import { attachEffectiveSenderCompanies, normalizeRegister } from '@/lib/reports/companies';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
 import { uniqueAssignmentsByEvaluator } from '@/lib/reports/assignments';
@@ -24,95 +28,11 @@ function parseSurveyReportId(id: string) {
   return match ? Number(match[1]) : null;
 }
 
-async function SurveyReportDetail({ objectId, user }: { objectId: number; user: CurrentUser }) {
-  const survey = await fetchSurveyReportByObjectId(objectId);
-  // Senders only see survey records filed under their own register number.
-  const senderMayView =
-    user.role !== 'sender' ||
-    (!!survey?.register && normalizeRegister(survey.register) === normalizeRegister(user.company?.registerNumber));
-
-  if (!survey || !senderMayView) {
-    return <div className="p-8 text-center text-slate-500">Survey123 тайлан олдсонгүй.</div>;
-  }
-
+// Senders only see survey records filed under their own register number.
+function canViewSurveyReport(user: CurrentUser, survey: SurveyReport) {
   return (
-    <main className="flex-1 min-w-0 p-6 space-y-5">
-      <div className="rounded-2xl border border-slate-200 bg-white p-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-amber-600">Survey системээс тайлан ирлээ</p>
-            <h1 className="mt-1 text-2xl font-bold text-slate-900">{survey.title}</h1>
-            <p className="mt-1 text-sm text-slate-500">{survey.reportNumber}</p>
-          </div>
-          <StatusBadge status="submitted" />
-        </div>
-        <div className="mt-5 grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
-          <div>
-            <p className="text-xs text-slate-500">Тайлангийн төрөл</p>
-            <p className="mt-0.5 font-medium text-slate-800">{survey.reportType.name}</p>
-          </div>
-          <div>
-            <p className="text-xs text-slate-500">Байгууллага</p>
-            <p className="mt-0.5 font-medium text-slate-800">{survey.senderCompany?.name || survey.organization || '-'}</p>
-          </div>
-          <div>
-            <p className="text-xs text-slate-500">РД</p>
-            <p className="mt-0.5 font-medium text-slate-800">{survey.register || '-'}</p>
-          </div>
-          <div>
-            <p className="text-xs text-slate-500">Илгээсэн огноо</p>
-            <p className="mt-0.5 font-medium text-slate-800">{formatDate(survey.submittedAt)}</p>
-          </div>
-        </div>
-      </div>
-
-      {survey.description && (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6">
-          <h2 className="text-base font-semibold text-slate-900">Тайлбар</h2>
-          <p className="mt-2 whitespace-pre-wrap text-sm font-medium text-slate-800">{survey.description}</p>
-        </div>
-      )}
-
-      {survey.photos.length > 0 && (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-slate-900">Хавсаргасан зураг</h2>
-            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-500">
-              {survey.photos.length}
-            </span>
-          </div>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {survey.photos.map((photo, index) => (
-              <a
-                key={`${photo.src}-${index}`}
-                href={photo.src}
-                target="_blank"
-                rel="noreferrer"
-                className="group overflow-hidden rounded-xl border border-slate-200 bg-slate-50"
-              >
-                <img
-                  src={photo.src}
-                  alt={photo.alt || `Survey123 зураг ${index + 1}`}
-                  className="h-32 w-full object-cover transition group-hover:scale-105"
-                  loading="lazy"
-                />
-              </a>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {survey.lat != null && survey.lng != null && (
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-          <div className="border-b border-slate-100 px-6 py-4">
-            <h2 className="text-base font-semibold text-slate-900">Газрын зураг дээрх байршил</h2>
-          </div>
-          <div className="h-80">
-            <LocationMap lat={survey.lat} lng={survey.lng} />
-          </div>
-        </div>
-      )}
-    </main>
+    user.role !== 'sender' ||
+    (!!survey.register && normalizeRegister(survey.register) === normalizeRegister(user.company?.registerNumber))
   );
 }
 
@@ -152,7 +72,11 @@ export default async function ReportDetailPage(props: Props) {
   const currentUser = await requireUser();
   const surveyObjectId = parseSurveyReportId(params.id);
   if (surveyObjectId !== null) {
-    return <SurveyReportDetail objectId={surveyObjectId} user={currentUser} />;
+    const survey = await fetchSurveyReportByObjectId(surveyObjectId);
+    if (!survey || !canViewSurveyReport(currentUser, survey)) {
+      return <div className="p-8 text-center text-slate-500">Survey123 тайлан олдсонгүй.</div>;
+    }
+    return <SurveyReportDetail survey={survey} />;
   }
   const isStaff = currentUser.role === 'evaluator';
   const isReviewer = currentUser.role === 'review_manager';
@@ -167,45 +91,32 @@ export default async function ReportDetailPage(props: Props) {
 
   // A staff member viewing the report may only see their OWN evaluation, never
   // their colleagues'. Managers and the sender see every evaluator's scores.
-  const evaluations = uniqueAssignments
-    .filter((a: any) => a.evaluation)
-    .filter((a: any) => !isStaff || a.evaluator?.id === currentUser.id)
-    .map((a: any) => ({
-      evaluatorName: a.evaluator.name,
-      totalScore: a.evaluation.totalScore,
-      comment: a.evaluation.comment,
-      scores: a.evaluation.scores,
+  const evaluations: EvaluationSummary[] = uniqueAssignments.flatMap(({ evaluator, evaluation }) => {
+    if (!evaluation || (isStaff && evaluator?.id !== currentUser.id)) return [];
+    return [{
+      evaluatorName: evaluator.name,
+      totalScore: evaluation.totalScore,
+      comment: evaluation.comment,
+      scores: evaluation.scores,
       // Safe verification metadata only — never the raw numeric signature/PIN.
-      signatureStatus: a.evaluation.signatureStatus as string,
-      signedAt: a.evaluation.signedAt ? a.evaluation.signedAt.toISOString() : null,
-      signatureId: a.evaluation.signatureId as string | null,
-      documentHash: a.evaluation.documentHash as string | null,
-    }));
-
-  const signedVerifiedScores = evaluations
-    .filter((ev) => ev.signatureStatus === 'VERIFIED')
-    .map((ev) => ev.totalScore);
-  const displayFinalScore = signedVerifiedScores.length
-    ? Math.round((signedVerifiedScores.reduce((sum, score) => sum + score, 0) / signedVerifiedScores.length) * 10) / 10
-    : report.finalScore;
+      signatureStatus: evaluation.signatureStatus,
+      signedAt: evaluation.signedAt ? evaluation.signedAt.toISOString() : null,
+      signatureId: evaluation.signatureId,
+      documentHash: evaluation.documentHash,
+    }];
+  });
 
   // Staff this report was distributed to, with whether each has scored it yet.
-  const assignedStaff = uniqueAssignments.map((a: any) => ({
-    name: a.evaluator.name,
-    position: a.evaluator.position,
-    submitted: !!a.evaluation,
+  const assignedStaff: AssignedStaffMember[] = uniqueAssignments.map(({ evaluator, evaluation }) => ({
+    name: evaluator.name,
+    position: evaluator.position,
+    submitted: !!evaluation,
   }));
 
   const isSenderView = !isReviewer && !isStaff;
-  const viewerRole: 'sender' | 'manager' | 'staff' = isReviewer ? 'manager' : isStaff ? 'staff' : 'sender';
+  const viewerRole: ViewerRole = isReviewer ? 'manager' : isStaff ? 'staff' : 'sender';
   const isConclusion = report.title === GENERAL_EVALUATION_CONCLUSION_TITLE;
-  const isPlanOrPerformanceReport =
-    report.reportType?.name?.includes('Жилийн') || report.reportType?.name?.includes('Биелэлт');
-  let displayStatus = report.status === 'approved' ? 'completed' : report.status === 'assigned' ? 'submitted' : report.status;
-  const isSurveySource = report.reportNumber?.startsWith('S123-');
-  // "return_requested" is an internal staff→manager step; the sender should still
-  // see the report as under review until the manager actually returns it.
-  if (isSenderView && report.status === 'return_requested') displayStatus = 'in_review';
+  const needsRevision = isSenderView && !isConclusion && report.status === 'needs_revision';
 
   const attachments = await signAttachments(parseAttachments(report.fileUrl));
   const { criterionAttachments, reportAttachments } = splitScoringAttachments(attachments, criteria);
@@ -213,222 +124,29 @@ export default async function ReportDetailPage(props: Props) {
 
   // Manager only sees the print/scan panel once every assigned staff member
   // has actually submitted a score — nothing to sign before that.
-  const allEvaluatorsDone = assignedStaff.length > 0 && assignedStaff.every((m: any) => m.submitted);
+  const allEvaluatorsDone = assignedStaff.length > 0 && assignedStaff.every((member) => member.submitted);
 
   // Scores stay hidden from the sender until the manager explicitly sends the
   // signed scan — a single staff member finishing (or even all of them) must
   // not leak scores early. Managers and staff always see what they're allowed to.
   const scoresVisible = !isSenderView || !!report.signedScanUrl;
 
-  const locationLabel = [report.location?.province, report.location?.district, report.location?.khoroo, report.location?.addressDetail]
-    .filter((v) => v && v !== 'Тодорхойгүй')
-    .join(', ');
-
-  const backHref = isConclusion
-    ? isReviewer
-      ? '/reviewer/conclusions'
-      : isStaff
-        ? '/evaluator/conclusions'
-        : '/sender/reports'
-    : isReviewer
-      ? '/reviewer'
-      : isStaff
-        ? '/evaluator'
-        : '/sender';
-  const coverHref = `/report/${report.id}/cover?role=${isStaff ? 'staff' : 'reviewer'}`;
-
   return (
     <main className="flex-1 min-w-0 p-6 space-y-5">
-      {(isReviewer || isStaff) && !isConclusion && (
-        <div className="flex justify-end">
-          <a
-            href={coverHref}
-            className="inline-flex h-10 items-center justify-center rounded-xl bg-[#0F766E] px-4 text-sm font-semibold text-white transition hover:bg-[#115E59]"
-          >
-            Тайлангийн нүүр
-          </a>
-        </div>
-      )}
+      {(isReviewer || isStaff) && !isConclusion && <ReportCoverLink reportId={report.id} isStaff={isStaff} />}
 
       {/* Sender downloads the manager's scanned, physically-signed copy — top of screen. */}
       {isSenderView && signedScanDownloadUrl && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-6">
-          <h2 className="text-base font-semibold text-slate-900 mb-4">Гарын үсэгтэй хуулбар</h2>
-          <div className="flex items-center gap-3 rounded-xl border border-slate-200 p-3">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-              <polyline points="14 2 14 8 20 8" />
-            </svg>
-            <span className="text-sm font-medium text-slate-800 flex-1 min-w-0 truncate">
-              {report.signedScanName || 'Гарын үсэгтэй хуулбар'}
-            </span>
-            <a
-              href={signedScanDownloadUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs font-medium text-color-primary hover:underline"
-            >
-              Нээх
-            </a>
-            <a
-              href={downloadUrl({ url: signedScanDownloadUrl, name: report.signedScanName || 'signed-scan' })}
-              className="inline-flex items-center gap-1 rounded-lg bg-color-primary px-3 py-1.5 text-xs font-medium text-white hover:opacity-90 transition"
-            >
-              Татах
-            </a>
-          </div>
-        </div>
+        <SignedScanCard url={signedScanDownloadUrl} name={report.signedScanName} />
       )}
 
       {/* Manager sees which staff this report was distributed to (top). */}
-      {isReviewer && !isConclusion && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-              <circle cx="9" cy="7" r="4" />
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-            </svg>
-            <h2 className="text-base font-semibold text-slate-900">
-              Оноогдсон гишүүд <span className="font-normal text-slate-400">({assignedStaff.length})</span>
-            </h2>
-          </div>
-          {assignedStaff.length === 0 ? (
-            <p className="text-sm text-slate-500">Энэ тайлан одоогоор гишүүдэд оноогдоогүй байна.</p>
-          ) : (
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {assignedStaff.map((member: any, index: number) => (
-                <div key={index} className="flex items-center gap-3 rounded-xl border border-slate-200 p-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-color-primary text-sm font-bold text-white">
-                    {member.name.charAt(0)}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-slate-800 truncate">{member.name}-т оноогдсон</p>
-                    <p className="text-xs text-slate-500 truncate">{member.position || 'Үнэлэгч'}</p>
-                  </div>
-                  <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${member.submitted ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
-                    {member.submitted ? 'Үнэлсэн' : 'Хүлээгдэж буй'}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+      {isReviewer && !isConclusion && <AssignedStaffCard staff={assignedStaff} />}
 
-      {/* Report Info */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6">
-        <div className="flex items-center justify-between mb-5">
-          <div>
-            {isSurveySource && (
-              <span className="mb-2 inline-flex rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
-                Survey системээс тайлан ирлээ
-              </span>
-            )}
-            <p className="text-xs text-slate-500 mb-0.5">
-              {isConclusion ? 'Дүгнэлтийн дугаар' : 'Тайлангийн дугаар'}
-            </p>
-            <h1 className="text-xl font-bold text-slate-900">{report.reportNumber}</h1>
-          </div>
-          <StatusBadge status={displayStatus} />
-        </div>
-
-        <div className="grid grid-cols-2 gap-x-8 gap-y-4 text-sm">
-          <div>
-            <p className="text-slate-500 text-xs">{isConclusion ? 'Дүгнэлтийн нэр' : 'Төслийн нэр'}</p>
-            <p className="font-medium text-slate-800 mt-0.5">{report.title}</p>
-          </div>
-          <div>
-            <p className="text-slate-500 text-xs">{isConclusion ? 'Дүгнэлтийн төрөл' : 'Тайлангийн төрөл'}</p>
-            <p className="font-medium text-slate-800 mt-0.5">
-              {isConclusion ? GENERAL_EVALUATION_CONCLUSION_TITLE : report.reportType.name}
-            </p>
-          </div>
-          <div>
-            <p className="text-slate-500 text-xs">Илгээсэн байгууллага</p>
-            <p className="font-medium text-slate-800 mt-0.5">{report.senderCompany?.name}</p>
-          </div>
-          <div>
-            <p className="text-slate-500 text-xs">Илгээсэн огноо</p>
-            <p className="font-medium text-slate-800 mt-0.5">{formatDate(report.submittedAt)}</p>
-          </div>
-          {!isConclusion && report.implementerName && (
-            <div>
-              <p className="text-slate-500 text-xs">Төсөл хэрэгжүүлэгчийн нэр</p>
-              <p className="font-medium text-slate-800 mt-0.5">{report.implementerName}</p>
-            </div>
-          )}
-          {!isConclusion && report.implementerRegister && (
-            <div>
-              <p className="text-slate-500 text-xs">Төсөл хэрэгжүүлэгчийн РД</p>
-              <p className="font-medium text-slate-800 mt-0.5">{report.implementerRegister}</p>
-            </div>
-          )}
-          {!isConclusion && report.approvedDate && (
-            <div>
-              <p className="text-slate-500 text-xs">Тайлан батлагдсан огноо</p>
-              <p className="font-medium text-slate-800 mt-0.5">{formatDate(report.approvedDate)}</p>
-            </div>
-          )}
-          {!isConclusion && report.hasGreenery != null && (
-            <div>
-              <p className="text-slate-500 text-xs">Ногоон байгууламжтай эсэх</p>
-              <p className="font-medium text-slate-800 mt-0.5">{report.hasGreenery ? 'Тийм' : 'Үгүй'}</p>
-            </div>
-          )}
-          {!isConclusion && report.hasGreenery && report.treeCount != null && (
-            <div>
-              <p className="text-slate-500 text-xs">Тарьсан мод</p>
-              <p className="font-medium text-slate-800 mt-0.5">{report.treeCount}</p>
-            </div>
-          )}
-          {!isConclusion && report.spentAmount != null && (
-            <div>
-              <p className="text-slate-500 text-xs">Зарцуулсан дүн</p>
-              <p className="font-medium text-slate-800 mt-0.5">{report.spentAmount.toLocaleString()}₮</p>
-            </div>
-          )}
-        </div>
-
-        {report.description && (
-          <div className="mt-5 pt-5 border-t border-slate-100 text-sm">
-            <p className="text-slate-500 text-xs">
-              {!isConclusion && isPlanOrPerformanceReport ? 'Ногоон байгууламжийн талаарх мэдээлэл' : 'Тайлбар'}
-            </p>
-            <p className="font-medium text-slate-800 mt-0.5 whitespace-pre-wrap">{report.description}</p>
-          </div>
-        )}
-
-        {!isConclusion && report.location && (report.location.addressDetail || (report.location.latitude != null && report.location.longitude != null)) && (
-          <div className="mt-5 pt-5 border-t border-slate-100 grid grid-cols-3 gap-4 text-sm">
-            {report.location.addressDetail && (
-              <div className="col-span-3">
-                <p className="text-slate-500 text-xs">Дэлгэрэнгүй хаяг</p>
-                <p className="font-medium text-slate-800 mt-0.5">{report.location.addressDetail}</p>
-              </div>
-            )}
-            {report.location.latitude != null && report.location.longitude != null && (
-              <div className="col-span-3">
-                <p className="text-slate-500 text-xs mb-2">
-                  Байршил ({report.location.latitude.toFixed(6)}, {report.location.longitude.toFixed(6)})
-                </p>
-                <div className="rounded-xl overflow-hidden border border-slate-200" style={{ height: 320 }}>
-                  <LocationMap lat={report.location.latitude} lng={report.location.longitude} />
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+      <ReportInfoSection report={report} isConclusion={isConclusion} isSenderView={isSenderView} />
 
       {/* Sender sees why the manager returned the report for revision. */}
-      {isSenderView && !isConclusion && report.status === 'needs_revision' && report.returnReason && (
-        <div className="bg-white rounded-2xl border border-orange-200 p-6">
-          <p className="text-sm font-semibold text-orange-700">Тайлан засвар шаардсан байна</p>
-          <p className="mt-1 text-sm text-slate-700">Шалтгаан: {report.returnReason}</p>
-        </div>
-      )}
+      {needsRevision && report.returnReason && <RevisionNotice reason={report.returnReason} />}
 
       {/* Manager controls: confirm/dismiss a staff return request, or return
           the report to the sender directly. */}
@@ -450,151 +168,27 @@ export default async function ReportDetailPage(props: Props) {
         />
       )}
 
-      {/* Evaluation Scores Table */}
-      {!isConclusion && evaluations.length > 0 && scoresVisible && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-6">
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
-            <h2 className="text-base font-semibold text-slate-900">Үнэлгээний дүн</h2>
-            {isReviewer && allEvaluatorsDone && (
-              <ScanPrintPanel
-                reportId={report.id}
-                signedScanName={report.signedScanName}
-                signedScanUploadedAt={report.signedScanUploadedAt ? report.signedScanUploadedAt.toISOString() : null}
-                reportNumber={report.reportNumber}
-                title={report.title}
-                senderCompanyName={report.senderCompany?.name || ''}
-                submittedAtLabel={formatDate(report.submittedAt)}
-                implementerName={report.implementerName || ''}
-                locationLabel={locationLabel}
-                criteria={criteria}
-                evaluations={evaluations}
-              />
-            )}
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm border-collapse">
-              <thead>
-                <tr className="border-b-2 border-slate-200 bg-slate-50">
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase w-12">№</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase">Шалгуур</th>
-                  <th className="text-center py-3 px-4 text-xs font-semibold text-slate-500 uppercase w-28">Авбал зохих оноо</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase w-56">Илгээсэн файл</th>
-                  {evaluations.map((ev, i) => (
-                    <th key={i} className="text-center py-3 px-4 text-xs font-semibold text-slate-500 uppercase w-28">
-                      <div className="flex flex-col items-center gap-1">
-                        <span>{ev.evaluatorName}</span>
-                        <SignatureBadge
-                          status={ev.signatureStatus}
-                          signedAt={ev.signedAt}
-                          signatureId={ev.signatureId}
-                          signerName={ev.evaluatorName}
-                          documentHash={ev.documentHash}
-                          viewerRole={viewerRole}
-                        />
-                      </div>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {criteria.map((criterion: any, index: number) => (
-                  <tr key={criterion.id} className="border-b border-slate-100 hover:bg-slate-50">
-                    <td className="py-3 px-4 text-slate-600">{index + 1}</td>
-                    <td className="py-3 px-4 text-slate-800">{criterion.name}</td>
-                    <td className="py-3 px-4 text-center font-semibold text-slate-700">{criterion.maxScore}</td>
-                    <td className="py-3 px-4">
-                      {(criterionAttachments[criterion.id] || []).length > 0 ? (
-                        <div className="space-y-1.5">
-                          {(criterionAttachments[criterion.id] || []).map((file, fileIndex) => (
-                            <div key={`${file.url}-${fileIndex}`} className="flex items-center gap-2">
-                              <span className="max-w-[130px] truncate text-xs text-slate-600">{file.name}</span>
-                              <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-color-primary hover:underline">
-                                Нээх
-                              </a>
-                              <a href={downloadUrl(file)} className="text-xs font-semibold text-color-primary hover:underline">
-                                Татах
-                              </a>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="text-xs text-slate-400">-</span>
-                      )}
-                    </td>
-                    {evaluations.map((ev, i) => {
-                      const score = ev.scores.find((s: any) => s.criterionId === criterion.id);
-                      return (
-                        <td key={i} className="py-3 px-4 text-center font-medium text-color-primary">
-                          {score ? score.score : '-'}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-                <tr className="border-t-2 border-slate-300 bg-slate-50">
-                  <td className="py-3 px-4"></td>
-                  <td className="py-3 px-4 font-bold text-slate-900">Нийт оноо</td>
-                  <td className="py-3 px-4 text-center font-bold text-slate-900">
-                    {criteria.reduce((sum: number, c: any) => sum + c.maxScore, 0)}
-                  </td>
-                  <td className="py-3 px-4"></td>
-                  {evaluations.map((ev, i) => (
-                    <td key={i} className="py-3 px-4 text-center font-bold text-color-primary text-lg">
-                      {ev.totalScore}
-                      {ev.signatureStatus === 'VERIFIED' && <span className="ml-1 text-emerald-600">✓</span>}
-                    </td>
-                  ))}
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          {/* Comments */}
-          {evaluations.some((ev) => ev.comment) && (
-            <div className="mt-5 space-y-2">
-              <h3 className="text-sm font-semibold text-slate-700">Сэтгэгдлүүд</h3>
-              {evaluations.filter((ev) => ev.comment).map((ev, i) => (
-                <div key={i} className="rounded-xl bg-slate-50 border border-slate-100 p-3">
-                  <p className="text-xs font-semibold text-slate-600 mb-0.5">{ev.evaluatorName}</p>
-                  <p className="text-sm text-slate-700">{ev.comment}</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* No evaluation yet, or (sender) not yet released by the manager */}
-      {!isConclusion && (evaluations.length === 0 || !scoresVisible) && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 text-center">
-          <p className="text-sm text-slate-500">
-            {evaluations.length === 0
-              ? 'Үнэлгээ одоогоор өгөгдөөгүй байна.'
-              : 'Тайлан хянагдаж байна. Менежер баталгаажуулсны дараа үнэлгээний дүн харагдана.'}
-          </p>
-        </div>
-      )}
-
-      {/* Final Score */}
-      {!isConclusion && displayFinalScore !== null && scoresVisible && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 flex items-center justify-between">
-          <p className="text-sm font-medium text-slate-600">Эцсийн дундаж оноо</p>
-          <p className="text-3xl font-bold text-color-primary">{formatScore(displayFinalScore)}</p>
-        </div>
+      {!isConclusion && (
+        <EvaluationSection
+          report={report}
+          criteria={criteria}
+          criterionAttachments={criterionAttachments}
+          evaluations={evaluations}
+          viewerRole={viewerRole}
+          isReviewer={isReviewer}
+          allEvaluatorsDone={allEvaluatorsDone}
+          scoresVisible={scoresVisible}
+        />
       )}
 
       {/* Back + (for a returned report) Fix */}
-      <div className="flex justify-end gap-3">
-        {isSenderView && !isConclusion && report.status === 'needs_revision' && (
-          <a href={`/sender/submit?edit=${report.id}`} className="h-10 px-5 rounded-xl border border-orange-300 bg-orange-50 text-sm font-semibold text-orange-700 hover:bg-orange-100 transition inline-flex items-center">
-            Засах
-          </a>
-        )}
-        <a href={backHref} className="h-10 px-5 rounded-xl border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 transition inline-flex items-center">
-          Буцах
-        </a>
-      </div>
+      <ReportActions
+        reportId={report.id}
+        isConclusion={isConclusion}
+        isReviewer={isReviewer}
+        isStaff={isStaff}
+        canFix={needsRevision}
+      />
     </main>
   );
 }
