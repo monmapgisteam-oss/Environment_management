@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import dataStore from '@/lib/db';
 import { createToken } from '@/lib/auth';
-import { verifyPassword } from '@/lib/password';
+import { verifyPassword } from '@/lib/auth/password';
 
 // Landing page for each role after a successful login.
 const ROLE_HOME: Record<string, string> = {

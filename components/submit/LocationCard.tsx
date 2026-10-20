@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
-import { extractNominatimLocation, extractSurveyLocation, type AdministrativeLocation } from "@/lib/locationResolver";
+import { extractNominatimLocation, extractSurveyLocation, type AdministrativeLocation } from "@/lib/map/locationResolver";
 
-const MapPicker = dynamic(() => import("./MapPicker"), {
+const MapPicker = dynamic(() => import("@/components/map/MapPicker"), {
   ssr: false,
   loading: () => <MapPlaceholder />,
 });

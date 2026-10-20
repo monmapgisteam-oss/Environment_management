@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 import type { Id } from '@/convex/_generated/dataModel';
 import { api } from '@/convex/_generated/api';
-import type { Attachment } from '../attachments';
+import type { Attachment } from '@/lib/reports/attachments';
 import { convex, serverSecret } from './convex';
 import dataStore from './index';
 

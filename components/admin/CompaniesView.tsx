@@ -11,7 +11,7 @@ import {
   HiPhone,
   HiLocationMarker,
 } from 'react-icons/hi';
-import StatusBadge from './StatusBadge';
+import StatusBadge from '@/components/ui/StatusBadge';
 import { formatDate, formatScore } from '@/lib/utils';
 
 export type CompanySurvey = {

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { SURVEY_LAYER_ID, querySurvey } from '@/lib/db/survey';
-import { hasSurveySession } from '@/lib/surveySession';
+import { hasSurveySession } from '@/lib/survey/session';
 
 // Survey layer 0 as GeoJSON for browser maps and lookups.
 // ?register=<value>&match=exact|contains narrows by register number.

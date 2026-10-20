@@ -3,8 +3,8 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { HiSearch } from 'react-icons/hi';
-import StatusBadge from './StatusBadge';
-import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
+import StatusBadge from '@/components/ui/StatusBadge';
+import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
 import { formatDate, formatScore } from '@/lib/utils';
 
 type Report = {

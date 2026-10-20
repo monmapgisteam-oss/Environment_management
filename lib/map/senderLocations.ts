@@ -1,10 +1,10 @@
 import dataStore from '@/lib/db';
-import type { CompanyPoint } from '@/components/CompanyMap';
+import type { CompanyPoint } from '@/components/map/CompanyMap';
 import { SURVEY_LAYER_ID, querySurvey } from '@/lib/db/survey';
-import { fetchSurveyMapPoints } from '@/lib/surveyMapPoints';
-import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
-import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
-import { resolveReportPointLocations } from '@/lib/locationResolver';
+import { fetchSurveyMapPoints } from '@/lib/map/surveyMapPoints';
+import { attachEffectiveSenderCompanies } from '@/lib/reports/companies';
+import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
+import { resolveReportPointLocations } from '@/lib/map/locationResolver';
 
 // Same Survey123 fallback lookup as fetchReviewedCompanyPoints, kept
 // separate since this one scopes to a single sender company instead of

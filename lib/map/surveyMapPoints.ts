@@ -1,7 +1,7 @@
-import type { CompanyPoint } from '@/components/CompanyMap';
+import type { CompanyPoint } from '@/components/map/CompanyMap';
 import { SURVEY_LAYER_ID, querySurvey } from '@/lib/db/survey';
-import { fetchSurveyPhotoMap } from '@/lib/surveyPhotos';
-import { normalizeSurveyReportType } from '@/lib/surveyReportType';
+import { fetchSurveyPhotoMap } from '@/lib/survey/photos';
+import { normalizeSurveyReportType } from '@/lib/survey/reportType';
 
 const REVERSE_GEOCODE_URL = 'https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/reverseGeocode';
 const PROVINCE_NAME_OVERRIDES: Record<string, string> = {

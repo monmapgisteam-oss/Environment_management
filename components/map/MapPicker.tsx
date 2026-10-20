@@ -3,9 +3,9 @@
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { addBasemap } from '@/lib/basemap';
-import { createPinIcon, popupCard } from '@/lib/mapMarkers';
-import { normalizeSurveyReportType } from '@/lib/surveyReportType';
+import { addBasemap } from '@/lib/map/basemap';
+import { createPinIcon, popupCard } from '@/lib/map/markers';
+import { normalizeSurveyReportType } from '@/lib/survey/reportType';
 
 interface MapPickerProps {
   lat: number;

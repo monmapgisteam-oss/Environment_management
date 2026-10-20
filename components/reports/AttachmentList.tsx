@@ -1,5 +1,5 @@
-import type { Attachment } from '@/lib/attachments';
-import { downloadUrl, isImageAttachment } from '@/lib/attachments';
+import type { Attachment } from '@/lib/reports/attachments';
+import { downloadUrl, isImageAttachment } from '@/lib/reports/attachments';
 
 // Shows sender-uploaded report attachments. Reused on report detail and evaluation pages.
 export default function AttachmentList({

@@ -1,11 +1,11 @@
 import Link from 'next/link';
 import dataStore from '@/lib/db';
-import Header from '@/components/Header';
-import Sidebar from '@/components/Sidebar';
-import StatusBadge from '@/components/StatusBadge';
+import Header from '@/components/layout/Header';
+import Sidebar from '@/components/layout/Sidebar';
+import StatusBadge from '@/components/ui/StatusBadge';
 import { formatDate } from '@/lib/utils';
-import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
-import { createQrImageUrl, getPublicProfileQrUrl } from '@/lib/profileQr';
+import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
+import { createQrImageUrl, getPublicProfileQrUrl } from '@/lib/auth/profileQr';
 
 type Props = {
   params: Promise<{ id: string }>;

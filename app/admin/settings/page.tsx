@@ -1,7 +1,7 @@
 import dataStore from '@/lib/db';
-import Header from '@/components/Header';
-import Sidebar from '@/components/Sidebar';
-import ReportTypesManager from '@/components/ReportTypesManager';
+import Header from '@/components/layout/Header';
+import Sidebar from '@/components/layout/Sidebar';
+import ReportTypesManager from '@/components/admin/ReportTypesManager';
 import { adminNavItems } from '@/lib/adminNav';
 
 async function fetchReportTypes() {

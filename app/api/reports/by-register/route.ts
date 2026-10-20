@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import dataStore from '@/lib/db';
-import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
+import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
 
 // Reverse lookup for the "Тайлан хайх" (Survey123) table — given a
 // register number pulled from the raw survey feature, find the matching

@@ -1,10 +1,10 @@
 import dataStore from '@/lib/db';
-import Header from '@/components/Header';
-import Sidebar from '@/components/Sidebar';
-import ReportTable from '@/components/ReportTable';
+import Header from '@/components/layout/Header';
+import Sidebar from '@/components/layout/Sidebar';
+import ReportTable from '@/components/reports/ReportTable';
 import { adminNavItems } from '@/lib/adminNav';
-import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
-import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
+import { attachEffectiveSenderCompanies } from '@/lib/reports/companies';
+import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
 
 async function fetchAdminReports() {
   const reports = await dataStore.report.findMany({

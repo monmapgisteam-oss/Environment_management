@@ -1,4 +1,4 @@
-import type { Attachment } from '@/lib/attachments';
+import type { Attachment } from '@/lib/reports/attachments';
 
 type CriterionLike = {
   id: string;

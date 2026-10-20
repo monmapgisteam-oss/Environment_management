@@ -1,12 +1,12 @@
 import dataStore from '@/lib/db';
-import { isDocumentAttachment, parseAttachments } from '@/lib/attachments';
+import { isDocumentAttachment, parseAttachments } from '@/lib/reports/attachments';
 import {
   CONCLUSION_TYPES,
   GENERAL_EVALUATION_CONCLUSION_TITLE,
   filterConclusions,
   type ConclusionSearchParams,
-} from '@/lib/conclusions';
-import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
+} from '@/lib/reports/conclusions';
+import { attachEffectiveSenderCompanies } from '@/lib/reports/companies';
 import { signAttachments } from '@/lib/db/storage';
 
 export async function fetchConclusionRows(search: ConclusionSearchParams = {}) {

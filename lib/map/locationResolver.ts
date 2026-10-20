@@ -1,4 +1,4 @@
-import { DISTRICTS, PROVINCES } from '@/lib/mongolia';
+import { DISTRICTS, PROVINCES } from '@/lib/map/mongolia';
 
 export type AdministrativeLocation = {
   province?: string;

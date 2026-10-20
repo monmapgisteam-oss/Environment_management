@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { LuShieldCheck, LuSend, LuFileSearch, LuUserCog } from 'react-icons/lu';
-import OrgLoginCard from '@/components/OrgLoginCard';
+import OrgLoginCard from '@/components/auth/OrgLoginCard';
 
 export default function HomePage() {
   return (

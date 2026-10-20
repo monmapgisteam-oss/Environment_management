@@ -1,18 +1,18 @@
 import { redirect } from "next/navigation";
 import dataStore from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import Header from "@/components/Header";
-import Sidebar from "@/components/Sidebar";
-import EvaluationTable from "@/components/EvaluationTable";
-import AttachmentList from "@/components/AttachmentList";
-import StaffReturnButton from "@/components/StaffReturnButton";
-import LocationMap from "@/components/LocationMapClient";
-import { parseAttachments } from "@/lib/attachments";
+import Header from "@/components/layout/Header";
+import Sidebar from "@/components/layout/Sidebar";
+import EvaluationTable from "@/components/evaluation/EvaluationTable";
+import AttachmentList from "@/components/reports/AttachmentList";
+import StaffReturnButton from "@/components/reports/StaffReturnButton";
+import LocationMap from "@/components/map/LocationMapClient";
+import { parseAttachments } from "@/lib/reports/attachments";
 import { signAttachments } from "@/lib/db/storage";
 import { formatDate } from "@/lib/utils";
-import { attachEffectiveSenderCompanies } from "@/lib/reportCompanies";
-import { GENERAL_EVALUATION_CONCLUSION_TITLE } from "@/lib/conclusions";
-import { splitScoringAttachments } from "@/lib/scoringAttachments";
+import { attachEffectiveSenderCompanies } from "@/lib/reports/companies";
+import { GENERAL_EVALUATION_CONCLUSION_TITLE } from "@/lib/reports/conclusions";
+import { splitScoringAttachments } from "@/lib/reports/scoringAttachments";
 
 type Props = {
   params: Promise<{ id: string }>;

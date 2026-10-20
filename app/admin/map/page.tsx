@@ -1,13 +1,13 @@
 import dataStore from '@/lib/db';
-import Header from '@/components/Header';
-import Sidebar from '@/components/Sidebar';
-import CompanyMapSection from '@/components/CompanyMapSection';
-import type { CompanyPoint } from '@/components/CompanyMap';
+import Header from '@/components/layout/Header';
+import Sidebar from '@/components/layout/Sidebar';
+import CompanyMapSection from '@/components/map/CompanyMapSection';
+import type { CompanyPoint } from '@/components/map/CompanyMap';
 import { adminNavItems } from '@/lib/adminNav';
-import { fetchSurveyMapPoints } from '@/lib/surveyMapPoints';
-import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
-import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
-import { resolveReportPointLocations } from '@/lib/locationResolver';
+import { fetchSurveyMapPoints } from '@/lib/map/surveyMapPoints';
+import { attachEffectiveSenderCompanies } from '@/lib/reports/companies';
+import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
+import { resolveReportPointLocations } from '@/lib/map/locationResolver';
 
 async function fetchData() {
   // Every report location that actually has coordinates, with the company

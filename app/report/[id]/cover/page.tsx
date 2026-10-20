@@ -1,11 +1,11 @@
-import Header from '@/components/Header';
-import ReportCoverTemplate from '@/components/ReportCoverTemplate';
-import Sidebar from '@/components/Sidebar';
+import Header from '@/components/layout/Header';
+import ReportCoverTemplate from '@/components/reports/ReportCoverTemplate';
+import Sidebar from '@/components/layout/Sidebar';
 import dataStore from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
-import { createQrImageUrl, getPublicProfileQrUrl } from '@/lib/profileQr';
+import { createQrImageUrl, getPublicProfileQrUrl } from '@/lib/auth/profileQr';
 import { formatDate, formatScore } from '@/lib/utils';
-import { uniqueAssignmentsByEvaluator } from '@/lib/reportAssignments';
+import { uniqueAssignmentsByEvaluator } from '@/lib/reports/assignments';
 
 type Props = {
   params: Promise<{ id: string }>;

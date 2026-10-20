@@ -1,12 +1,12 @@
 import dataStore from '@/lib/db';
-import Header from '@/components/Header';
-import Sidebar from '@/components/Sidebar';
-import AssignBoard from '@/components/AssignBoard';
+import Header from '@/components/layout/Header';
+import Sidebar from '@/components/layout/Sidebar';
+import AssignBoard from '@/components/evaluation/AssignBoard';
 import { STAFF_EMAILS } from '@/lib/constants';
-import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
-import { fetchSurveyReports } from '@/lib/surveyReports';
-import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
-import { uniqueAssignmentsByEvaluator } from '@/lib/reportAssignments';
+import { attachEffectiveSenderCompanies } from '@/lib/reports/companies';
+import { fetchSurveyReports } from '@/lib/survey/reports';
+import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
+import { uniqueAssignmentsByEvaluator } from '@/lib/reports/assignments';
 
 async function fetchReportTypes() {
   return dataStore.reportType.findMany({

@@ -1,11 +1,11 @@
 import dataStore from '@/lib/db';
-import Header from '@/components/Header';
-import Sidebar from '@/components/Sidebar';
-import CompaniesView, { type CompanyRow } from '@/components/CompaniesView';
+import Header from '@/components/layout/Header';
+import Sidebar from '@/components/layout/Sidebar';
+import CompaniesView, { type CompanyRow } from '@/components/admin/CompaniesView';
 import { adminNavItems } from '@/lib/adminNav';
-import { attachEffectiveSenderCompanies, normalizeRegister } from '@/lib/reportCompanies';
-import { fetchSurveyReports } from '@/lib/surveyReports';
-import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
+import { attachEffectiveSenderCompanies, normalizeRegister } from '@/lib/reports/companies';
+import { fetchSurveyReports } from '@/lib/survey/reports';
+import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
 
 async function fetchCompanyRows(): Promise<CompanyRow[]> {
   const [companies, rawReports, surveyReports] = await Promise.all([

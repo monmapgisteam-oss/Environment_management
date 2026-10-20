@@ -1,9 +1,9 @@
 import { redirect } from 'next/navigation';
-import Header from '@/components/Header';
-import Sidebar from '@/components/Sidebar';
-import CompanyMapSection from '@/components/CompanyMapSection';
+import Header from '@/components/layout/Header';
+import Sidebar from '@/components/layout/Sidebar';
+import CompanyMapSection from '@/components/map/CompanyMapSection';
 import { getCurrentUser } from '@/lib/auth';
-import { fetchSenderCompanyPoints } from '@/lib/senderLocations';
+import { fetchSenderCompanyPoints } from '@/lib/map/senderLocations';
 import { senderSidebarItems } from '@/lib/senderNav';
 
 export default async function SenderGeographyPage() {

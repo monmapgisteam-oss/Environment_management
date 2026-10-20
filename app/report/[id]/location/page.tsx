@@ -1,7 +1,7 @@
 import dataStore from '@/lib/db';
-import Header from '@/components/Header';
-import Sidebar from '@/components/Sidebar';
-import LocationMap from '@/components/LocationMapClient';
+import Header from '@/components/layout/Header';
+import Sidebar from '@/components/layout/Sidebar';
+import LocationMap from '@/components/map/LocationMapClient';
 
 type Props = {
   params: Promise<{ id: string }>;

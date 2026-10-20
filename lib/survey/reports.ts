@@ -1,7 +1,7 @@
 import dataStore from '@/lib/db';
-import { fetchSurveyPhotoMap, type SurveyPhoto } from '@/lib/surveyPhotos';
-import { findSenderCompanyByRegister, normalizeRegister } from '@/lib/reportCompanies';
-import { normalizeSurveyReportType } from '@/lib/surveyReportType';
+import { fetchSurveyPhotoMap, type SurveyPhoto } from '@/lib/survey/photos';
+import { findSenderCompanyByRegister, normalizeRegister } from '@/lib/reports/companies';
+import { normalizeSurveyReportType } from '@/lib/survey/reportType';
 
 import { SURVEY_LAYER_ID, querySurvey } from '@/lib/db/survey';
 

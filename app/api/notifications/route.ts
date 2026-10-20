@@ -1,7 +1,7 @@
 import dataStore from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
-import { syncSurveyReportsForManagerNotifications } from '@/lib/surveyReports';
+import { syncSurveyReportsForManagerNotifications } from '@/lib/survey/reports';
 
 export async function PATCH(request: NextRequest) {
   try {

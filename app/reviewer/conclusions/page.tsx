@@ -1,7 +1,7 @@
 import dataStore from '@/lib/db';
-import ConclusionSectionPage from '@/components/ConclusionSectionPage';
-import { fetchConclusionRows } from '@/lib/conclusionReports';
-import type { ConclusionSearchParams } from '@/lib/conclusions';
+import ConclusionSectionPage from '@/components/conclusions/ConclusionSectionPage';
+import { fetchConclusionRows } from '@/lib/reports/conclusionReports';
+import type { ConclusionSearchParams } from '@/lib/reports/conclusions';
 
 type Props = {
   searchParams: Promise<ConclusionSearchParams>;

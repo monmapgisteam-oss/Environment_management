@@ -1,5 +1,5 @@
 import { fetchSurveyAttachment } from '@/lib/db/survey';
-import { hasSurveySession } from '@/lib/surveySession';
+import { hasSurveySession } from '@/lib/survey/session';
 
 type Props = { params: Promise<{ layerId: string; objectId: string; attachmentId: string }> };
 

@@ -1,11 +1,11 @@
 import dataStore from '@/lib/db';
-import Header from '@/components/Header';
-import Sidebar from '@/components/Sidebar';
-import ReportTable from '@/components/ReportTable';
+import Header from '@/components/layout/Header';
+import Sidebar from '@/components/layout/Sidebar';
+import ReportTable from '@/components/reports/ReportTable';
 import { getCurrentUser } from '@/lib/auth';
-import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
+import { attachEffectiveSenderCompanies } from '@/lib/reports/companies';
 import { senderSidebarItems } from '@/lib/senderNav';
-import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
+import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
 import { HiPaperAirplane, HiClock, HiPencil, HiCheckCircle, HiStar } from 'react-icons/hi';
 
 async function fetchSenderReports(companyId: string) {

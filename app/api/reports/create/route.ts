@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import dataStore from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
-import { serializeDocumentAttachments, serializeReportAttachments } from '@/lib/attachments';
-import { resolveReportSenderCompany } from '@/lib/reportCompanies';
-import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
+import { serializeDocumentAttachments, serializeReportAttachments } from '@/lib/reports/attachments';
+import { resolveReportSenderCompany } from '@/lib/reports/companies';
+import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
 
 export async function POST(request: Request) {
   try {

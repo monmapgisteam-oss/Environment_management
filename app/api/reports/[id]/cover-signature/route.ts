@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import dataStore from '@/lib/db';
-import { hashPin, verifyPin } from '@/lib/signature';
+import { hashPin, verifyPin } from '@/lib/auth/signature';
 
 const KNOWN_SIGNATURES: Record<string, string> = {
   'manager@tailan.mn': '1234',

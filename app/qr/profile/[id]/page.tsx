@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { HiBriefcase, HiOfficeBuilding, HiPhone, HiShieldCheck } from 'react-icons/hi';
-import QrSignatureReveal from '@/components/QrSignatureReveal';
+import QrSignatureReveal from '@/components/signature/QrSignatureReveal';
 import dataStore from '@/lib/db';
 
 type Props = {

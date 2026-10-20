@@ -4,7 +4,7 @@ import { Fragment, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { HiSearch, HiChevronDown } from 'react-icons/hi';
 import { formatDate } from '@/lib/utils';
-import { normalizeSurveyReportType } from '@/lib/surveyReportType';
+import { normalizeSurveyReportType } from '@/lib/survey/reportType';
 
 // Same survey layer the report pages match against by register — here the
 // manager/staff search it directly instead of only auto-matching one report's

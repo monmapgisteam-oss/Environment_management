@@ -1,4 +1,4 @@
-import type { Attachment } from '@/lib/attachments';
+import type { Attachment } from '@/lib/reports/attachments';
 
 export const GENERAL_EVALUATION_CONCLUSION_TITLE = 'Ерөнхий үнэлгээний дүгнэлт';
 

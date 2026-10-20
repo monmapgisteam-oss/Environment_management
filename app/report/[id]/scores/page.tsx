@@ -1,10 +1,10 @@
 import dataStore from '@/lib/db';
-import Header from '@/components/Header';
-import Sidebar from '@/components/Sidebar';
-import SignatureBadge from '@/components/SignatureBadge';
+import Header from '@/components/layout/Header';
+import Sidebar from '@/components/layout/Sidebar';
+import SignatureBadge from '@/components/signature/SignatureBadge';
 import { formatScore } from '@/lib/utils';
 import { getCurrentUser } from '@/lib/auth';
-import { uniqueAssignmentsByEvaluator } from '@/lib/reportAssignments';
+import { uniqueAssignmentsByEvaluator } from '@/lib/reports/assignments';
 
 type Props = {
   params: Promise<{ id: string }>;

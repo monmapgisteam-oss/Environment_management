@@ -1,11 +1,11 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import Header from '@/components/Header';
-import Sidebar from '@/components/Sidebar';
+import Header from '@/components/layout/Header';
+import Sidebar from '@/components/layout/Sidebar';
 import { getCurrentUser } from '@/lib/auth';
 import { adminNavItems } from '@/lib/adminNav';
 import { senderSidebarItems } from '@/lib/senderNav';
-import { createQrImageUrl, getPublicProfileQrUrl } from '@/lib/profileQr';
+import { createQrImageUrl, getPublicProfileQrUrl } from '@/lib/auth/profileQr';
 
 type HeaderRole = 'sender' | 'reviewer' | 'staff' | 'admin';
 

@@ -1,4 +1,4 @@
-import AuthForm from '@/components/AuthForm';
+import AuthForm from '@/components/auth/AuthForm';
 import { REVIEWER_ACCOUNTS, REVIEWER_ROLES } from '@/lib/constants';
 
 export default function ReviewerLoginPage() {

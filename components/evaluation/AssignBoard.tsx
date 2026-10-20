@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import StatusBadge from './StatusBadge';
+import StatusBadge from '@/components/ui/StatusBadge';
 import { HiUserGroup } from 'react-icons/hi';
 
 type Staff = {

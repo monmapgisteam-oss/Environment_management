@@ -1,11 +1,11 @@
 import { redirect } from 'next/navigation';
 import dataStore from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
-import Header from '@/components/Header';
-import Sidebar from '@/components/Sidebar';
-import ReportTable from '@/components/ReportTable';
-import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
-import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
+import Header from '@/components/layout/Header';
+import Sidebar from '@/components/layout/Sidebar';
+import ReportTable from '@/components/reports/ReportTable';
+import { attachEffectiveSenderCompanies } from '@/lib/reports/companies';
+import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
 
 function dateValue(value?: Date | string | null) {
   if (!value) return 0;

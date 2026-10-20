@@ -1,7 +1,7 @@
-import Header from '@/components/Header';
-import Sidebar from '@/components/Sidebar';
-import ConclusionSearchResults from '@/components/ConclusionSearchResults';
-import type { ConclusionRow, ConclusionSearchParams } from '@/lib/conclusions';
+import Header from '@/components/layout/Header';
+import Sidebar from '@/components/layout/Sidebar';
+import ConclusionSearchResults from '@/components/conclusions/ConclusionSearchResults';
+import type { ConclusionRow, ConclusionSearchParams } from '@/lib/reports/conclusions';
 
 type SidebarItem = {
   label: string;

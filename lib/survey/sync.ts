@@ -1,7 +1,7 @@
 import dataStore from '@/lib/db';
 import { SURVEY_LAYER_ID, SURVEY_REPEAT_LAYER_ID, addSurveyRecord, querySurvey, updateSurveyRecord } from '@/lib/db/survey';
-import { fetchSurveyPhotoMap, type SurveyPhoto } from '@/lib/surveyPhotos';
-import { normalizeSurveyReportType } from '@/lib/surveyReportType';
+import { fetchSurveyPhotoMap, type SurveyPhoto } from '@/lib/survey/photos';
+import { normalizeSurveyReportType } from '@/lib/survey/reportType';
 
 // ---------------------------------------------------------------------------
 // Survey write-back integration.

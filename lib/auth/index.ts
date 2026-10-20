@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { cookies } from 'next/headers';
-import dataStore from './db';
+import dataStore from '@/lib/db';
 
 function sessionSecret() {
   if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET is required.');

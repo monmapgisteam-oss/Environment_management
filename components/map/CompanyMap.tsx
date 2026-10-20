@@ -7,8 +7,8 @@ import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import 'leaflet.markercluster';
 import { HiOfficeBuilding, HiSearch, HiX } from 'react-icons/hi';
-import { addBasemap } from '@/lib/basemap';
-import { createPinIcon, popupCard, scoreBucket, SCORE_COLORS, SCORE_LABELS, type ScoreBucket } from '@/lib/mapMarkers';
+import { addBasemap } from '@/lib/map/basemap';
+import { createPinIcon, popupCard, scoreBucket, SCORE_COLORS, SCORE_LABELS, type ScoreBucket } from '@/lib/map/markers';
 import { STATUS_BADGE_COLORS, STATUS_LABELS } from '@/lib/constants';
 
 export type CompanyPoint = {

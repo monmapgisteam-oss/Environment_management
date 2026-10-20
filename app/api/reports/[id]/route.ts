@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import dataStore from '@/lib/db';
-import { serializeDocumentAttachments, serializeReportAttachments } from '@/lib/attachments';
-import { findSenderCompanyByRegister } from '@/lib/reportCompanies';
-import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
+import { serializeDocumentAttachments, serializeReportAttachments } from '@/lib/reports/attachments';
+import { findSenderCompanyByRegister } from '@/lib/reports/companies';
+import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
 
 // Returns a single report with everything the sender's edit form needs to
 // pre-fill (type, location, attachments).

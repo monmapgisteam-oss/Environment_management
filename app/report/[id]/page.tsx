@@ -1,22 +1,22 @@
 import dataStore from '@/lib/db';
-import Header from '@/components/Header';
-import Sidebar from '@/components/Sidebar';
-import StatusBadge from '@/components/StatusBadge';
-import AttachmentList from '@/components/AttachmentList';
-import ManagerReturnPanel from '@/components/ManagerReturnPanel';
-import LocationMap from '@/components/LocationMapClient';
-import ScanPrintPanel from '@/components/ScanPrintPanel';
-import SignatureBadge from '@/components/SignatureBadge';
-import { parseAttachments, downloadUrl } from '@/lib/attachments';
+import Header from '@/components/layout/Header';
+import Sidebar from '@/components/layout/Sidebar';
+import StatusBadge from '@/components/ui/StatusBadge';
+import AttachmentList from '@/components/reports/AttachmentList';
+import ManagerReturnPanel from '@/components/reports/ManagerReturnPanel';
+import LocationMap from '@/components/map/LocationMapClient';
+import ScanPrintPanel from '@/components/reports/ScanPrintPanel';
+import SignatureBadge from '@/components/signature/SignatureBadge';
+import { parseAttachments, downloadUrl } from '@/lib/reports/attachments';
 import { signAttachments, createSignedUrl } from '@/lib/db/storage';
 import { formatDate, formatScore } from '@/lib/utils';
 import { getCurrentUser } from '@/lib/auth';
-import { fetchSurveyReportByObjectId } from '@/lib/surveyReports';
-import { attachEffectiveSenderCompanies } from '@/lib/reportCompanies';
+import { fetchSurveyReportByObjectId } from '@/lib/survey/reports';
+import { attachEffectiveSenderCompanies } from '@/lib/reports/companies';
 import { senderSidebarItems } from '@/lib/senderNav';
-import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/conclusions';
-import { uniqueAssignmentsByEvaluator } from '@/lib/reportAssignments';
-import { splitScoringAttachments } from '@/lib/scoringAttachments';
+import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
+import { uniqueAssignmentsByEvaluator } from '@/lib/reports/assignments';
+import { splitScoringAttachments } from '@/lib/reports/scoringAttachments';
 
 type Props = {
   params: Promise<{ id: string }>;

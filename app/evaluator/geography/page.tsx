@@ -1,9 +1,9 @@
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
-import Header from '@/components/Header';
-import Sidebar from '@/components/Sidebar';
-import CompanyMapSection from '@/components/CompanyMapSection';
-import { fetchReviewedCompanyPoints } from '@/lib/reviewedLocations';
+import Header from '@/components/layout/Header';
+import Sidebar from '@/components/layout/Sidebar';
+import CompanyMapSection from '@/components/map/CompanyMapSection';
+import { fetchReviewedCompanyPoints } from '@/lib/map/reviewedLocations';
 
 export default async function EvaluatorGeographyPage() {
   const user = await getCurrentUser();

@@ -4,8 +4,8 @@ import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import SignatureBadge from './SignatureBadge';
-import { downloadUrl, type Attachment } from '@/lib/attachments';
+import SignatureBadge from '@/components/signature/SignatureBadge';
+import { downloadUrl, type Attachment } from '@/lib/reports/attachments';
 
 type Criterion = {
   id: string;

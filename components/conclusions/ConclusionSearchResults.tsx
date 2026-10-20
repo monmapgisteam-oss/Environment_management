@@ -1,14 +1,14 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { HiDocumentText, HiSearch } from 'react-icons/hi';
-import { downloadUrl } from '@/lib/attachments';
-import TableExportToolbar from '@/components/TableExportToolbar';
-import type { ConclusionRow, ConclusionSearchParams } from '@/lib/conclusions';
+import { downloadUrl } from '@/lib/reports/attachments';
+import TableExportToolbar from '@/components/ui/TableExportToolbar';
+import type { ConclusionRow, ConclusionSearchParams } from '@/lib/reports/conclusions';
 import {
   CONCLUSION_PROJECT_CATEGORIES,
   CONCLUSION_PROVINCES,
   CONCLUSION_TYPES,
-} from '@/lib/conclusions';
+} from '@/lib/reports/conclusions';
 
 type Props = {
   rows: ConclusionRow[];

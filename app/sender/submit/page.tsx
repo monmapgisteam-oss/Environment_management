@@ -2,15 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Header from "@/components/Header";
-import Sidebar from "@/components/Sidebar";
-import ReportInfoCard from "@/components/ReportInfoCard";
-import LocationCard from "@/components/LocationCard";
-import AttachmentCard from "@/components/AttachmentCard";
-import DocumentUploadCard from "@/components/DocumentUploadCard";
-import CriterionEvidenceUploadCard from "@/components/CriterionEvidenceUploadCard";
+import Header from "@/components/layout/Header";
+import Sidebar from "@/components/layout/Sidebar";
+import ReportInfoCard from "@/components/submit/ReportInfoCard";
+import LocationCard from "@/components/submit/LocationCard";
+import AttachmentCard from "@/components/submit/AttachmentCard";
+import DocumentUploadCard from "@/components/submit/DocumentUploadCard";
+import CriterionEvidenceUploadCard from "@/components/submit/CriterionEvidenceUploadCard";
 import { HiCheckCircle } from "react-icons/hi";
-import { isDocumentAttachment, isReportAttachment, parseAttachments, type Attachment } from "@/lib/attachments";
+import { isDocumentAttachment, isReportAttachment, parseAttachments, type Attachment } from "@/lib/reports/attachments";
 import { senderSidebarItems, type SenderNavKey } from "@/lib/senderNav";
 
 type Criterion = {

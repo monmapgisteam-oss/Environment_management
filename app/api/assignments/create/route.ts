@@ -3,8 +3,8 @@ export const runtime = "nodejs";
 import dataStore from "@/lib/db";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { materializeSurveyReportByObjectId } from "@/lib/surveyReports";
-import { GENERAL_EVALUATION_CONCLUSION_TITLE } from "@/lib/conclusions";
+import { materializeSurveyReportByObjectId } from "@/lib/survey/reports";
+import { GENERAL_EVALUATION_CONCLUSION_TITLE } from "@/lib/reports/conclusions";
 
 async function resolveAssignableReportId(reportId: string) {
   const match = /^survey-(\d+)$/.exec(reportId);

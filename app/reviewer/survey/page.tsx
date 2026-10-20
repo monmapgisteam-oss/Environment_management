@@ -1,7 +1,7 @@
 import dataStore from '@/lib/db';
-import Header from '@/components/Header';
-import Sidebar from '@/components/Sidebar';
-import SurveyLookup from '@/components/SurveyLookup';
+import Header from '@/components/layout/Header';
+import Sidebar from '@/components/layout/Sidebar';
+import SurveyLookup from '@/components/survey/SurveyLookup';
 
 async function fetchReportTypes() {
   return dataStore.reportType.findMany({

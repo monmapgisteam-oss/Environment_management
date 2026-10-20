@@ -3,8 +3,8 @@
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { addBasemap } from '@/lib/basemap';
-import { createPinIcon } from '@/lib/mapMarkers';
+import { addBasemap } from '@/lib/map/basemap';
+import { createPinIcon } from '@/lib/map/markers';
 
 interface LocationMapProps {
   lat: number;
