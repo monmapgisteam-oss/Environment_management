@@ -5,6 +5,7 @@ import { serializeDocumentAttachments, serializeReportAttachments } from '@/lib/
 import { resolveReportSenderCompany } from '@/lib/reports/companies';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
 import { REPORT_CATEGORIES } from '@/lib/constants';
+import { withNextReportNumber } from '@/lib/reports/reportNumber';
 
 export async function POST(request: Request) {
   try {
@@ -40,45 +41,46 @@ export async function POST(request: Request) {
     }
     const reportTypeId = reportType.id;
 
-    const reportNumber = (data.reportNumber && data.reportNumber.trim()) || `RPT-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-
     const status = data.status === 'draft' ? 'draft' : 'submitted';
 
-    const report = await dataStore.report.create({
-      data: {
-        reportNumber,
-        reportTypeId,
-        senderCompanyId: senderCompany.id,
-        title: data.title || 'Тайлан',
-        description: data.description || null,
-        fileUrl:
-          data.attachmentKind === 'document'
-            ? serializeDocumentAttachments(data.fileUrl)
-            : serializeReportAttachments(data.fileUrl),
-        reportCategory: REPORT_CATEGORIES.includes(data.reportCategory) ? data.reportCategory : null,
-        implementerName: data.implementerName || null,
-        implementerRegister: data.implementerRegister?.trim() || null,
-        approvedDate: data.approvedDate ? new Date(data.approvedDate) : null,
-        hasGreenery: data.hasGreenery === 'yes' ? true : data.hasGreenery === 'no' ? false : null,
-        treeCount: data.hasGreenery === 'yes' && data.treeCount !== '' && data.treeCount != null ? parseInt(data.treeCount) : null,
-        spentAmount: data.spentAmount !== '' && data.spentAmount != null ? parseInt(data.spentAmount) : null,
-        status,
-        year: new Date().getFullYear(),
-        submittedAt: status === 'draft' ? null : new Date(),
-        ...((data.latitude != null && data.longitude != null) || data.province || data.district || data.khoroo ? {
-          location: {
-            create: {
-              province: data.province || 'Тодорхойгүй',
-              district: data.district || 'Тодорхойгүй',
-              khoroo: data.khoroo || 'Тодорхойгүй',
-              addressDetail: data.addressDetail || null,
-              latitude: data.latitude != null ? parseFloat(String(data.latitude)) : null,
-              longitude: data.longitude != null ? parseFloat(String(data.longitude)) : null,
+    // The number is always assigned here, never taken from the form.
+    const report = await withNextReportNumber((reportNumber) =>
+      dataStore.report.create({
+        data: {
+          reportNumber,
+          reportTypeId,
+          senderCompanyId: senderCompany.id,
+          title: data.title || 'Тайлан',
+          description: data.description || null,
+          fileUrl:
+            data.attachmentKind === 'document'
+              ? serializeDocumentAttachments(data.fileUrl)
+              : serializeReportAttachments(data.fileUrl),
+          reportCategory: REPORT_CATEGORIES.includes(data.reportCategory) ? data.reportCategory : null,
+          implementerName: data.implementerName || null,
+          implementerRegister: data.implementerRegister?.trim() || null,
+          approvedDate: data.approvedDate ? new Date(data.approvedDate) : null,
+          hasGreenery: data.hasGreenery === 'yes' ? true : data.hasGreenery === 'no' ? false : null,
+          treeCount: data.hasGreenery === 'yes' && data.treeCount !== '' && data.treeCount != null ? parseInt(data.treeCount) : null,
+          spentAmount: data.spentAmount !== '' && data.spentAmount != null ? parseInt(data.spentAmount) : null,
+          status,
+          year: new Date().getFullYear(),
+          submittedAt: status === 'draft' ? null : new Date(),
+          ...((data.latitude != null && data.longitude != null) || data.province || data.district || data.khoroo ? {
+            location: {
+              create: {
+                province: data.province || 'Тодорхойгүй',
+                district: data.district || 'Тодорхойгүй',
+                khoroo: data.khoroo || 'Тодорхойгүй',
+                addressDetail: data.addressDetail || null,
+                latitude: data.latitude != null ? parseFloat(String(data.latitude)) : null,
+                longitude: data.longitude != null ? parseFloat(String(data.longitude)) : null,
+              },
             },
-          },
-        } : {}),
-      },
-    });
+          } : {}),
+        },
+      }),
+    );
 
     // Notify the review manager(s) that a new report is waiting to be reviewed.
     // Drafts stay private to the sender, so only notify on real submissions.

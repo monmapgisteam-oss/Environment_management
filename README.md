@@ -1,4 +1,4 @@
-# Тайлан илгээх, үнэлгээ өгөх систем
+# Байгаль орчны менежментийн төлөвлөгөөний систем
 
 Official report submission and evaluation system for managing reports, reviews, scoring, and geographic information.
 

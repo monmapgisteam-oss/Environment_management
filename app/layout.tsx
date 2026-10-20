@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Тайлан илгээх, үнэлгээ өгөх систем',
-  description: 'Тайлан илгээх, үнэлгээ өгөх систем',
+  title: 'Байгаль орчны менежментийн төлөвлөгөөний систем',
+  description: 'Байгаль орчны менежментийн төлөвлөгөөний систем',
 };
 
 // Every page is a live, data-backed dashboard, so render on demand rather than

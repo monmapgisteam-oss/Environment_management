@@ -10,7 +10,7 @@ export type EvidenceRow = {
 
 type Props = {
   title: string;
-  description: string;
+  description?: string;
   // Keeps file input ids unique when several cards are on one page.
   idPrefix: string;
   rows: EvidenceRow[];
@@ -43,7 +43,7 @@ export default function EvidenceUploadCard({
     <div className="rounded-2xl border border-[#E8F0FE] bg-white">
       <div className="border-b border-[#E8F0FE] px-6 py-4">
         <h3 className="text-base font-semibold text-color-text-main">{title}</h3>
-        <p className="mt-1 text-sm text-color-text-muted">{description}</p>
+        {description && <p className="mt-1 text-sm text-color-text-muted">{description}</p>}
       </div>
 
       <div className="divide-y divide-[#E8F0FE]">

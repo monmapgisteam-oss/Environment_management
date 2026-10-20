@@ -74,7 +74,7 @@ export default function HomePage() {
             <LuShieldCheck size={32} />
           </div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-            Тайлан илгээх, үнэлгээ өгөх систем
+            Байгаль орчны менежментийн төлөвлөгөөний систем
           </h1>
           <p className="mt-3 text-base text-slate-500">Та нэвтрэх төрлөө сонгоно уу</p>
         </div>

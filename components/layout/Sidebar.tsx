@@ -148,10 +148,8 @@ export default function Sidebar({ items, role }: Props) {
     >
       {/* Logo */}
       <div className="flex items-center px-5 h-16 border-b border-white/10">
-        <span className="text-[12px] font-bold tracking-[0.14em] text-white leading-tight uppercase">
-          Тайлангийн
-          <br />
-          систем
+        <span className="text-[11px] font-bold tracking-[0.08em] text-white leading-tight uppercase">
+          Байгаль орчны менежментийн төлөвлөгөөний систем
         </span>
       </div>
 

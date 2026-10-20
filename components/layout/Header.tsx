@@ -88,7 +88,7 @@ export default function Header({ userName, companyName, role }: Props) {
               <polyline points="14 2 14 8 20 8" />
             </svg>
           </div>
-          <span className="text-xs font-bold tracking-widest text-color-text-main uppercase">Тайлангийн систем</span>
+          <span className="max-w-[180px] text-[10px] font-bold leading-tight tracking-wide text-color-text-main uppercase">Байгаль орчны менежментийн төлөвлөгөөний систем</span>
         </Link>
         <div className="hidden md:block" />
 

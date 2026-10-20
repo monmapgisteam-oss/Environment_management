@@ -88,3 +88,13 @@ test('criteria category accepts only the report categories', async () => {
   assert.equal(found.length, 1);
   await assert.rejects(write(store, 'evaluationCriterion', 'create', { data: { name: 'D', category: 'Other', maxScore: 5, sortOrder: 2 } }, uuid));
 });
+
+test('a report number range holds only that year\'s RPT numbers', async () => {
+  const { store, company } = await seed();
+  const type = await write(store, 'reportType', 'create', { data: { name: 'T', slug: 't' } }, uuid);
+  for (const reportNumber of ['RPT-2026-0001', 'RPT-2026-0012', 'RPT-2025-0099', 'RPT-20260-1', 'S123-6']) {
+    await write(store, 'report', 'create', { data: { reportNumber, reportTypeId: type.id, senderCompanyId: company.id, title: 'R', year: 2026 } }, uuid);
+  }
+  const rows = await read(store, 'report', 'findMany', { where: { reportNumber: { gte: 'RPT-2026-', lt: 'RPT-2026.' } }, orderBy: { reportNumber: 'asc' } });
+  assert.deepEqual(rows.map((r) => r.reportNumber), ['RPT-2026-0001', 'RPT-2026-0012']);
+});

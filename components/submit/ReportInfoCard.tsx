@@ -33,7 +33,7 @@ export default function ReportInfoCard({ formData, handleChange }: ReportInfoCar
         <h2 className="text-base font-semibold text-color-text-main">Тайлангийн мэдээлэл</h2>
       </div>
 
-      {/* Row 1: Report Type & Number */}
+      {/* Row 1: Report Type (& number once assigned) */}
       <div className="grid grid-cols-2 gap-5 mb-5">
         <div>
           <label className="block text-sm font-medium text-color-text-main mb-1.5">
@@ -52,20 +52,15 @@ export default function ReportInfoCard({ formData, handleChange }: ReportInfoCar
             ))}
           </select>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-color-text-main mb-1.5">
-            Тайлангийн дугаар <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            name="reportNumber"
-            value={formData.reportNumber}
-            onChange={handleChange}
-            placeholder="RPT-2025-001"
-            required
-            className={inputClass}
-          />
-        </div>
+        {/* The server assigns the number; a saved report shows it read-only. */}
+        {formData.reportNumber && (
+          <div>
+            <label className="block text-sm font-medium text-color-text-main mb-1.5">Тайлангийн дугаар</label>
+            <div className={inputClass + ' flex items-center bg-slate-50 cursor-not-allowed'}>
+              {formData.reportNumber}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Row 2: Project Name */}

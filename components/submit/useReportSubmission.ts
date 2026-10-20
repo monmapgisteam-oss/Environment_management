@@ -118,7 +118,7 @@ export function useReportSubmission() {
   const [initialLocation, setInitialLocation] = useState<SubmitLocation | null>(null);
   const [location, setLocation] = useState<SubmitLocation | null>(null);
   const [formData, setFormData] = useState<ReportFormData>({
-    reportType: "",
+    reportType: activeType?.label || "",
     reportCategory: "",
     reportNumber: "",
     title: "",
@@ -130,10 +130,10 @@ export function useReportSubmission() {
     treeCount: "",
     spentAmount: "",
   });
-  // A performance report attaches the supporting materials its category
-  // requires (lib/reports/materials.ts); plans and other forms have none.
-  const materials =
-    !isGeneralEvaluation && formData.reportType === PERFORMANCE_REPORT_LABEL ? materialsFor(formData.reportCategory) : [];
+  // The regulation's scoring sheets and material lists are for performance
+  // reports only; plans and other forms attach general files only.
+  const isPerformanceReport = !isGeneralEvaluation && formData.reportType === PERFORMANCE_REPORT_LABEL;
+  const materials = isPerformanceReport ? materialsFor(formData.reportCategory) : [];
   const materialIds = new Set(materials.map((material) => material.id));
 
   useEffect(() => {
@@ -146,7 +146,7 @@ export function useReportSubmission() {
   // they load once the sender picks it and reload when it changes.
   const reportCategory = formData.reportCategory;
   useEffect(() => {
-    if (isGeneralEvaluation || isAdditional || !reportCategory) {
+    if (!isPerformanceReport || !reportCategory) {
       setCriteria([]);
       return;
     }
@@ -160,7 +160,7 @@ export function useReportSubmission() {
     return () => {
       cancelled = true;
     };
-  }, [isAdditional, isGeneralEvaluation, reportCategory]);
+  }, [isPerformanceReport, reportCategory]);
 
   // Keep report type locked to the selected sidebar type (create mode only).
   useEffect(() => {
@@ -335,10 +335,11 @@ export function useReportSubmission() {
     const keptAttachments = existingAttachments.filter(
       isGeneralEvaluation ? isDocumentAttachment : isReportAttachment,
     );
+    // Plans no longer show evidence rows, but evidence saved on older plans is kept.
     const keptCriterionAttachments = isGeneralEvaluation
       ? []
       : Object.entries(existingCriterionAttachments)
-          .filter(([criterionId]) => criterionIds.has(criterionId))
+          .filter(([criterionId]) => !isPerformanceReport || criterionIds.has(criterionId))
           .flatMap(([, files]) => files);
     const uploadedMaterialFiles = await uploadMaterialAttachments();
     const keptMaterialAttachments = Object.entries(existingMaterialAttachments)
@@ -463,6 +464,7 @@ export function useReportSubmission() {
   };
 
   return {
+    isPerformanceReport,
     activeType,
     isEdit,
     isGeneralEvaluation,
