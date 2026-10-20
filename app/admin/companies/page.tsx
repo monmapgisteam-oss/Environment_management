@@ -24,11 +24,11 @@ async function fetchCompanyRows(): Promise<CompanyRow[]> {
   ]);
   const reports = await attachEffectiveSenderCompanies(rawReports);
 
-  return companies.map((company: any) => {
+  return companies.map((company) => {
     const companyRegister = normalizeRegister(company.registerNumber);
     const webSurveys = reports
-      .filter((r: any) => r.senderCompany?.id === company.id)
-      .map((r: any) => ({
+      .filter((r) => r.senderCompany?.id === company.id)
+      .map((r) => ({
         id: r.id,
         reportNumber: r.reportNumber,
         reportTypeName: r.reportType?.name ?? '—',
@@ -64,7 +64,7 @@ async function fetchCompanyRows(): Promise<CompanyRow[]> {
       name: company.name,
       registerNumber: company.registerNumber,
       type: company.type,
-      contacts: company.users.map((u: any) => ({
+      contacts: company.users.map((u) => ({
         name: u.name,
         email: u.email,
         phone: u.phone,

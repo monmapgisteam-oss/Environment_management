@@ -60,7 +60,7 @@ export default async function StaffEvaluatePage(props: Props) {
 
   const report = (await attachEffectiveSenderCompanies([assignment.report]))[0];
   const criteria = await fetchCriteria();
-  const tableCriteria = criteria.map((c: any) => ({
+  const tableCriteria = criteria.map((c) => ({
     id: c.id,
     name: c.name,
     maxScore: c.maxScore,
@@ -71,7 +71,7 @@ export default async function StaffEvaluatePage(props: Props) {
   // scores are deliberately not loaded here.
   const savedScores =
     assignment.evaluation?.scores?.reduce(
-      (acc: Record<string, string>, s: any) => {
+      (acc: Record<string, string>, s) => {
         acc[s.criterionId] = String(s.score);
         return acc;
       },

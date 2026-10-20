@@ -14,6 +14,9 @@ type LocationPoint = {
   location?: string | null;
 };
 
+// Only the `address` fields of the Nominatim / ArcGIS reverse responses are read.
+type ReverseGeocodeResponse = { address?: Record<string, unknown> } | null | undefined;
+
 const NOMINATIM_REVERSE_URL = 'https://nominatim.openstreetmap.org/reverse';
 const ARCGIS_REVERSE_URL = 'https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/reverseGeocode';
 
@@ -113,7 +116,7 @@ export function extractSurveyLocation(attrs: Record<string, unknown> | undefined
   };
 }
 
-export function extractNominatimLocation(data: any): AdministrativeLocation {
+export function extractNominatimLocation(data: ReverseGeocodeResponse): AdministrativeLocation {
   const address = data?.address || {};
   const province = canonicalName(
     firstText(address, ['state', 'province', 'city', 'county', 'region']),
@@ -129,7 +132,7 @@ export function extractNominatimLocation(data: any): AdministrativeLocation {
   return { province, district };
 }
 
-function extractArcgisLocation(data: any): AdministrativeLocation {
+function extractArcgisLocation(data: ReverseGeocodeResponse): AdministrativeLocation {
   const address = data?.address || {};
   const province = canonicalName(
     firstText(address, ['Region', 'MetroArea', 'City', 'Subregion']),

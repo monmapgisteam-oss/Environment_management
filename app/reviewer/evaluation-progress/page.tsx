@@ -29,7 +29,7 @@ export default async function EvaluationProgressPage() {
 
       <ReportTable
         role="reviewer"
-        reports={reports.map((report: any) => ({
+        reports={reports.map((report) => ({
           id: report.id,
           reportNumber: report.reportNumber,
           reportType: report.reportType,

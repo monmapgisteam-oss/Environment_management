@@ -66,8 +66,8 @@ export default async function ReportScoresPage(props: Props) {
   const uniqueAssignments = uniqueAssignmentsByEvaluator(report.assignments);
   const scoreRows = scoresVisible
     ? uniqueAssignments
-        .filter((a: any) => !isStaff || a.evaluator?.id === currentUser.id)
-        .map((a: any) => ({
+        .filter((a) => !isStaff || a.evaluator?.id === currentUser.id)
+        .map((a) => ({
           evaluatorName: a.evaluator.name,
           totalScore: a.evaluation ? a.evaluation.totalScore : null,
           comment: a.evaluation?.comment ?? null,
@@ -107,7 +107,7 @@ export default async function ReportScoresPage(props: Props) {
                   <th rowSpan={2} className="border border-slate-200 py-3 px-4 text-xs font-semibold text-slate-500 uppercase w-20 align-bottom">Байршил</th>
                 </tr>
                 <tr className="border-b-2 border-slate-200 bg-slate-50">
-                  {criteria.map((criterion: any) => (
+                  {criteria.map((criterion) => (
                     <th key={criterion.id} className="border border-slate-200 py-2 px-2 text-[11px] font-semibold text-slate-500 text-center leading-tight">
                       {criterion.name}
                     </th>
@@ -131,8 +131,8 @@ export default async function ReportScoresPage(props: Props) {
                         />
                       </div>
                     </td>
-                    {criteria.map((criterion: any) => {
-                      const score = row.scores.find((s: any) => s.criterionId === criterion.id);
+                    {criteria.map((criterion) => {
+                      const score = row.scores.find((s) => s.criterionId === criterion.id);
                       return (
                         <td key={criterion.id} className="border border-slate-200 py-3 px-2 text-center font-medium text-color-primary">
                           {score ? score.score : ''}

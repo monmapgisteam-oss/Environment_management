@@ -50,7 +50,7 @@ export default async function ReviewerEvaluatePage(props: Props) {
   }
 
   const signedAttachments = await signAttachments(parseAttachments(report.fileUrl));
-  const tableCriteria = criteria.map((c: any) => ({
+  const tableCriteria = criteria.map((c) => ({
     id: c.id,
     name: c.name,
     maxScore: c.maxScore,
@@ -110,7 +110,7 @@ export default async function ReviewerEvaluatePage(props: Props) {
         criteria={tableCriteria}
         reportId={report.id}
         savedScores={
-          report.evaluations?.[0]?.scores?.reduce((acc: Record<string, string>, s: any) => {
+          report.evaluations?.[0]?.scores?.reduce((acc: Record<string, string>, s) => {
             acc[s.criterionId] = String(s.score);
             return acc;
           }, {}) || null

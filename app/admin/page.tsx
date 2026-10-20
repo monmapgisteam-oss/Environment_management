@@ -26,7 +26,7 @@ export default async function AdminDashboard() {
         <p className="mt-1.5 text-sm text-slate-500">Тайлан, үнэлгээний ерөнхий нэгтгэл</p>
       </div>
 
-      <ReportTable reports={reports.map((report: any) => ({
+      <ReportTable reports={reports.map((report) => ({
         id: report.id,
         reportNumber: report.reportNumber,
         reportType: report.reportType,

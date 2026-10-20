@@ -28,9 +28,9 @@ export default async function SenderReportsPage() {
   const surveyReports = await fetchSurveyReports({
     registers: user?.company?.registerNumber ? [user.company.registerNumber] : [],
   });
-  const existingReportNumbers = new Set(reports.map((report: any) => report.reportNumber));
+  const existingReportNumbers = new Set(reports.map((report) => report.reportNumber));
   const tableReports = [
-    ...reports.map((report: any) => ({
+    ...reports.map((report) => ({
       id: report.id,
       reportNumber: report.reportNumber,
       reportType: report.reportType,

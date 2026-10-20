@@ -20,7 +20,7 @@ async function fetchReturnedReports() {
 export default async function ReturnedReportsPage() {
   const reports = await fetchReturnedReports();
 
-  const tableReports = reports.map((report: any) => ({
+  const tableReports = reports.map((report) => ({
     id: report.id,
     reportNumber: report.reportNumber,
     reportType: report.reportType,

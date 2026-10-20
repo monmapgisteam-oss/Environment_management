@@ -43,6 +43,8 @@ export function serializeReportAttachments(fileUrl: string | null | undefined): 
   return reportAttachments.length ? JSON.stringify(reportAttachments) : null;
 }
 
+type StoredAttachment = { url?: string; name?: string; criterionId?: unknown };
+
 // Attachments are stored on Report.fileUrl as a JSON array of { url, name } so
 // the reviewer sees the sender's original file name. Older records may hold a
 // plain (comma-separated) list of URLs, which we still parse for compatibility.
@@ -52,10 +54,10 @@ export function parseAttachments(fileUrl: string | null | undefined): Attachment
     const parsed = JSON.parse(fileUrl);
     if (Array.isArray(parsed)) {
       return parsed
-        .filter((f: any) => f && f.url)
-        .map((f: any) => ({
+        .filter((f: StoredAttachment | null): f is StoredAttachment & { url: string } => Boolean(f && f.url))
+        .map((f) => ({
           url: f.url,
-          name: f.name || f.url.split('/').pop(),
+          name: f.name || (f.url.split('/').pop() ?? ''),
           ...(typeof f.criterionId === 'string' && f.criterionId ? { criterionId: f.criterionId } : {}),
         }));
     }

@@ -35,15 +35,15 @@ async function fetchAssignedReports(evaluatorUserId: string, typeSlug?: string) 
     orderBy: { assignedAt: 'desc' },
   });
 
-  const reports = await attachEffectiveSenderCompanies(assignments.map((assignment: any) => assignment.report));
-  const reportById = new Map(reports.map((report: any) => [report.id, report]));
+  const reports = await attachEffectiveSenderCompanies(assignments.map((assignment) => assignment.report));
+  const reportById = new Map(reports.map((report) => [report.id, report]));
 
   const seenReportIds = new Set<string>();
-  return assignments.filter((assignment: any) => {
+  return assignments.filter((assignment) => {
     if (seenReportIds.has(assignment.report.id)) return false;
     seenReportIds.add(assignment.report.id);
     return true;
-  }).map((assignment: any) => {
+  }).map((assignment) => {
     const report = reportById.get(assignment.report.id) || assignment.report;
     // Surface the report's own state for return flows so the staff member sees
     // "Буцаах хүсэлт илгээгдсэн" after they ask the manager to return it (and
@@ -86,7 +86,7 @@ export default async function EvaluatorDashboard(props: { searchParams: Promise<
   const isAdditional = !!additionalType && searchParams.type === additionalType.slug;
 
   const activeTypeName = searchParams.type
-    ? reportTypes.find((rt: any) => rt.slug === searchParams.type)?.name
+    ? reportTypes.find((rt) => rt.slug === searchParams.type)?.name
     : null;
 
   return (

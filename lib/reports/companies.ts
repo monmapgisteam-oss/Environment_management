@@ -6,8 +6,8 @@ type CompanyIdentity = {
   registerNumber: string;
 };
 
-type ReportWithCompany<TCompany = any> = {
-  senderCompany: TCompany;
+type ReportWithCompany = {
+  senderCompany: object | null;
   implementerRegister?: string | null;
 };
 

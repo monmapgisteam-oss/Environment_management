@@ -31,7 +31,7 @@ export default async function DraftsPage() {
       ) : (
         <ReportTable
           role="sender"
-          reports={reports.map((report: any) => ({
+          reports={reports.map((report) => ({
             id: report.id,
             reportNumber: report.reportNumber,
             reportType: report.reportType,

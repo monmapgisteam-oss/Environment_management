@@ -4,6 +4,7 @@ import {
   CONCLUSION_TYPES,
   GENERAL_EVALUATION_CONCLUSION_TITLE,
   filterConclusions,
+  type ConclusionRow,
   type ConclusionSearchParams,
 } from '@/lib/reports/conclusions';
 import { attachEffectiveSenderCompanies } from '@/lib/reports/companies';
@@ -25,7 +26,7 @@ export async function fetchConclusionRows(search: ConclusionSearchParams = {}) {
 
   const attachedReports = await attachEffectiveSenderCompanies(reports);
   const rows = await Promise.all(
-    attachedReports.map(async (report: any) => {
+    attachedReports.map(async (report): Promise<ConclusionRow | null> => {
       const documents = parseAttachments(report.fileUrl).filter(isDocumentAttachment);
       if (documents.length === 0) return null;
       return {
@@ -45,5 +46,5 @@ export async function fetchConclusionRows(search: ConclusionSearchParams = {}) {
     }),
   );
 
-  return filterConclusions(rows.filter(Boolean) as any, search);
+  return filterConclusions(rows.filter((row): row is ConclusionRow => row !== null), search);
 }

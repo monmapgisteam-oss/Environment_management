@@ -21,6 +21,20 @@ type SurveyRow = {
   description: string | null;
 };
 
+// GeoJSON feature from /api/survey/features; properties are the raw survey
+// attributes, of which only these are read.
+type SurveyFeature = {
+  properties: {
+    objectid: number;
+    project_name?: string | null;
+    Organization?: string | null;
+    Report_type?: unknown;
+    Register?: string | null;
+    Project_date?: number | null;
+    Description?: string | null;
+  };
+};
+
 type ReportMatch = {
   id: string;
   reportNumber: string;
@@ -48,10 +62,10 @@ export default function SurveyLookup({ role = 'reviewer' }: { role?: 'reviewer' 
       const query = reg ? `?${new URLSearchParams({ register: reg, match: 'contains' })}` : '';
       const res = await fetch(`${SURVEY_QUERY_URL}${query}`);
       if (!res.ok) throw new Error('Survey lookup failed');
-      const data = await res.json();
+      const data: { features?: SurveyFeature[] } = await res.json();
       const features = data.features || [];
       setRows(
-        features.map((f: any) => ({
+        features.map((f) => ({
           objectId: f.properties.objectid,
           projectName: f.properties.project_name ?? null,
           organization: f.properties.Organization ?? null,
@@ -90,8 +104,8 @@ export default function SurveyLookup({ role = 'reviewer' }: { role?: 'reviewer' 
     setMatchLoading(row.objectId);
     try {
       const res = await fetch(`/api/reports/by-register?register=${encodeURIComponent(row.register)}`);
-      const data = await res.json();
-      const found: ReportMatch[] = data.reports || [];
+      const data: { reports?: ReportMatch[] } = await res.json();
+      const found = data.reports || [];
       if (found.length === 1) {
         router.push(`/report/${found[0].id}/scores?role=${role}`);
         return;

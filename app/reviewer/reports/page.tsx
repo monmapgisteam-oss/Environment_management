@@ -1,4 +1,5 @@
 import dataStore from '@/lib/db';
+import type { ReportType } from '@/lib/db/models';
 import { ADDITIONAL_REPORT_TYPE_SLUG, isAdditionalReportType } from '@/lib/nav';
 import ReportTable from '@/components/reports/ReportTable';
 import { fetchSurveyReports } from '@/lib/survey/reports';
@@ -31,7 +32,7 @@ async function fetchAllReports(typeSlug?: string) {
   return attachEffectiveSenderCompanies(reports);
 }
 
-function surveyReportTypeName(reportType: any | undefined) {
+function surveyReportTypeName(reportType: Pick<ReportType, 'name'> | undefined) {
   const name = reportType?.name || '';
   if (name.includes('Жилийн')) return 'Жилийн тайлан';
   if (name.includes('Биелэлт')) return 'Биелэлтийн тайлан';
@@ -42,7 +43,7 @@ export default async function ReviewerReportsPage(props: { searchParams: Promise
   const searchParams = await props.searchParams;
   const reportTypes = await fetchReportTypes();
   const selectedType = searchParams.type
-    ? reportTypes.find((rt: any) => rt.slug === searchParams.type)
+    ? reportTypes.find((rt) => rt.slug === searchParams.type)
     : undefined;
   const selectedSurveyType = searchParams.type ? surveyReportTypeName(selectedType) : null;
   const [reports, surveyReports] = await Promise.all([
@@ -54,9 +55,9 @@ export default async function ReviewerReportsPage(props: { searchParams: Promise
 
   const isAdditional =
     searchParams.type === ADDITIONAL_REPORT_TYPE_SLUG || (!!selectedType && isAdditionalReportType(selectedType));
-  const existingReportNumbers = new Set(reports.map((report: any) => report.reportNumber));
+  const existingReportNumbers = new Set(reports.map((report) => report.reportNumber));
   const tableReports = [
-    ...reports.map((report: any) => ({
+    ...reports.map((report) => ({
       id: report.id,
       reportNumber: report.reportNumber,
       reportType: report.reportType,
@@ -94,7 +95,7 @@ export default async function ReviewerReportsPage(props: { searchParams: Promise
         {!isAdditional && (
           <p className="text-sm text-slate-600">
             {searchParams.type
-              ? reportTypes.find((rt: any) => rt.slug === searchParams.type)?.name + ' төрлийн тайлангууд'
+              ? reportTypes.find((rt) => rt.slug === searchParams.type)?.name + ' төрлийн тайлангууд'
               : 'Бүх ирсэн тайлангуудын жагсаалт.'}
           </p>
         )}

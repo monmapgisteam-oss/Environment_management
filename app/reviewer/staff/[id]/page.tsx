@@ -113,7 +113,7 @@ export default async function StaffProfilePage(props: Props) {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {member.evaluatorAssignments.map((a: any) => (
+                    {member.evaluatorAssignments.map((a) => (
                       <tr key={a.id} className="hover:bg-slate-50">
                         <td className="py-3 px-3 font-semibold text-slate-900">{a.report.reportNumber}</td>
                         <td className="py-3 px-3 text-slate-700">{a.report.title}</td>

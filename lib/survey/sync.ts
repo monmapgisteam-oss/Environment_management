@@ -1,4 +1,6 @@
 import dataStore from '@/lib/db';
+import type { Evaluation } from '@/lib/db/models';
+import type { Payload } from '@/lib/db/types';
 import { SURVEY_LAYER_ID, SURVEY_REPEAT_LAYER_ID, addSurveyRecord, querySurvey, updateSurveyRecord } from '@/lib/db/survey';
 import { fetchSurveyPhotoMap, type SurveyPhoto } from '@/lib/survey/photos';
 import { normalizeSurveyReportType } from '@/lib/survey/reportType';
@@ -78,10 +80,12 @@ async function findReportFeatureByRegister(register: string): Promise<string | n
   }
 }
 
+type SyncedReport = Payload<'report', { include: { reportType: true; senderCompany: true; location: true } }>;
+
 // Ensure the report exists as a feature in Layer 0; returns its GlobalID.
 // The register the user typed (implementerRegister) is the key, so reports tie
 // to the company's own survey record rather than the fixed sender account.
-async function ensureReportFeature(report: any): Promise<string | null> {
+async function ensureReportFeature(report: SyncedReport): Promise<string | null> {
   if (report.arcgisGlobalId) return report.arcgisGlobalId;
 
   const register = (report.implementerRegister || report.senderCompany?.registerNumber || '').trim();
@@ -91,7 +95,7 @@ async function ensureReportFeature(report: any): Promise<string | null> {
 
   // 2) Otherwise create a new feature from the report's own details.
   if (!globalId) {
-    const attributes: Record<string, any> = {
+    const attributes: Record<string, unknown> = {
       Report_type: normalizeSurveyReportType(report.reportType?.name) || null,
       project_name: report.title ?? null,
       Organization: report.implementerName ?? report.senderCompany?.name ?? null,
@@ -120,11 +124,11 @@ async function ensureReportFeature(report: any): Promise<string | null> {
 // Add or update this evaluator's score row in the repeat_1 table.
 async function upsertMemberRow(
   parentGlobalId: string,
-  evaluation: any,
+  evaluation: Pick<Evaluation, 'id' | 'arcgisGlobalId'>,
   evaluatorName: string,
   qScores: Record<string, number>,
 ): Promise<void> {
-  const attributes: Record<string, any> = {
+  const attributes: Record<string, unknown> = {
     Member_name: evaluatorName,
     parentglobalid: parentGlobalId,
     ...qScores,
@@ -176,11 +180,11 @@ export async function syncEvaluationToSurvey(params: {
 
     // Map each criterion (in sort order) to Q1..Q8.
     const qByCriterion: Record<string, string> = {};
-    criteria.forEach((c: any, i: number) => {
+    criteria.forEach((c, i) => {
       qByCriterion[c.id] = `Q${i + 1}`;
     });
     const qScores: Record<string, number> = {};
-    evaluation.scores.forEach((s: any) => {
+    evaluation.scores.forEach((s) => {
       const q = qByCriterion[s.criterionId];
       if (q) qScores[q] = s.score;
     });

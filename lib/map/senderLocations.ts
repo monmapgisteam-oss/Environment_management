@@ -52,7 +52,7 @@ export async function fetchSenderCompanyPoints(companyId: string): Promise<Compa
   const locationsByRegister: Record<string, { province?: string | null; district?: string | null }> = {};
   if (company?.registerNumber) registers.add(company.registerNumber);
 
-  for (const r of reports as any[]) {
+  for (const r of reports) {
     const register = (r.implementerRegister || r.senderCompany?.registerNumber || '').trim();
     if (register) registers.add(register);
     if (register && r.location) {

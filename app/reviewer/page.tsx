@@ -22,9 +22,9 @@ async function fetchReviewerReports() {
 export default async function ReviewerDashboard() {
   const reports = await fetchReviewerReports();
   const totalCount = reports.length;
-  const unassignedCount = reports.filter((r: any) => r.assignments.length === 0).length;
-  const inReviewCount = reports.filter((r: any) => r.status === 'in_review').length;
-  const completedCount = reports.filter((r: any) => r.status === 'completed').length;
+  const unassignedCount = reports.filter((r) => r.assignments.length === 0).length;
+  const inReviewCount = reports.filter((r) => r.status === 'in_review').length;
+  const completedCount = reports.filter((r) => r.status === 'completed').length;
 
   return (
     <main className="flex-1 min-w-0 space-y-6 p-6">
@@ -52,7 +52,7 @@ export default async function ReviewerDashboard() {
 
       <ReportTable
         role="reviewer"
-        reports={reports.map((report: any) => ({
+        reports={reports.map((report) => ({
           id: report.id,
           reportNumber: report.reportNumber,
           reportType: report.reportType,

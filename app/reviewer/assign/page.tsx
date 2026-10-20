@@ -46,16 +46,16 @@ async function fetchDistributableReports() {
     fetchSurveyReports(),
   ]);
   const reports = await attachEffectiveSenderCompanies(rawReports);
-  const existingReportNumbers = new Set(reports.map((report: any) => report.reportNumber));
+  const existingReportNumbers = new Set(reports.map((report) => report.reportNumber));
   return [
-    ...reports.map((report: any) => ({
+    ...reports.map((report) => ({
       id: report.id,
       reportNumber: report.reportNumber,
       title: report.title,
       reportTypeName: report.reportType.name,
       senderName: report.senderCompany?.name || '-',
       status: report.status,
-      assignees: uniqueAssignmentsByEvaluator(report.assignments).map((a: any) => ({ id: a.evaluator.id, name: a.evaluator.name })),
+      assignees: uniqueAssignmentsByEvaluator(report.assignments).map((a) => ({ id: a.evaluator.id, name: a.evaluator.name })),
     })),
     ...surveyReports
       .filter((report) => !existingReportNumbers.has(report.reportNumber))

@@ -12,7 +12,7 @@ async function fetchUsers() {
 export default async function AdminUsersPage() {
   const users = await fetchUsers();
 
-  const rows: UserRow[] = users.map((u: any) => ({
+  const rows: UserRow[] = users.map((u) => ({
     id: u.id,
     name: u.name,
     email: u.email,

@@ -63,7 +63,7 @@ export default async function ReportCoverPage(props: Props) {
   }
 
   const uniqueAssignments = uniqueAssignmentsByEvaluator(report.assignments);
-  const staffUsers = uniqueAssignments.map((assignment: any) => assignment.evaluator).filter(Boolean);
+  const staffUsers = uniqueAssignments.map((assignment) => assignment.evaluator).filter(Boolean);
   const [staff, manager] = await Promise.all([
     Promise.all(staffUsers.map(personWithQr)),
     managerUser ? personWithQr(managerUser) : Promise.resolve(null),

@@ -1,21 +1,27 @@
 import dataStore from '@/lib/db';
+import type { Evaluation, ReportAssignment } from '@/lib/db/models';
 import { requireUser } from '@/lib/auth';
 import ReportTable from '@/components/reports/ReportTable';
 import { attachEffectiveSenderCompanies } from '@/lib/reports/companies';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
+
+type EvaluatedAssignment = Pick<ReportAssignment, 'reportId' | 'submittedAt' | 'assignedAt'> & {
+  evaluation: Pick<Evaluation, 'status' | 'signatureStatus' | 'signedAt' | 'submittedAt'> | null;
+  report?: { id: string };
+};
 
 function dateValue(value?: Date | string | null) {
   if (!value) return 0;
   return value instanceof Date ? value.getTime() : new Date(value).getTime() || 0;
 }
 
-function evaluatedAssignmentRank(assignment: any) {
+function evaluatedAssignmentRank(assignment: EvaluatedAssignment) {
   const signed = assignment.evaluation?.status === 'SIGNED' ? 4 : 0;
   const verified = assignment.evaluation?.signatureStatus === 'VERIFIED' ? 2 : 0;
   return signed + verified + 1;
 }
 
-function evaluatedActivityTime(assignment: any) {
+function evaluatedActivityTime(assignment: EvaluatedAssignment) {
   return Math.max(
     dateValue(assignment.evaluation?.signedAt),
     dateValue(assignment.evaluation?.submittedAt),
@@ -24,7 +30,7 @@ function evaluatedActivityTime(assignment: any) {
   );
 }
 
-function evaluatedSignedTime(assignment: any) {
+function evaluatedSignedTime(assignment: EvaluatedAssignment) {
   return Math.max(
     dateValue(assignment.evaluation?.signedAt),
     dateValue(assignment.evaluation?.submittedAt),
@@ -32,7 +38,7 @@ function evaluatedSignedTime(assignment: any) {
   );
 }
 
-function isBetterEvaluatedAssignment(candidate: any, existing: any) {
+function isBetterEvaluatedAssignment(candidate: EvaluatedAssignment, existing: EvaluatedAssignment) {
   const candidateRank = evaluatedAssignmentRank(candidate);
   const existingRank = evaluatedAssignmentRank(existing);
   if (candidateRank !== existingRank) return candidateRank > existingRank;
@@ -48,8 +54,8 @@ function isBetterEvaluatedAssignment(candidate: any, existing: any) {
   return evaluatedActivityTime(candidate) > evaluatedActivityTime(existing);
 }
 
-function uniqueEvaluatedAssignmentsByReport(assignments: any[]) {
-  const byReport = new Map<string, any>();
+function uniqueEvaluatedAssignmentsByReport<T extends EvaluatedAssignment>(assignments: T[]) {
+  const byReport = new Map<string, T>();
   for (const assignment of assignments) {
     const reportId = assignment.reportId || assignment.report?.id;
     if (!reportId) continue;
@@ -84,10 +90,10 @@ async function fetchEvaluatedReports(evaluatorUserId: string) {
   });
   const uniqueAssignments = uniqueEvaluatedAssignmentsByReport(assignments);
 
-  const reports = await attachEffectiveSenderCompanies(uniqueAssignments.map((assignment: any) => assignment.report));
-  const reportById = new Map(reports.map((report: any) => [report.id, report]));
+  const reports = await attachEffectiveSenderCompanies(uniqueAssignments.map((assignment) => assignment.report));
+  const reportById = new Map(reports.map((report) => [report.id, report]));
 
-  return uniqueAssignments.map((assignment: any) => {
+  return uniqueAssignments.map((assignment) => {
     const report = reportById.get(assignment.report.id) || assignment.report;
     return {
       id: report.id,

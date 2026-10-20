@@ -22,11 +22,11 @@ async function fetchData() {
 export default async function AdminMapPage() {
   const locations = await fetchData();
   const reports = await attachEffectiveSenderCompanies(
-    locations.map((loc: any) => loc.report).filter(Boolean),
+    locations.map((loc) => loc.report).filter(Boolean),
   );
-  const reportById = new Map(reports.map((report: any) => [report.id, report]));
+  const reportById = new Map(reports.map((report) => [report.id, report]));
   const locationsByRegister: Record<string, { province?: string | null; district?: string | null }> = {};
-  locations.forEach((loc: any) => {
+  locations.forEach((loc) => {
     const report = loc.report ? reportById.get(loc.report.id) || loc.report : null;
     const register = (report?.implementerRegister || report?.senderCompany?.registerNumber || '').trim();
     if (!register) return;
@@ -35,7 +35,7 @@ export default async function AdminMapPage() {
       district: loc.district,
     };
   });
-  const points: CompanyPoint[] = locations.map((loc: any) => {
+  const points: CompanyPoint[] = locations.map((loc) => {
     const report = loc.report ? reportById.get(loc.report.id) || loc.report : null;
     return {
       id: report?.id ?? loc.id,

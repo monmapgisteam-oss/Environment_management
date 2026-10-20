@@ -26,14 +26,14 @@ export default async function SenderDashboard() {
   const user = await getCurrentUser();
   const reports = user?.companyId ? await fetchSenderReports(user.companyId) : [];
   const totalCount = reports.length;
-  const inReviewCount = reports.filter((r: any) => r.status === 'in_review').length;
-  const revisionCount = reports.filter((r: any) => r.status === 'needs_revision').length;
-  const completedCount = reports.filter((r: any) => r.status === 'approved' || r.status === 'completed').length;
+  const inReviewCount = reports.filter((r) => r.status === 'in_review').length;
+  const revisionCount = reports.filter((r) => r.status === 'needs_revision').length;
+  const completedCount = reports.filter((r) => r.status === 'approved' || r.status === 'completed').length;
   // A report's score stays hidden from the sender until the manager sends the
   // signed scan, even once every staff member has finished scoring it.
-  const visibleScores = reports.filter((r: any) => r.finalScore != null && r.signedScanUrl != null);
+  const visibleScores = reports.filter((r) => r.finalScore != null && r.signedScanUrl != null);
   const averageScore = visibleScores.length
-    ? (visibleScores.reduce((sum: number, r: any) => sum + (r.finalScore ?? 0), 0) / visibleScores.length).toFixed(1)
+    ? (visibleScores.reduce((sum: number, r) => sum + (r.finalScore ?? 0), 0) / visibleScores.length).toFixed(1)
     : '-';
 
   const stats = [
@@ -65,7 +65,7 @@ export default async function SenderDashboard() {
 
       <ReportTable
         role="sender"
-        reports={reports.map((report: any) => ({
+        reports={reports.map((report) => ({
           id: report.id,
           reportNumber: report.reportNumber,
           reportType: report.reportType,

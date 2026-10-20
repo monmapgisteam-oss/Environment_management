@@ -1,4 +1,5 @@
 import dataStore from '@/lib/db';
+import type { Payload } from '@/lib/db/types';
 import type { CompanyPoint } from '@/components/map/CompanyMap';
 import { SURVEY_LAYER_ID, querySurvey } from '@/lib/db/survey';
 import { fetchSurveyMapPoints } from '@/lib/map/surveyMapPoints';
@@ -7,7 +8,9 @@ import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
 import { resolveReportPointLocations } from '@/lib/map/locationResolver';
 
 type SurveyRecord = { coords?: [number, number] };
-type ReportForPoint = any & { pointScore?: number | null };
+type ReportForPoint = Payload<'report', { include: { senderCompany: true; reportType: true; location: true } }> & {
+  pointScore?: number | null;
+};
 
 type FetchReviewedCompanyPointsOptions = {
   evaluatorUserId?: string;
@@ -30,6 +33,33 @@ async function fetchSurveyCoordsByRegister(): Promise<Record<string, SurveyRecor
   }
 }
 
+async function fetchReportsForPoints(evaluatorUserId?: string): Promise<ReportForPoint[]> {
+  if (evaluatorUserId) {
+    const assignments = await dataStore.reportAssignment.findMany({
+      where: {
+        evaluatorUserId,
+        report: { title: { not: GENERAL_EVALUATION_CONCLUSION_TITLE } },
+      },
+      include: {
+        evaluation: true,
+        report: {
+          include: { senderCompany: true, reportType: true, location: true },
+        },
+      },
+      orderBy: { submittedAt: 'desc' },
+    });
+    return assignments.map((assignment) => ({
+      ...assignment.report,
+      pointScore: assignment.evaluation?.totalScore ?? null,
+    }));
+  }
+  return dataStore.report.findMany({
+    where: { status: { not: 'draft' }, title: { not: GENERAL_EVALUATION_CONCLUSION_TITLE } },
+    include: { senderCompany: true, reportType: true, location: true },
+    orderBy: { submittedAt: 'desc' },
+  });
+}
+
 /**
  * One pin per report visible to the review organisation. Managers see every
  * received report, while evaluator staff see reports assigned to them so the
@@ -39,34 +69,11 @@ export async function fetchReviewedCompanyPoints(
   options: FetchReviewedCompanyPointsOptions = {},
 ): Promise<CompanyPoint[]> {
   const [reportRows, surveyCoords] = await Promise.all([
-    options.evaluatorUserId
-      ? dataStore.reportAssignment.findMany({
-          where: {
-            evaluatorUserId: options.evaluatorUserId,
-            report: { title: { not: GENERAL_EVALUATION_CONCLUSION_TITLE } },
-          },
-          include: {
-            evaluation: true,
-            report: {
-              include: { senderCompany: true, reportType: true, location: true },
-            },
-          },
-          orderBy: { submittedAt: 'desc' },
-        })
-      : dataStore.report.findMany({
-          where: { status: { not: 'draft' }, title: { not: GENERAL_EVALUATION_CONCLUSION_TITLE } },
-          include: { senderCompany: true, reportType: true, location: true },
-          orderBy: { submittedAt: 'desc' },
-        }),
+    fetchReportsForPoints(options.evaluatorUserId),
     fetchSurveyCoordsByRegister(),
   ]);
 
-  const reports: ReportForPoint[] = await attachEffectiveSenderCompanies(options.evaluatorUserId
-    ? (reportRows as any[]).map((assignment) => ({
-        ...assignment.report,
-        pointScore: assignment.evaluation?.totalScore ?? null,
-      }))
-    : (reportRows as any[]));
+  const reports = await attachEffectiveSenderCompanies(reportRows);
 
   const points: CompanyPoint[] = [];
   const registers = new Set<string>();
