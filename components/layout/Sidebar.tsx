@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   HiViewGrid,
   HiUpload,
@@ -30,19 +30,14 @@ import {
 } from "react-icons/hi";
 import SupportButton from "./SupportButton";
 import { HiOutlineQuestionMarkCircle } from "react-icons/hi";
-
-type Item = {
-  label: string;
-  href: string;
-  active?: boolean;
-  children?: Item[];
-};
+import { findActiveHref, type NavItem } from "@/lib/nav";
+import type { ViewerRole } from "@/lib/auth/session";
 
 type Props = {
-  items: Item[];
+  items: NavItem[];
   // Admins receive feedback rather than send it, so their sidebar links
   // straight to the inbox instead of opening the "send feedback" dialog.
-  role?: string;
+  role: ViewerRole;
 };
 
 const iconMap: Record<string, ReactNode> = {
@@ -53,7 +48,6 @@ const iconMap: Record<string, ReactNode> = {
   "Биелэлтийн тайлан": <HiTrendingUp size={18} />,
   "Ерөнхий үнэлгээний дүгнэлт": <HiDocumentText size={18} />,
   "Нэмэлт мэдээлэл": <HiPencilAlt size={18} />,
-  "Нэмэлт мэдээ": <HiPencilAlt size={18} />,
   "Миний тайлангууд": <HiFolder size={18} />,
   "Засвар шаардсан тайлан": <HiExclamation size={18} />,
   Ноорог: <HiDocumentDuplicate size={18} />,
@@ -74,66 +68,17 @@ const iconMap: Record<string, ReactNode> = {
   Тохиргоо: <HiCog size={18} />,
 };
 
-function SidebarItem({ item }: { item: Item }) {
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const selectedType = searchParams.get("type");
-  const extraChildren: Item[] =
-    item.label === "Ирсэн тайлангууд" && item.href.startsWith("/reviewer")
-      ? [
-          {
-            label: "Жилийн төлөвлөгөө",
-            href: "/reviewer/reports?type=type-1",
-            active:
-              pathname === "/reviewer/reports" && selectedType === "type-1",
-          },
-          {
-            label: "Биелэлтийн тайлан",
-            href: "/reviewer/reports?type=type-2",
-            active:
-              pathname === "/reviewer/reports" && selectedType === "type-2",
-          },
-        ]
-      : item.label === "Надад оноогдсон тайлангууд" &&
-          item.href.startsWith("/evaluator")
-        ? [
-            {
-              label: "Жилийн төлөвлөгөө",
-              href: "/evaluator?type=type-1",
-              active: pathname === "/evaluator" && selectedType === "type-1",
-            },
-            {
-              label: "Биелэлтийн тайлан",
-              href: "/evaluator?type=type-2",
-              active: pathname === "/evaluator" && selectedType === "type-2",
-            },
-          ]
-        : [];
-  const children = [...(item.children || [])].filter(
-    (child) =>
-      !(
-        (item.label === "Надад оноогдсон тайлангууд" &&
-          item.href.startsWith("/evaluator") &&
-          child.href === "/evaluator/conclusions") ||
-        (item.label === "Ирсэн тайлангууд" &&
-          item.href.startsWith("/reviewer") &&
-          child.href === "/reviewer/conclusions")
-      ),
-  );
-  for (const extraChild of extraChildren) {
-    if (
-      !children.some(
-        (child) =>
-          child.href === extraChild.href || child.label === extraChild.label,
-      )
-    ) {
-      children.push(extraChild);
-    }
-  }
+function SidebarItem({ item, activeHref }: { item: NavItem; activeHref: string | null }) {
+  const children = item.children ?? [];
   const hasChildren = children.length > 0;
-  const isChildActive = hasChildren && children.some((c) => c.active);
-  const [expanded, setExpanded] = useState(item.active || isChildActive);
-  const isActive = item.active || isChildActive;
+  const isActive = item.href === activeHref || children.some((child) => child.href === activeHref);
+  const [expanded, setExpanded] = useState(isActive);
+
+  // The sidebar stays mounted between pages, so open the group when the user
+  // navigates into it from elsewhere.
+  useEffect(() => {
+    if (isActive) setExpanded(true);
+  }, [isActive]);
 
   if (hasChildren) {
     return (
@@ -159,10 +104,10 @@ function SidebarItem({ item }: { item: Item }) {
           <div className="ml-[26px] mt-1 space-y-0.5 border-l border-white/10 pl-3">
             {children.map((child) => (
               <Link
-                key={child.label}
+                key={child.href}
                 href={child.href}
                 className={`block rounded-lg px-3 py-1.5 text-[12.5px] transition-colors ${
-                  child.active
+                  child.href === activeHref
                     ? "text-white font-medium bg-white/10"
                     : "text-slate-300 hover:text-white hover:bg-white/5"
                 }`}
@@ -180,7 +125,7 @@ function SidebarItem({ item }: { item: Item }) {
     <Link
       href={item.href}
       className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-all ${
-        item.active
+        isActive
           ? "sidebar-active text-white"
           : "text-slate-200 hover:bg-white/5 hover:text-white"
       }`}
@@ -193,64 +138,14 @@ function SidebarItem({ item }: { item: Item }) {
   );
 }
 
-function withEvaluatorConclusionItem(items: Item[], pathname: string) {
-  const hasAssignedReports = items.some(
-    (item) =>
-      item.label === "Надад оноогдсон тайлангууд" &&
-      item.href.startsWith("/evaluator"),
-  );
-  const hasTopLevelConclusion = items.some(
-    (item) => item.href === "/evaluator/conclusions",
-  );
-  if (!hasAssignedReports || hasTopLevelConclusion) return items;
-
-  const conclusionItem: Item = {
-    label: "Ерөнхий үнэлгээний дүгнэлт",
-    href: "/evaluator/conclusions",
-    active: pathname === "/evaluator/conclusions",
-  };
-
-  return items.flatMap((item) =>
-    item.label === "Надад оноогдсон тайлангууд" &&
-    item.href.startsWith("/evaluator")
-      ? [item, conclusionItem]
-      : [item],
-  );
-}
-
-function withReviewerConclusionItem(items: Item[], pathname: string) {
-  const hasReceivedReports = items.some(
-    (item) =>
-      item.label === "Ирсэн тайлангууд" && item.href.startsWith("/reviewer"),
-  );
-  const hasTopLevelConclusion = items.some(
-    (item) => item.href === "/reviewer/conclusions",
-  );
-  if (!hasReceivedReports || hasTopLevelConclusion) return items;
-
-  const conclusionItem: Item = {
-    label: "Ерөнхий үнэлгээний дүгнэлт",
-    href: "/reviewer/conclusions",
-    active: pathname === "/reviewer/conclusions",
-  };
-
-  return items.flatMap((item) =>
-    item.label === "Ирсэн тайлангууд" && item.href.startsWith("/reviewer")
-      ? [item, conclusionItem]
-      : [item],
-  );
-}
-
 export default function Sidebar({ items, role }: Props) {
   const pathname = usePathname();
-  const navigationItems = withReviewerConclusionItem(
-    withEvaluatorConclusionItem(items, pathname),
-    pathname,
-  );
+  const searchParams = useSearchParams();
+  const activeHref = findActiveHref(items, pathname, new URLSearchParams(searchParams.toString()));
 
   return (
     <aside
-      className="hidden md:flex md:flex-col sticky top-0 h-screen w-[250px] shrink-0 text-white"
+      className="app-chrome hidden md:flex md:flex-col sticky top-0 h-screen w-[250px] shrink-0 text-white"
       style={{ backgroundColor: "#064E3B" }}
     >
       {/* Logo */}
@@ -264,8 +159,8 @@ export default function Sidebar({ items, role }: Props) {
 
       {/* Navigation */}
       <nav className="sidebar-scroll flex-1 space-y-1 overflow-y-auto px-3 py-4">
-        {navigationItems.map((item) => (
-          <SidebarItem key={item.label} item={item} />
+        {items.map((item) => (
+          <SidebarItem key={item.href} item={item} activeHref={activeHref} />
         ))}
       </nav>
 

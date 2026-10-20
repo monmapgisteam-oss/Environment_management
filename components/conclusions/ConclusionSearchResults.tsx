@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { HiDocumentText, HiSearch } from 'react-icons/hi';
+import { HiSearch } from 'react-icons/hi';
 import { downloadUrl } from '@/lib/reports/attachments';
 import TableExportToolbar from '@/components/ui/TableExportToolbar';
 import type { ConclusionRow, ConclusionSearchParams } from '@/lib/reports/conclusions';

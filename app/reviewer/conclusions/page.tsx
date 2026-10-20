@@ -1,4 +1,3 @@
-import dataStore from '@/lib/db';
 import ConclusionSectionPage from '@/components/conclusions/ConclusionSectionPage';
 import { fetchConclusionRows } from '@/lib/reports/conclusionReports';
 import type { ConclusionSearchParams } from '@/lib/reports/conclusions';
@@ -7,46 +6,11 @@ type Props = {
   searchParams: Promise<ConclusionSearchParams>;
 };
 
-async function fetchReportTypes() {
-  return dataStore.reportType.findMany({
-    where: { isActive: true },
-    orderBy: { name: 'asc' },
-  });
-}
-
 export default async function ReviewerConclusionsPage(props: Props) {
   const searchParams = await props.searchParams;
-  const [rows, reportTypes] = await Promise.all([
-    fetchConclusionRows(searchParams),
-    fetchReportTypes(),
-  ]);
-  const sidebarChildren = reportTypes
-    .filter((rt: any) => rt.slug !== 'type-5')
-    .map((rt: any) => ({
-      label: rt.name,
-      href: `/reviewer/reports?type=${rt.slug}`,
-    }));
+  const rows = await fetchConclusionRows(searchParams);
 
   return (
-    <ConclusionSectionPage
-      rows={rows}
-      search={searchParams}
-      role="reviewer"
-      userName="Хянах менежер"
-      headerRole="reviewer"
-      sidebarItems={[
-        { label: 'Хяналтын самбар', href: '/reviewer' },
-        {
-          label: 'Ирсэн тайлангууд',
-          href: '/reviewer/reports',
-          children: sidebarChildren,
-        },
-        { label: 'Үнэлгээний явц', href: '/reviewer/evaluation-progress' },
-        { label: 'Газарзүйн мэдээлэл', href: '/reviewer/geography' },
-        { label: 'Тайлан хайх', href: '/reviewer/survey' },
-        { label: 'Буцаасан тайлан', href: '/reviewer/returned' },
-        { label: 'Нэмэлт мэдээ', href: '/reviewer/reports?type=type-5' },
-      ]}
-    />
+    <ConclusionSectionPage rows={rows} search={searchParams} role="reviewer" />
   );
 }

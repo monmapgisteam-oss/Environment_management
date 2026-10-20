@@ -1,8 +1,5 @@
 import dataStore from '@/lib/db';
-import Header from '@/components/layout/Header';
-import Sidebar from '@/components/layout/Sidebar';
 import CompaniesView, { type CompanyRow } from '@/components/admin/CompaniesView';
-import { adminNavItems } from '@/lib/adminNav';
 import { attachEffectiveSenderCompanies, normalizeRegister } from '@/lib/reports/companies';
 import { fetchSurveyReports } from '@/lib/survey/reports';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
@@ -84,22 +81,15 @@ export default async function AdminCompaniesPage() {
   const rows = await fetchCompanyRows();
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <Sidebar items={adminNavItems('companies')} role="admin" />
-
-      <div className="flex min-w-0 flex-1 flex-col">
-        <Header userName="Систем админ" companyName="Системийн удирдлага" role="admin" />
-        <main className="flex-1 min-w-0 space-y-6 p-6">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 lg:text-3xl">Компаниуд</h1>
-            <p className="mt-1.5 text-sm text-slate-500">
-              Бүх байгууллага болон тэдгээрийн бөглөсөн судалгааны мэдээлэл
-            </p>
-          </div>
-
-          <CompaniesView companies={rows} />
-        </main>
+    <main className="flex-1 min-w-0 space-y-6 p-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900 lg:text-3xl">Компаниуд</h1>
+        <p className="mt-1.5 text-sm text-slate-500">
+          Бүх байгууллага болон тэдгээрийн бөглөсөн судалгааны мэдээлэл
+        </p>
       </div>
-    </div>
+
+      <CompaniesView companies={rows} />
+    </main>
   );
 }

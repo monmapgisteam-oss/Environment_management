@@ -1,8 +1,5 @@
-import { redirect } from 'next/navigation';
 import dataStore from '@/lib/db';
-import { getCurrentUser } from '@/lib/auth';
-import Header from '@/components/layout/Header';
-import Sidebar from '@/components/layout/Sidebar';
+import { requireUser } from '@/lib/auth';
 import ReportTable from '@/components/reports/ReportTable';
 import { attachEffectiveSenderCompanies } from '@/lib/reports/companies';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
@@ -108,42 +105,24 @@ async function fetchEvaluatedReports(evaluatorUserId: string) {
 }
 
 export default async function EvaluatedReportsPage() {
-  const user = await getCurrentUser();
-  if (!user || user.role !== 'evaluator') {
-    redirect('/login/reviewer');
-  }
+  const user = await requireUser('evaluator');
 
   const reports = await fetchEvaluatedReports(user.id);
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <Sidebar
-          items={[
-            { label: 'Надад оноогдсон тайлангууд', href: '/evaluator' },
-            { label: 'Үнэлгээ өгсөн тайлангууд', href: '/evaluator/evaluated', active: true },
-            { label: 'Газарзүйн мэдээлэл', href: '/evaluator/geography' },
-            { label: 'Тайлан хайх', href: '/evaluator/survey' },
-            { label: 'Нэмэлт мэдээлэл', href: '/evaluator?type=type-5' },
-          ]}
-        />
-
-        <div className="flex min-w-0 flex-1 flex-col">
-        <Header userName={user.name} companyName="Хянах байгууллага" role="staff" />
-        <main className="flex-1 min-w-0 space-y-6 p-6">
-          <div className="space-y-1">
-            <h2 className="text-2xl font-semibold tracking-tight text-slate-900">Үнэлгээ өгсөн тайлангууд</h2>
-            <p className="text-sm text-slate-600">Таны үнэлгээ өгсөн бүх тайлан.</p>
-          </div>
-
-          {reports.length === 0 ? (
-            <div className="rounded-3xl bg-white px-6 py-16 text-center shadow-soft border border-slate-200">
-              <p className="text-sm text-slate-400">Та одоогоор ямар ч тайланд үнэлгээ өгөөгүй байна.</p>
-            </div>
-          ) : (
-            <ReportTable reports={reports} role="staff" showStatusFilter={false} />
-          )}
-        </main>
+    <main className="flex-1 min-w-0 space-y-6 p-6">
+      <div className="space-y-1">
+        <h2 className="text-2xl font-semibold tracking-tight text-slate-900">Үнэлгээ өгсөн тайлангууд</h2>
+        <p className="text-sm text-slate-600">Таны үнэлгээ өгсөн бүх тайлан.</p>
       </div>
-    </div>
+
+      {reports.length === 0 ? (
+        <div className="rounded-3xl bg-white px-6 py-16 text-center shadow-soft border border-slate-200">
+          <p className="text-sm text-slate-400">Та одоогоор ямар ч тайланд үнэлгээ өгөөгүй байна.</p>
+        </div>
+      ) : (
+        <ReportTable reports={reports} role="staff" showStatusFilter={false} />
+      )}
+    </main>
   );
 }

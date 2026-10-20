@@ -158,8 +158,8 @@ export default function ReportCoverTemplate({
         @media print {
           @page { size: A4 portrait; margin: 0; }
           html, body { background: #ffffff !important; }
-          .cover-layout { display: block !important; background: #ffffff !important; }
-          .cover-chrome { display: none !important; }
+          html body > .app-shell { display: block !important; background: #ffffff !important; }
+          .app-chrome { display: none !important; }
           .cover-main { padding: 0 !important; margin: 0 !important; }
           .cover-toolbar { display: none !important; }
           .cover-signature-modal { display: none !important; }

@@ -1,9 +1,6 @@
 import dataStore from '@/lib/db';
-import Header from '@/components/layout/Header';
-import Sidebar from '@/components/layout/Sidebar';
 import CompanyMapSection from '@/components/map/CompanyMapSection';
 import type { CompanyPoint } from '@/components/map/CompanyMap';
-import { adminNavItems } from '@/lib/adminNav';
 import { fetchSurveyMapPoints } from '@/lib/map/surveyMapPoints';
 import { attachEffectiveSenderCompanies } from '@/lib/reports/companies';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
@@ -68,27 +65,20 @@ export default async function AdminMapPage() {
   const allPoints = [...resolvedPoints, ...surveyPoints];
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <Sidebar items={adminNavItems('map')} role="admin" />
-
-      <div className="flex min-w-0 flex-1 flex-col">
-        <Header userName="Систем админ" companyName="Системийн удирдлага" role="admin" />
-        <main className="w-full p-6">
-          <div className="mb-4 space-y-1">
-            <h2 className="text-2xl font-semibold tracking-tight text-slate-900">Газрын зураг</h2>
-            <p className="text-sm text-slate-500">
-              Байгууллагуудын байршил, хяналтын үнэлгээгээр өнгөөр ялгасан.
-            </p>
-          </div>
-
-          <div
-            className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft"
-            style={{ height: 'calc(100vh - 220px)', minHeight: 480 }}
-          >
-            <CompanyMapSection points={allPoints} />
-          </div>
-        </main>
+    <main className="w-full p-6">
+      <div className="mb-4 space-y-1">
+        <h2 className="text-2xl font-semibold tracking-tight text-slate-900">Газрын зураг</h2>
+        <p className="text-sm text-slate-500">
+          Байгууллагуудын байршил, хяналтын үнэлгээгээр өнгөөр ялгасан.
+        </p>
       </div>
-    </div>
+
+      <div
+        className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft"
+        style={{ height: 'calc(100vh - 220px)', minHeight: 480 }}
+      >
+        <CompanyMapSection points={allPoints} />
+      </div>
+    </main>
   );
 }

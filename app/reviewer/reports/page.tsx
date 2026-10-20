@@ -1,6 +1,5 @@
 import dataStore from '@/lib/db';
-import Header from '@/components/layout/Header';
-import Sidebar from '@/components/layout/Sidebar';
+import { ADDITIONAL_REPORT_TYPE_SLUG, isAdditionalReportType } from '@/lib/nav';
 import ReportTable from '@/components/reports/ReportTable';
 import { fetchSurveyReports } from '@/lib/survey/reports';
 import { attachEffectiveSenderCompanies } from '@/lib/reports/companies';
@@ -53,7 +52,8 @@ export default async function ReviewerReportsPage(props: { searchParams: Promise
       : fetchSurveyReports({ reportTypeName: selectedSurveyType }),
   ]);
 
-  const isAdditional = searchParams.type === 'type-5';
+  const isAdditional =
+    searchParams.type === ADDITIONAL_REPORT_TYPE_SLUG || (!!selectedType && isAdditionalReportType(selectedType));
   const existingReportNumbers = new Set(reports.map((report: any) => report.reportNumber));
   const tableReports = [
     ...reports.map((report: any) => ({
@@ -85,62 +85,32 @@ export default async function ReviewerReportsPage(props: { searchParams: Promise
       })),
   ].sort((a, b) => new Date(b.submittedAt || 0).getTime() - new Date(a.submittedAt || 0).getTime());
 
-  const sidebarChildren = reportTypes
-    .filter((rt: any) => rt.slug !== 'type-5')
-    .map((rt: any) => ({
-      label: rt.name,
-      href: `/reviewer/reports?type=${rt.slug}`,
-      active: searchParams.type === rt.slug,
-    }));
-
   return (
-    <div className="flex min-h-screen bg-background">
-      <Sidebar
-          items={[
-            { label: 'Хяналтын самбар', href: '/reviewer' },
-            {
-              label: 'Ирсэн тайлангууд',
-              href: '/reviewer/reports',
-              active: true,
-              children: sidebarChildren,
-            },
-            { label: 'Үнэлгээний явц', href: '/reviewer/evaluation-progress' },
-            { label: 'Газарзүйн мэдээлэл', href: '/reviewer/geography' },
-            { label: 'Тайлан хайх', href: '/reviewer/survey' },
-            { label: 'Буцаасан тайлан', href: '/reviewer/returned' },
-            { label: 'Нэмэлт мэдээ', href: '/reviewer/reports?type=type-5', active: searchParams.type === 'type-5' },
-          ]}
-        />
-
-        <div className="flex min-w-0 flex-1 flex-col">
-        <Header userName="Хянах менежер" companyName="Хянах байгууллага" companyType="reviewer" />
-        <main className="flex-1 min-w-0 space-y-6 p-6">
-          <div className="space-y-1">
-            <h2 className="text-2xl font-semibold tracking-tight text-slate-900">
-              {isAdditional ? 'Нэмэлт мэдээ' : 'Ирсэн тайлангууд'}
-            </h2>
-            {!isAdditional && (
-              <p className="text-sm text-slate-600">
-                {searchParams.type
-                  ? reportTypes.find((rt: any) => rt.slug === searchParams.type)?.name + ' төрлийн тайлангууд'
-                  : 'Бүх ирсэн тайлангуудын жагсаалт.'}
-              </p>
-            )}
-          </div>
-
-          {isAdditional && tableReports.length === 0 ? (
-            <div className="rounded-3xl bg-white px-6 py-16 text-center shadow-soft border border-slate-200">
-              <p className="text-sm text-slate-400">Мэдээлэл ирээгүй байна.</p>
-            </div>
-          ) : (
-            <ReportTable
-              role="reviewer"
-              showStatusFilter={!isAdditional}
-              reports={tableReports}
-            />
-          )}
-        </main>
+    <main className="flex-1 min-w-0 space-y-6 p-6">
+      <div className="space-y-1">
+        <h2 className="text-2xl font-semibold tracking-tight text-slate-900">
+          {isAdditional ? 'Нэмэлт мэдээлэл' : 'Ирсэн тайлангууд'}
+        </h2>
+        {!isAdditional && (
+          <p className="text-sm text-slate-600">
+            {searchParams.type
+              ? reportTypes.find((rt: any) => rt.slug === searchParams.type)?.name + ' төрлийн тайлангууд'
+              : 'Бүх ирсэн тайлангуудын жагсаалт.'}
+          </p>
+        )}
       </div>
-    </div>
+
+      {isAdditional && tableReports.length === 0 ? (
+        <div className="rounded-3xl bg-white px-6 py-16 text-center shadow-soft border border-slate-200">
+          <p className="text-sm text-slate-400">Мэдээлэл ирээгүй байна.</p>
+        </div>
+      ) : (
+        <ReportTable
+          role="reviewer"
+          showStatusFilter={!isAdditional}
+          reports={tableReports}
+        />
+      )}
+    </main>
   );
 }

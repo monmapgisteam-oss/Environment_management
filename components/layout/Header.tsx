@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import type { ViewerRole } from '@/lib/auth/session';
 
 type Notification = {
   id: string;
@@ -13,25 +14,13 @@ type Notification = {
   reportId: string | null;
 };
 
-type Profile = {
-  id: string;
-  name: string;
-  role: string;
-  position: string | null;
-  phone: string | null;
-  workplace: string | null;
-};
-
 // A staff member (evaluator) and a manager share the same `reviewer` company,
 // but they have separate dashboards and must never land in each other's system.
 // `role` captures the actual user role and drives all in-app navigation.
-type ViewerRole = 'sender' | 'reviewer' | 'staff' | 'admin';
-
 type Props = {
   userName: string;
   companyName: string;
-  role?: ViewerRole;
-  companyType?: 'sender' | 'reviewer' | 'admin';
+  role: ViewerRole;
 };
 
 // Where the logo/home link points for each role.
@@ -51,20 +40,14 @@ function reportHrefFor(role: ViewerRole, reportId: string) {
   return `/report/${reportId}?role=reviewer`;
 }
 
-export default function Header({ userName, companyName, role, companyType = 'sender' }: Props) {
-  // Fall back to the company type when an explicit role is not supplied, so the
-  // sender/manager pages keep working unchanged.
-  const viewerRole: ViewerRole = role ?? companyType;
+export default function Header({ userName, companyName, role }: Props) {
   const [open, setOpen] = useState(false);
-  const [profile, setProfile] = useState<Profile | null>(null);
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const menuRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
-  const displayName = profile?.name || userName;
-  const displayCompany = profile?.workplace || companyName;
 
   useEffect(() => {
     // Notifications are scoped to the logged-in user server-side, so no role
@@ -79,15 +62,6 @@ export default function Header({ userName, companyName, role, companyType = 'sen
   }, []);
 
   useEffect(() => {
-    fetch('/api/profile')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data) setProfile(data);
-      })
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) setOpen(false);
       if (notifRef.current && !notifRef.current.contains(e.target as Node)) setNotifOpen(false);
@@ -96,16 +70,18 @@ export default function Header({ userName, companyName, role, companyType = 'sen
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setOpen(false);
+    await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
     router.push('/');
+    router.refresh();
   };
 
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
+    <header className="app-chrome sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
       <div className="flex items-center justify-between px-4 sm:px-6 h-16">
         {/* Left - brand (shown on mobile where the sidebar is hidden) */}
-        <Link href={HOME_HREF[viewerRole]} className="flex items-center gap-2.5 md:hidden">
+        <Link href={HOME_HREF[role]} className="flex items-center gap-2.5 md:hidden">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -174,7 +150,7 @@ export default function Header({ userName, companyName, role, companyType = 'sen
                           }
                           if (n.reportId) {
                             setNotifOpen(false);
-                            router.push(reportHrefFor(viewerRole, n.reportId));
+                            router.push(reportHrefFor(role, n.reportId));
                           }
                         }}
                         className={`px-4 py-3 border-b border-slate-50 hover:bg-slate-50 transition ${n.reportId ? 'cursor-pointer' : ''} ${!n.isRead ? 'bg-blue-50/50' : ''}`}
@@ -202,8 +178,8 @@ export default function Header({ userName, companyName, role, companyType = 'sen
                 </svg>
               </div>
               <div className="hidden text-left leading-tight sm:block">
-                <p className="text-[13px] font-semibold text-color-text-main">{displayName}</p>
-                <p className="text-[11px] text-color-text-muted">{displayCompany}</p>
+                <p className="text-[13px] font-semibold text-color-text-main">{userName}</p>
+                <p className="text-[11px] text-color-text-muted">{companyName}</p>
               </div>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform ${open ? 'rotate-180' : ''}`}>
                 <polyline points="6 9 12 15 18 9" />

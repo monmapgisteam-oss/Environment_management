@@ -1,8 +1,6 @@
-import { redirect } from 'next/navigation';
 import dataStore from '@/lib/db';
-import { getCurrentUser } from '@/lib/auth';
-import Header from '@/components/layout/Header';
-import Sidebar from '@/components/layout/Sidebar';
+import { requireUser } from '@/lib/auth';
+import { isAdditionalReportType } from '@/lib/nav';
 import ReportTable from '@/components/reports/ReportTable';
 import { attachEffectiveSenderCompanies } from '@/lib/reports/companies';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
@@ -74,11 +72,8 @@ async function fetchAssignedReports(evaluatorUserId: string, typeSlug?: string) 
 
 export default async function EvaluatorDashboard(props: { searchParams: Promise<{ type?: string }> }) {
   const searchParams = await props.searchParams;
-  const user = await getCurrentUser();
   // A staff member must be logged in to see their assigned reports.
-  if (!user || user.role !== 'evaluator') {
-    redirect('/login/reviewer');
-  }
+  const user = await requireUser('evaluator');
 
   const [reportTypes, reports] = await Promise.all([
     fetchReportTypes(),
@@ -87,62 +82,32 @@ export default async function EvaluatorDashboard(props: { searchParams: Promise<
 
   // "Нэмэлт мэдээлэл" is shown as its own top-level menu item (below
   // "Үнэлгээ өгсөн тайлангууд"), so it is excluded from the report-type submenu.
-  const additionalType = reportTypes.find((rt: any) => rt.name.includes('Нэмэлт'));
+  const additionalType = reportTypes.find(isAdditionalReportType);
   const isAdditional = !!additionalType && searchParams.type === additionalType.slug;
-
-  const sidebarChildren = reportTypes
-    .filter((rt: any) => !rt.name.includes('Нэмэлт'))
-    .map((rt: any) => ({
-      label: rt.name,
-      href: `/evaluator?type=${rt.slug}`,
-      active: searchParams.type === rt.slug,
-    }));
 
   const activeTypeName = searchParams.type
     ? reportTypes.find((rt: any) => rt.slug === searchParams.type)?.name
     : null;
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <Sidebar
-          items={[
-            {
-              label: 'Надад оноогдсон тайлангууд',
-              href: '/evaluator',
-              active: !isAdditional,
-              children: sidebarChildren,
-            },
-            { label: 'Үнэлгээ өгсөн тайлангууд', href: '/evaluator/evaluated' },
-            { label: 'Газарзүйн мэдээлэл', href: '/evaluator/geography' },
-            { label: 'Тайлан хайх', href: '/evaluator/survey' },
-            ...(additionalType
-              ? [{ label: 'Нэмэлт мэдээлэл', href: `/evaluator?type=${additionalType.slug}`, active: isAdditional }]
-              : []),
-          ]}
-        />
-
-        <div className="flex min-w-0 flex-1 flex-col">
-        <Header userName={user.name} companyName="Хянах байгууллага" role="staff" />
-        <main className="flex-1 min-w-0 space-y-6 p-6">
-          <div className="space-y-1">
-            <h2 className="text-2xl font-semibold tracking-tight text-slate-900">
-              {isAdditional ? 'Нэмэлт мэдээлэл' : 'Надад оноогдсон тайлангууд'}
-            </h2>
-          </div>
-
-          {reports.length === 0 ? (
-            <div className="rounded-3xl bg-white px-6 py-16 text-center shadow-soft border border-slate-200">
-              <p className="text-sm text-slate-400">
-                {activeTypeName
-                  ? `${activeTypeName} төрлийн оноогдсон тайлан алга байна.`
-                  : 'Танд оноогдсон тайлан одоогоор алга байна.'}
-              </p>
-            </div>
-          ) : (
-            <ReportTable reports={reports} role="staff" showStatusFilter={false} />
-          )}
-        </main>
+    <main className="flex-1 min-w-0 space-y-6 p-6">
+      <div className="space-y-1">
+        <h2 className="text-2xl font-semibold tracking-tight text-slate-900">
+          {isAdditional ? 'Нэмэлт мэдээлэл' : 'Надад оноогдсон тайлангууд'}
+        </h2>
       </div>
-    </div>
+
+      {reports.length === 0 ? (
+        <div className="rounded-3xl bg-white px-6 py-16 text-center shadow-soft border border-slate-200">
+          <p className="text-sm text-slate-400">
+            {activeTypeName
+              ? `${activeTypeName} төрлийн оноогдсон тайлан алга байна.`
+              : 'Танд оноогдсон тайлан одоогоор алга байна.'}
+          </p>
+        </div>
+      ) : (
+        <ReportTable reports={reports} role="staff" showStatusFilter={false} />
+      )}
+    </main>
   );
 }

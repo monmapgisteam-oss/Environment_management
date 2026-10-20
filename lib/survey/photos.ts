@@ -11,17 +11,6 @@ export type SurveyPhoto = {
   alt?: string;
 };
 
-type SurveyAttachment = {
-  id: number;
-  name?: string;
-  contentType?: string;
-};
-
-type AttachmentGroup = {
-  parentObjectId: number;
-  attachmentInfos?: SurveyAttachment[];
-};
-
 function chunk<T>(items: T[], size: number): T[][] {
   const chunks: T[][] = [];
   for (let i = 0; i < items.length; i += size) {

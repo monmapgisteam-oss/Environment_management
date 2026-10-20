@@ -1,10 +1,7 @@
 import dataStore from '@/lib/db';
-import Header from '@/components/layout/Header';
-import Sidebar from '@/components/layout/Sidebar';
 import ReportTable from '@/components/reports/ReportTable';
 import { getCurrentUser } from '@/lib/auth';
 import { attachEffectiveSenderCompanies } from '@/lib/reports/companies';
-import { senderSidebarItems } from '@/lib/senderNav';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
 import { HiPaperAirplane, HiClock, HiPencil, HiCheckCircle, HiStar } from 'react-icons/hi';
 
@@ -48,45 +45,38 @@ export default async function SenderDashboard() {
   ];
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <Sidebar items={senderSidebarItems('dashboard')} />
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <Header userName="Илгээх хэрэглэгч" companyName="Илгээх байгууллага" companyType="sender" />
-
-        <main className="flex-1 min-w-0 space-y-8 p-5 sm:p-6 lg:p-8">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 lg:text-3xl">Хяналтын самбар</h1>
-          </div>
-
-          <section className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-5">
-            {stats.map((stat) => (
-              <div key={stat.label} className={`rounded-2xl border p-5 shadow-soft transition hover:shadow-card ${stat.card}`}>
-                <div className="flex items-center gap-3">
-                  <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${stat.chip}`}>{stat.icon}</div>
-                  <span className="text-sm font-medium text-slate-600">{stat.label}</span>
-                </div>
-                <p className={`mt-3 text-3xl font-bold tracking-tight ${stat.num}`}>{stat.value}</p>
-              </div>
-            ))}
-          </section>
-
-          <ReportTable
-            role="sender"
-            reports={reports.map((report: any) => ({
-              id: report.id,
-              reportNumber: report.reportNumber,
-              reportType: report.reportType,
-              title: report.title,
-              submittedAt: report.submittedAt?.toISOString() || null,
-              status: report.status,
-              finalScore: report.signedScanUrl ? report.finalScore : null,
-              senderCompany: report.senderCompany,
-              location: report.location,
-            }))}
-          />
-        </main>
+    <main className="flex-1 min-w-0 space-y-8 p-5 sm:p-6 lg:p-8">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900 lg:text-3xl">Хяналтын самбар</h1>
       </div>
-    </div>
+
+      <section className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-5">
+        {stats.map((stat) => (
+          <div key={stat.label} className={`rounded-2xl border p-5 shadow-soft transition hover:shadow-card ${stat.card}`}>
+            <div className="flex items-center gap-3">
+              <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${stat.chip}`}>{stat.icon}</div>
+              <span className="text-sm font-medium text-slate-600">{stat.label}</span>
+            </div>
+            <p className={`mt-3 text-3xl font-bold tracking-tight ${stat.num}`}>{stat.value}</p>
+          </div>
+        ))}
+      </section>
+
+      <ReportTable
+        role="sender"
+        reports={reports.map((report: any) => ({
+          id: report.id,
+          reportNumber: report.reportNumber,
+          reportType: report.reportType,
+          title: report.title,
+          submittedAt: report.submittedAt?.toISOString() || null,
+          status: report.status,
+          finalScore: report.signedScanUrl ? report.finalScore : null,
+          senderCompany: report.senderCompany,
+          location: report.location,
+        }))}
+      />
+    </main>
   );
 }

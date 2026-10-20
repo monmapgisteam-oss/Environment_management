@@ -1,6 +1,4 @@
 import dataStore from '@/lib/db';
-import Header from '@/components/layout/Header';
-import Sidebar from '@/components/layout/Sidebar';
 import EvaluationTable from '@/components/evaluation/EvaluationTable';
 import AttachmentList from '@/components/reports/AttachmentList';
 import LocationMap from '@/components/map/LocationMapClient';
@@ -40,19 +38,11 @@ async function fetchCriteria() {
   });
 }
 
-async function fetchReportTypes() {
-  return dataStore.reportType.findMany({
-    where: { isActive: true },
-    orderBy: { name: 'asc' },
-  });
-}
-
 export default async function ReviewerEvaluatePage(props: Props) {
   const params = await props.params;
-  const [report, criteria, reportTypes] = await Promise.all([
+  const [report, criteria] = await Promise.all([
     fetchReport(params.id),
     fetchCriteria(),
-    fetchReportTypes(),
   ]);
 
   if (!report) {
@@ -73,92 +63,66 @@ export default async function ReviewerEvaluatePage(props: Props) {
       : null;
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <Sidebar
-          items={[
-            { label: 'Хяналтын самбар', href: '/reviewer' },
-            {
-              label: 'Ирсэн тайлангууд',
-              href: '/reviewer/reports',
-              children: reportTypes
-                .filter((rt: any) => rt.slug !== 'type-5')
-                .map((rt: any) => ({
-                  label: rt.name,
-                  href: `/reviewer/reports?type=${rt.slug}`,
-                })),
-            },
-            { label: 'Үнэлгээний явц', href: '/reviewer/evaluation-progress' },
-            { label: 'Газарзүйн мэдээлэл', href: '/reviewer/geography' },
-            { label: 'Тайлан хайх', href: '/reviewer/survey' },
-            { label: 'Буцаасан тайлан', href: '/reviewer/returned' },
-            { label: 'Нэмэлт мэдээ', href: '/reviewer/reports?type=type-5' },
-          ]}
-        />
-
-        <div className="flex min-w-0 flex-1 flex-col">
-        <Header userName="Хянах менежер" companyName="Хянах байгууллага" companyType="reviewer" />
-        <main className="flex-1 min-w-0 p-6 space-y-6">
-          {/* Report Info */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="text-xs text-slate-500">Тайлангийн дугаар</p>
-                <h1 className="text-xl font-bold text-slate-900">{report.reportNumber}</h1>
-              </div>
-              <div className="text-right">
-                <p className="text-xs text-slate-500">Төрөл</p>
-                <p className="text-sm font-semibold text-slate-700">{report.reportType.name}</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-slate-500">Төслийн нэр: </span>
-                <span className="font-medium text-slate-800">{report.title}</span>
-              </div>
-              <div>
-                <span className="text-slate-500">Байгууллага: </span>
-                <span className="font-medium text-slate-800">{report.senderCompany.name}</span>
-              </div>
-            </div>
+    <main className="flex-1 min-w-0 p-6 space-y-6">
+      {/* Report Info */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <p className="text-xs text-slate-500">Тайлангийн дугаар</p>
+            <h1 className="text-xl font-bold text-slate-900">{report.reportNumber}</h1>
           </div>
-
-          {locationMap && (
-            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-              <div className="border-b border-slate-100 px-6 py-4">
-                <h2 className="text-base font-semibold text-slate-900">Газрын зураг дээрх байршил</h2>
-                <p className="mt-1 text-sm text-slate-500">
-                  {locationMap.lat.toFixed(6)}, {locationMap.lng.toFixed(6)}
-                </p>
-              </div>
-              <div className="h-80">
-                <LocationMap lat={locationMap.lat} lng={locationMap.lng} />
-              </div>
-            </div>
-          )}
-
-          {/* Attached documents the sender submitted */}
-          {reportAttachments.length > 0 && <AttachmentList attachments={reportAttachments} />}
-
-          {/* Evaluation Table */}
-          <EvaluationTable
-            criteria={tableCriteria}
-            reportId={report.id}
-            savedScores={
-              report.evaluations?.[0]?.scores?.reduce((acc: Record<string, string>, s: any) => {
-                acc[s.criterionId] = String(s.score);
-                return acc;
-              }, {}) || null
-            }
-            savedComment={report.evaluations?.[0]?.comment || null}
-            locked={report.evaluations?.[0]?.status === 'SIGNED'}
-            signatureStatus={report.evaluations?.[0]?.signatureStatus || null}
-            signedAt={report.evaluations?.[0]?.signedAt ? report.evaluations[0].signedAt.toISOString() : null}
-            signatureId={report.evaluations?.[0]?.signatureId || null}
-            greenery={{ hasGreenery: report.hasGreenery, treeCount: report.treeCount, spentAmount: report.spentAmount }}
-            criterionAttachments={criterionAttachments}
-          />
-        </main>
+          <div className="text-right">
+            <p className="text-xs text-slate-500">Төрөл</p>
+            <p className="text-sm font-semibold text-slate-700">{report.reportType.name}</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-4 text-sm">
+          <div>
+            <span className="text-slate-500">Төслийн нэр: </span>
+            <span className="font-medium text-slate-800">{report.title}</span>
+          </div>
+          <div>
+            <span className="text-slate-500">Байгууллага: </span>
+            <span className="font-medium text-slate-800">{report.senderCompany.name}</span>
+          </div>
+        </div>
       </div>
-    </div>
+
+      {locationMap && (
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+          <div className="border-b border-slate-100 px-6 py-4">
+            <h2 className="text-base font-semibold text-slate-900">Газрын зураг дээрх байршил</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              {locationMap.lat.toFixed(6)}, {locationMap.lng.toFixed(6)}
+            </p>
+          </div>
+          <div className="h-80">
+            <LocationMap lat={locationMap.lat} lng={locationMap.lng} />
+          </div>
+        </div>
+      )}
+
+      {/* Attached documents the sender submitted */}
+      {reportAttachments.length > 0 && <AttachmentList attachments={reportAttachments} />}
+
+      {/* Evaluation Table */}
+      <EvaluationTable
+        criteria={tableCriteria}
+        reportId={report.id}
+        savedScores={
+          report.evaluations?.[0]?.scores?.reduce((acc: Record<string, string>, s: any) => {
+            acc[s.criterionId] = String(s.score);
+            return acc;
+          }, {}) || null
+        }
+        savedComment={report.evaluations?.[0]?.comment || null}
+        locked={report.evaluations?.[0]?.status === 'SIGNED'}
+        signatureStatus={report.evaluations?.[0]?.signatureStatus || null}
+        signedAt={report.evaluations?.[0]?.signedAt ? report.evaluations[0].signedAt.toISOString() : null}
+        signatureId={report.evaluations?.[0]?.signatureId || null}
+        greenery={{ hasGreenery: report.hasGreenery, treeCount: report.treeCount, spentAmount: report.spentAmount }}
+        criterionAttachments={criterionAttachments}
+      />
+    </main>
   );
 }

@@ -360,7 +360,6 @@ export default function CompanyMap({ points, detailRole = 'reviewer' }: CompanyM
                   </div>
                   {group.points.map((p, index) => {
                     const bucket = scoreBucket(p.score);
-                    const isSurvey = p.source === 'survey';
                     const color = SCORE_COLORS[bucket];
                     return (
                       <button

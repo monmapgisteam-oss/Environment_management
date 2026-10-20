@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import SignatureBadge from '@/components/signature/SignatureBadge';
 import { downloadUrl, type Attachment } from '@/lib/reports/attachments';
 

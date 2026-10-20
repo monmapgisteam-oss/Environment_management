@@ -1,39 +1,15 @@
-import Header from '@/components/layout/Header';
 import ReportCoverTemplate from '@/components/reports/ReportCoverTemplate';
-import Sidebar from '@/components/layout/Sidebar';
 import dataStore from '@/lib/db';
-import { getCurrentUser } from '@/lib/auth';
+import { requireUser } from '@/lib/auth';
 import { createQrImageUrl, getPublicProfileQrUrl } from '@/lib/auth/profileQr';
 import { formatDate, formatScore } from '@/lib/utils';
 import { uniqueAssignmentsByEvaluator } from '@/lib/reports/assignments';
 
 type Props = {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ role?: string }>;
 };
 
 type ViewerRole = 'manager' | 'staff';
-
-function sidebarItemsFor(role: ViewerRole) {
-  if (role === 'staff') {
-    return [
-      { label: 'Надад оноогдсон тайлангууд', href: '/evaluator' },
-      { label: 'Үнэлгээ өгсөн тайлангууд', href: '/evaluator/evaluated' },
-      { label: 'Газарзүйн мэдээлэл', href: '/evaluator/geography' },
-      { label: 'Тайлан хайх', href: '/evaluator/survey' },
-    ];
-  }
-
-  return [
-    { label: 'Хяналтын самбар', href: '/reviewer' },
-    { label: 'Ирсэн тайлангууд', href: '/reviewer/reports' },
-    { label: 'Үнэлгээний явц', href: '/reviewer/evaluation-progress' },
-    { label: 'Газарзүйн мэдээлэл', href: '/reviewer/geography' },
-    { label: 'Тайлан хайх', href: '/reviewer/survey' },
-    { label: 'Буцаасан тайлан', href: '/reviewer/returned' },
-    { label: 'Нэмэлт мэдээлэл', href: '/reviewer/reports?type=type-5' },
-  ];
-}
 
 async function fetchReport(reportId: string) {
   return dataStore.report.findUnique({
@@ -65,14 +41,9 @@ async function personWithQr(user: { id: string; name: string; position: string |
 
 export default async function ReportCoverPage(props: Props) {
   const params = await props.params;
-  const searchParams = await props.searchParams;
-  const currentUser = await getCurrentUser();
+  const currentUser = await requireUser();
   const viewerRole: ViewerRole | null =
-    currentUser?.role === 'review_manager' || searchParams.role === 'reviewer'
-      ? 'manager'
-      : currentUser?.role === 'evaluator' || searchParams.role === 'staff'
-        ? 'staff'
-        : null;
+    currentUser.role === 'review_manager' ? 'manager' : currentUser.role === 'evaluator' ? 'staff' : null;
 
   if (!viewerRole) {
     return <div className="p-8 text-center text-slate-500">Тайлангийн нүүр зөвхөн хүлээн авагч талд харагдана.</div>;
@@ -126,31 +97,16 @@ export default async function ReportCoverPage(props: Props) {
   };
 
   return (
-    <div className="print-portal cover-layout flex min-h-screen bg-background">
-      <div className="cover-chrome">
-        <Sidebar items={sidebarItemsFor(viewerRole)} />
-      </div>
-
-      <div className="flex min-w-0 flex-1 flex-col">
-        <div className="cover-chrome">
-          <Header
-            userName={viewerRole === 'staff' ? 'Үнэлгээний ажилтан' : 'Хянах менежер'}
-            companyName="Хянах байгууллага"
-            role={viewerRole === 'staff' ? 'staff' : 'reviewer'}
-          />
-        </div>
-        <div className="cover-main">
-          <ReportCoverTemplate
-            reportId={report.id}
-            info={info}
-            staff={staff}
-            manager={manager}
-            viewerRole={viewerRole}
-            currentUserId={currentUser?.id || null}
-            initialVerifiedSignatures={verifiedSignatures}
-          />
-        </div>
-      </div>
+    <div className="cover-main">
+      <ReportCoverTemplate
+        reportId={report.id}
+        info={info}
+        staff={staff}
+        manager={manager}
+        viewerRole={viewerRole}
+        currentUserId={currentUser.id}
+        initialVerifiedSignatures={verifiedSignatures}
+      />
     </div>
   );
 }
