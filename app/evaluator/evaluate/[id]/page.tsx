@@ -1,7 +1,9 @@
 import dataStore from "@/lib/db";
+import { fetchCriteriaFor } from "@/lib/reports/criteria";
 import { requireUser } from "@/lib/auth";
 import EvaluationTable from "@/components/evaluation/EvaluationTable";
 import AttachmentList from "@/components/reports/AttachmentList";
+import MaterialAttachmentList from "@/components/reports/MaterialAttachmentList";
 import StaffReturnButton from "@/components/reports/StaffReturnButton";
 import LocationMap from "@/components/map/LocationMapClient";
 import { parseAttachments } from "@/lib/reports/attachments";
@@ -14,13 +16,6 @@ import { splitScoringAttachments } from "@/lib/reports/scoringAttachments";
 type Props = {
   params: Promise<{ id: string }>;
 };
-
-async function fetchCriteria() {
-  return dataStore.evaluationCriterion.findMany({
-    where: { isActive: true },
-    orderBy: { sortOrder: "asc" },
-  });
-}
 
 async function findStaffAssignment(reportId: string, evaluatorUserId: string) {
   const assignments = await dataStore.reportAssignment.findMany({
@@ -59,7 +54,7 @@ export default async function StaffEvaluatePage(props: Props) {
   }
 
   const report = (await attachEffectiveSenderCompanies([assignment.report]))[0];
-  const criteria = await fetchCriteria();
+  const criteria = await fetchCriteriaFor(report.reportCategory);
   const tableCriteria = criteria.map((c) => ({
     id: c.id,
     name: c.name,
@@ -217,6 +212,7 @@ export default async function StaffEvaluatePage(props: Props) {
           attachments={reportAttachments}
         />
       )}
+      <MaterialAttachmentList attachments={signedAttachments} reportCategory={report.reportCategory} />
 
       {/* Scoring — staff see only their own column, never other evaluators'. */}
       <EvaluationTable

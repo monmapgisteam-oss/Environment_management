@@ -78,6 +78,7 @@ export type ReportLocation = {
 export type EvaluationCriterion = {
   id: string;
   name: string;
+  category: string | null;
   maxScore: number;
   sortOrder: number;
   isActive: boolean;

@@ -1,6 +1,7 @@
 import { useState, useEffect, type ChangeEvent, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { isDocumentAttachment, isReportAttachment, parseAttachments, type Attachment } from "@/lib/reports/attachments";
+import { materialsFor } from "@/lib/reports/materials";
 
 export type Criterion = {
   id: string;
@@ -112,6 +113,8 @@ export function useReportSubmission() {
   // Attachments already saved on the report being edited (kept unless removed).
   const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
   const [existingCriterionAttachments, setExistingCriterionAttachments] = useState<Record<string, Attachment[]>>({});
+  const [materialFiles, setMaterialFiles] = useState<Record<string, File[]>>({});
+  const [existingMaterialAttachments, setExistingMaterialAttachments] = useState<Record<string, Attachment[]>>({});
   const [initialLocation, setInitialLocation] = useState<SubmitLocation | null>(null);
   const [location, setLocation] = useState<SubmitLocation | null>(null);
   const [formData, setFormData] = useState<ReportFormData>({
@@ -127,6 +130,11 @@ export function useReportSubmission() {
     treeCount: "",
     spentAmount: "",
   });
+  // A performance report attaches the supporting materials its category
+  // requires (lib/reports/materials.ts); plans and other forms have none.
+  const materials =
+    !isGeneralEvaluation && formData.reportType === PERFORMANCE_REPORT_LABEL ? materialsFor(formData.reportCategory) : [];
+  const materialIds = new Set(materials.map((material) => material.id));
 
   useEffect(() => {
     if (typeSlug === "general-evaluation") {
@@ -134,15 +142,25 @@ export function useReportSubmission() {
     }
   }, [router, typeSlug]);
 
+  // Evidence rows follow the scoring sheet of the chosen "Тайлангийн төрөл", so
+  // they load once the sender picks it and reload when it changes.
+  const reportCategory = formData.reportCategory;
   useEffect(() => {
-    if (isGeneralEvaluation || isAdditional) return;
+    if (isGeneralEvaluation || isAdditional || !reportCategory) {
+      setCriteria([]);
+      return;
+    }
+    let cancelled = false;
     (async () => {
-      const res = await fetch("/api/criteria");
-      if (!res.ok) return;
+      const res = await fetch(`/api/criteria?${new URLSearchParams({ category: reportCategory })}`);
+      if (!res.ok || cancelled) return;
       const data = (await res.json()) as Criterion[];
-      setCriteria(data);
+      if (!cancelled) setCriteria(data);
     })();
-  }, [isAdditional, isGeneralEvaluation]);
+    return () => {
+      cancelled = true;
+    };
+  }, [isAdditional, isGeneralEvaluation, reportCategory]);
 
   // Keep report type locked to the selected sidebar type (create mode only).
   useEffect(() => {
@@ -198,8 +216,19 @@ export function useReportSubmission() {
       }
       setExistingAttachments(
         savedAttachments.filter((file) =>
-          isSavedGeneralEvaluation ? isDocumentAttachment(file) : !file.criterionId && isReportAttachment(file),
+          isSavedGeneralEvaluation
+            ? isDocumentAttachment(file)
+            : !file.criterionId && !file.materialId && isReportAttachment(file),
         ),
+      );
+      setExistingMaterialAttachments(
+        savedAttachments
+          .filter((file) => !isSavedGeneralEvaluation && file.materialId && isReportAttachment(file))
+          .reduce((acc: Record<string, Attachment[]>, file) => {
+            const materialId = file.materialId as string;
+            acc[materialId] = [...(acc[materialId] || []), file];
+            return acc;
+          }, {}),
       );
       setExistingCriterionAttachments(
         savedAttachments
@@ -239,6 +268,14 @@ export function useReportSubmission() {
     setExistingCriterionAttachments((prev) => ({ ...prev, [criterionId]: files }));
   };
 
+  const handleMaterialFilesChange = (materialId: string, files: File[]) => {
+    setMaterialFiles((prev) => ({ ...prev, [materialId]: files }));
+  };
+
+  const handleExistingMaterialFilesChange = (materialId: string, files: Attachment[]) => {
+    setExistingMaterialAttachments((prev) => ({ ...prev, [materialId]: files }));
+  };
+
   const handleRemoveExistingAttachment = (index: number) => {
     setExistingAttachments((prev) => prev.filter((_, i) => i !== index));
   };
@@ -252,12 +289,30 @@ export function useReportSubmission() {
     return uploaded;
   };
 
+  const criterionIds = new Set(criteria.map((criterion) => criterion.id));
+
   const uploadCriterionAttachments = async () => {
     const uploaded: Attachment[] = [];
     for (const [criterionId, files] of Object.entries(criterionFiles)) {
+      // Files picked for another category's sheet before it changed are dropped.
+      if (!criterionIds.has(criterionId)) continue;
       for (const file of files) {
         const data = await uploadFile(file, "report-attachment", "Criterion attachment upload failed");
         uploaded.push({ url: data.url, name: data.name, criterionId });
+      }
+    }
+    return uploaded;
+  };
+
+  // Only the current category's materials are kept, in case the sender switched
+  // "Тайлангийн төрөл" after picking files.
+  const uploadMaterialAttachments = async () => {
+    const uploaded: Attachment[] = [];
+    for (const [materialId, files] of Object.entries(materialFiles)) {
+      if (!materialIds.has(materialId)) continue;
+      for (const file of files) {
+        const data = await uploadFile(file, "report-attachment", "Material attachment upload failed");
+        uploaded.push({ url: data.url, name: data.name, materialId });
       }
     }
     return uploaded;
@@ -280,8 +335,23 @@ export function useReportSubmission() {
     const keptAttachments = existingAttachments.filter(
       isGeneralEvaluation ? isDocumentAttachment : isReportAttachment,
     );
-    const keptCriterionAttachments = isGeneralEvaluation ? [] : Object.values(existingCriterionAttachments).flat();
-    const combined = [...keptAttachments, ...keptCriterionAttachments, ...uploaded, ...uploadedCriterionFiles];
+    const keptCriterionAttachments = isGeneralEvaluation
+      ? []
+      : Object.entries(existingCriterionAttachments)
+          .filter(([criterionId]) => criterionIds.has(criterionId))
+          .flatMap(([, files]) => files);
+    const uploadedMaterialFiles = await uploadMaterialAttachments();
+    const keptMaterialAttachments = Object.entries(existingMaterialAttachments)
+      .filter(([materialId]) => materialIds.has(materialId))
+      .flatMap(([, files]) => files);
+    const combined = [
+      ...keptAttachments,
+      ...keptCriterionAttachments,
+      ...keptMaterialAttachments,
+      ...uploaded,
+      ...uploadedCriterionFiles,
+      ...uploadedMaterialFiles,
+    ];
     return combined.length ? JSON.stringify(combined) : "";
   };
 
@@ -329,6 +399,8 @@ export function useReportSubmission() {
     setDocumentFiles([]);
     setCriterionFiles({});
     setExistingCriterionAttachments({});
+    setMaterialFiles({});
+    setExistingMaterialAttachments({});
     setSubmitError("");
     setFormData({
       reportType: isGeneralEvaluation ? PERFORMANCE_REPORT_LABEL : activeType?.label || "",
@@ -406,6 +478,9 @@ export function useReportSubmission() {
     submitError,
     existingAttachments,
     existingCriterionAttachments,
+    materials,
+    materialFiles,
+    existingMaterialAttachments,
     initialLocation,
     formData,
     setLocation,
@@ -414,6 +489,8 @@ export function useReportSubmission() {
     handleDocumentChange,
     handleCriterionFilesChange,
     handleExistingCriterionFilesChange,
+    handleMaterialFilesChange,
+    handleExistingMaterialFilesChange,
     handleRemoveExistingAttachment,
     handleReset,
     handleBackToReports,

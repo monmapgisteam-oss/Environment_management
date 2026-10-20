@@ -10,7 +10,8 @@ export function splitScoringAttachments(attachments: Attachment[], criteria: Cri
     acc[file.criterionId] = [...(acc[file.criterionId] || []), file];
     return acc;
   }, {});
-  const reportAttachments = attachments.filter((file) => !file.criterionId);
+  // Material files are listed under their own material, not with general files.
+  const reportAttachments = attachments.filter((file) => !file.criterionId && !file.materialId);
 
   if (criteria.length > 0 && Object.keys(criterionAttachments).length === 0 && reportAttachments.length >= criteria.length) {
     return {

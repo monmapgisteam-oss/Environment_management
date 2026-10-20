@@ -79,3 +79,12 @@ test('report category accepts only the listed sectors', async () => {
   assert.equal(withoutCategory.reportCategory, null);
   await assert.rejects(write(store, 'report', 'create', { data: { ...base, reportNumber: 'N3', reportCategory: 'Other' } }, uuid));
 });
+
+test('criteria category accepts only the report categories', async () => {
+  const { store } = await seed();
+  const criterion = await write(store, 'evaluationCriterion', 'create', { data: { name: 'C', category: 'Үйлдвэрлэл', maxScore: 20, sortOrder: 1 } }, uuid);
+  assert.equal(criterion.category, 'Үйлдвэрлэл');
+  const found = await read(store, 'evaluationCriterion', 'findMany', { where: { category: 'Үйлдвэрлэл' } });
+  assert.equal(found.length, 1);
+  await assert.rejects(write(store, 'evaluationCriterion', 'create', { data: { name: 'D', category: 'Other', maxScore: 5, sortOrder: 2 } }, uuid));
+});

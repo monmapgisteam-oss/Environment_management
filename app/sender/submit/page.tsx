@@ -4,7 +4,7 @@ import ReportInfoCard from "@/components/submit/ReportInfoCard";
 import LocationCard from "@/components/submit/LocationCard";
 import AttachmentCard from "@/components/submit/AttachmentCard";
 import DocumentUploadCard from "@/components/submit/DocumentUploadCard";
-import CriterionEvidenceUploadCard from "@/components/submit/CriterionEvidenceUploadCard";
+import EvidenceUploadCard from "@/components/submit/EvidenceUploadCard";
 import SubmitSuccessCard from "@/components/submit/SubmitSuccessCard";
 import SubmitFormHeader from "@/components/submit/SubmitFormHeader";
 import AdditionalInfoFields from "@/components/submit/AdditionalInfoFields";
@@ -98,12 +98,38 @@ export default function SubmitReportPage() {
 
                 {form.criteria.length > 0 && (
                   <div className="mt-8">
-                    <CriterionEvidenceUploadCard
-                      criteria={form.criteria}
-                      filesByCriterion={form.criterionFiles}
-                      existingByCriterion={form.existingCriterionAttachments}
+                    <EvidenceUploadCard
+                      title="Үнэлгээний шалгуурын нотлох файл"
+                      description="Шалгуур бүрийн баруун талд зураг, PDF эсвэл Word файл хавсаргана уу."
+                      idPrefix="criterion"
+                      rows={form.criteria.map((criterion) => ({
+                        id: criterion.id,
+                        label: criterion.name,
+                        detail: `Авбал зохих оноо: ${criterion.maxScore}`,
+                      }))}
+                      filesByRow={form.criterionFiles}
+                      existingByRow={form.existingCriterionAttachments}
                       onFilesChange={form.handleCriterionFilesChange}
                       onExistingChange={form.handleExistingCriterionFilesChange}
+                    />
+                  </div>
+                )}
+
+                {form.materials.length > 0 && (
+                  <div className="mt-8">
+                    <EvidenceUploadCard
+                      title="Тайлангийн хавсралтууд"
+                      description="Тайлангийн төрөлд заасан баримт бүрийн баруун талд зураг, PDF эсвэл Word файл хавсаргана уу."
+                      idPrefix="material"
+                      rows={form.materials.map((material) => ({
+                        id: material.id,
+                        label: material.label,
+                        detail: material.note,
+                      }))}
+                      filesByRow={form.materialFiles}
+                      existingByRow={form.existingMaterialAttachments}
+                      onFilesChange={form.handleMaterialFilesChange}
+                      onExistingChange={form.handleExistingMaterialFilesChange}
                     />
                   </div>
                 )}

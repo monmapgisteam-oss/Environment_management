@@ -10,7 +10,8 @@
     "test": "node --require ./scripts/register-typescript.cjs --test tests/*.test.cjs",
     "convex:dev": "convex dev",
     "convex:deploy": "convex deploy",
-    "migrate:arcgis": "node scripts/migrate-arcgis-to-convex.mjs"
+    "migrate:arcgis": "node scripts/migrate-arcgis-to-convex.mjs",
+    "seed:criteria": "node --env-file=.env.local scripts/seed-category-criteria.mjs"
   },
   "dependencies": {
     "@types/leaflet": "^1.9.21",

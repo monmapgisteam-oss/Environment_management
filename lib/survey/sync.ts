@@ -4,6 +4,7 @@ import type { Payload } from '@/lib/db/types';
 import { SURVEY_LAYER_ID, SURVEY_REPEAT_LAYER_ID, addSurveyRecord, querySurvey, updateSurveyRecord } from '@/lib/db/survey';
 import { fetchSurveyPhotoMap, type SurveyPhoto } from '@/lib/survey/photos';
 import { normalizeSurveyReportType } from '@/lib/survey/reportType';
+import { fetchCriteriaFor } from '@/lib/reports/criteria';
 
 // ---------------------------------------------------------------------------
 // Survey write-back integration.
@@ -161,7 +162,7 @@ export async function syncEvaluationToSurvey(params: {
   if (!surveySyncEnabled()) return;
 
   try {
-    const [report, evaluation, criteria] = await Promise.all([
+    const [report, evaluation] = await Promise.all([
       dataStore.report.findUnique({
         where: { id: params.reportId },
         include: { reportType: true, senderCompany: true, location: true },
@@ -170,15 +171,12 @@ export async function syncEvaluationToSurvey(params: {
         where: { id: params.evaluationId },
         include: { scores: true },
       }),
-      dataStore.evaluationCriterion.findMany({
-        where: { isActive: true },
-        orderBy: { sortOrder: 'asc' },
-      }),
     ]);
 
     if (!report || !evaluation) return;
+    const criteria = await fetchCriteriaFor(report.reportCategory);
 
-    // Map each criterion (in sort order) to Q1..Q8.
+    // Map each criterion of the report's sheet (in sort order) to Q1, Q2, ….
     const qByCriterion: Record<string, string> = {};
     criteria.forEach((c, i) => {
       qByCriterion[c.id] = `Q${i + 1}`;

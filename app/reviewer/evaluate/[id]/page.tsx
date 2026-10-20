@@ -1,6 +1,8 @@
 import dataStore from '@/lib/db';
+import { fetchCriteriaFor } from '@/lib/reports/criteria';
 import EvaluationTable from '@/components/evaluation/EvaluationTable';
 import AttachmentList from '@/components/reports/AttachmentList';
+import MaterialAttachmentList from '@/components/reports/MaterialAttachmentList';
 import LocationMap from '@/components/map/LocationMapClient';
 import { parseAttachments } from '@/lib/reports/attachments';
 import { signAttachments } from '@/lib/db/storage';
@@ -31,23 +33,14 @@ async function fetchReport(id: string) {
   return report ? (await attachEffectiveSenderCompanies([report]))[0] : null;
 }
 
-async function fetchCriteria() {
-  return dataStore.evaluationCriterion.findMany({
-    where: { isActive: true },
-    orderBy: { sortOrder: 'asc' },
-  });
-}
-
 export default async function ReviewerEvaluatePage(props: Props) {
   const params = await props.params;
-  const [report, criteria] = await Promise.all([
-    fetchReport(params.id),
-    fetchCriteria(),
-  ]);
+  const report = await fetchReport(params.id);
 
   if (!report) {
     return <div className="p-8 text-center text-slate-500">Тайлан олдсонгүй.</div>;
   }
+  const criteria = await fetchCriteriaFor(report.reportCategory);
 
   const signedAttachments = await signAttachments(parseAttachments(report.fileUrl));
   const tableCriteria = criteria.map((c) => ({
@@ -104,6 +97,7 @@ export default async function ReviewerEvaluatePage(props: Props) {
 
       {/* Attached documents the sender submitted */}
       {reportAttachments.length > 0 && <AttachmentList attachments={reportAttachments} />}
+      <MaterialAttachmentList attachments={signedAttachments} reportCategory={report.reportCategory} />
 
       {/* Evaluation Table */}
       <EvaluationTable

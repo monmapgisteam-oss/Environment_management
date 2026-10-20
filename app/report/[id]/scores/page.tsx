@@ -1,4 +1,5 @@
 import dataStore from '@/lib/db';
+import { fetchCriteriaFor } from '@/lib/reports/criteria';
 import SignatureBadge from '@/components/signature/SignatureBadge';
 import { formatScore } from '@/lib/utils';
 import { canAccessReport, requireUser } from '@/lib/auth';
@@ -15,6 +16,7 @@ async function fetchReportDetail(reportId: string) {
       id: true,
       senderCompanyId: true,
       implementerRegister: true,
+      reportCategory: true,
       finalScore: true,
       signedScanUrl: true,
       location: true,
@@ -34,13 +36,6 @@ async function fetchReportDetail(reportId: string) {
   });
 }
 
-async function fetchCriteria() {
-  return dataStore.evaluationCriterion.findMany({
-    where: { isActive: true },
-    orderBy: { sortOrder: 'asc' },
-  });
-}
-
 // Score-only view opened from "Тайлан хайх" — just the Excel-style scoring
 // table (who gave what), without the rest of the report detail page.
 export default async function ReportScoresPage(props: Props) {
@@ -50,11 +45,12 @@ export default async function ReportScoresPage(props: Props) {
   const isReviewer = currentUser.role === 'review_manager';
   const roleParam = isReviewer ? 'reviewer' : isStaff ? 'staff' : 'sender';
 
-  const [report, criteria] = await Promise.all([fetchReportDetail(params.id), fetchCriteria()]);
+  const report = await fetchReportDetail(params.id);
 
   if (!report || !(await canAccessReport(currentUser, report))) {
     return <div className="p-8 text-center text-slate-500">Тайлан олдсонгүй.</div>;
   }
+  const criteria = await fetchCriteriaFor(report.reportCategory);
 
   // Scores stay hidden from the sender until the manager explicitly sends the
   // signed scan — a single (or even every) staff member finishing must not

@@ -1,4 +1,6 @@
-export type Attachment = { url: string; name: string; criterionId?: string };
+// `criterionId` ties a file to a scoring criterion, `materialId` to a required
+// supporting material (lib/reports/materials.ts). Other files are general.
+export type Attachment = { url: string; name: string; criterionId?: string; materialId?: string };
 
 export function isImageAttachment(file: Attachment): boolean {
   return /\.(jpe?g|png|webp|gif|bmp|heic|heif)$/i.test(file.name || file.url);
@@ -43,7 +45,7 @@ export function serializeReportAttachments(fileUrl: string | null | undefined): 
   return reportAttachments.length ? JSON.stringify(reportAttachments) : null;
 }
 
-type StoredAttachment = { url?: string; name?: string; criterionId?: unknown };
+type StoredAttachment = { url?: string; name?: string; criterionId?: unknown; materialId?: unknown };
 
 // Attachments are stored on Report.fileUrl as a JSON array of { url, name } so
 // the reviewer sees the sender's original file name. Older records may hold a
@@ -59,6 +61,7 @@ export function parseAttachments(fileUrl: string | null | undefined): Attachment
           url: f.url,
           name: f.name || (f.url.split('/').pop() ?? ''),
           ...(typeof f.criterionId === 'string' && f.criterionId ? { criterionId: f.criterionId } : {}),
+          ...(typeof f.materialId === 'string' && f.materialId ? { materialId: f.materialId } : {}),
         }));
     }
     return [];

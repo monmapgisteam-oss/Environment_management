@@ -35,6 +35,7 @@ Use Node.js 20.12 or newer. Install with `npm install`, then follow [SETUP.md](S
 ```bash
 npx convex dev --once       # link the deployment and push functions and schema
 npm run migrate:arcgis      # one time: copy ArcGIS data into an empty deployment
+npm run seed:criteria       # once per deployment: scoring sheets for each report category
 npm run dev
 ```
 

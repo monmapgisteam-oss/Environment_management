@@ -5,6 +5,7 @@ import { syncEvaluationToSurvey } from '@/lib/survey/sync';
 import { computeDocumentHash, generateSignatureId, hashPin, verifyPin } from '@/lib/auth/signature';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
 import { uniqueAssignmentsByEvaluator } from '@/lib/reports/assignments';
+import { fetchCriteriaFor } from '@/lib/reports/criteria';
 
 async function findOpenAssignment(reportId: string, evaluatorUserId?: string) {
   const assignments = await dataStore.reportAssignment.findMany({
@@ -51,7 +52,7 @@ export async function POST(request: Request) {
 
     const targetReport = await dataStore.report.findUnique({
       where: { id: reportId },
-      select: { title: true },
+      select: { title: true, reportCategory: true },
     });
     if (!targetReport || targetReport.title === GENERAL_EVALUATION_CONCLUSION_TITLE) {
       return NextResponse.json({ error: 'Ерөнхий үнэлгээний дүгнэлт нь үнэлэх тайлан биш.' }, { status: 400 });
@@ -125,13 +126,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Гарын үсгээр баталгаажсан тул засах боломжгүй.' }, { status: 403 });
     }
 
-    // Every active criterion must be scored before a signature can be applied.
-    const criteria = await dataStore.evaluationCriterion.findMany({ where: { isActive: true }, select: { id: true } });
-    const criterionIds = new Set(criteria.map((c) => c.id));
+    // Every criterion on the report category's sheet must be scored, within its
+    // maximum, before a signature can be applied.
+    const criteria = await fetchCriteriaFor(targetReport.reportCategory);
+    const maxScoreById = new Map(criteria.map((c) => [c.id, c.maxScore]));
     const scoredIds = new Set(scoreEntries.map((s) => s.criterionId));
-    const complete = criterionIds.size > 0 && [...criterionIds].every((id) => scoredIds.has(id));
+    const complete = maxScoreById.size > 0 && [...maxScoreById.keys()].every((id) => scoredIds.has(id));
     if (!complete) {
       return NextResponse.json({ error: 'Бүх шалгуураар оноо оруулна уу.' }, { status: 400 });
+    }
+    const outOfRange = scoreEntries.some((s) => {
+      const maxScore = maxScoreById.get(s.criterionId);
+      return maxScore === undefined || s.score < 0 || s.score > maxScore;
+    });
+    if (outOfRange) {
+      return NextResponse.json({ error: 'Оноо шалгуурын авбал зохих онооноос хэтэрсэн байна.' }, { status: 400 });
     }
 
     // Verify the numeric signature against the signer's own registered PIN

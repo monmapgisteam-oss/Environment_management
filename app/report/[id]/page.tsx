@@ -1,5 +1,7 @@
 import dataStore from '@/lib/db';
+import { fetchCriteriaFor } from '@/lib/reports/criteria';
 import AttachmentList from '@/components/reports/AttachmentList';
+import MaterialAttachmentList from '@/components/reports/MaterialAttachmentList';
 import ManagerReturnPanel from '@/components/reports/ManagerReturnPanel';
 import SurveyReportDetail from '@/components/reports/detail/SurveyReportDetail';
 import ReportCoverLink from '@/components/reports/detail/ReportCoverLink';
@@ -60,13 +62,6 @@ async function fetchReportDetail(reportId: string) {
   return report ? (await attachEffectiveSenderCompanies([report]))[0] : null;
 }
 
-async function fetchCriteria() {
-  return dataStore.evaluationCriterion.findMany({
-    where: { isActive: true },
-    orderBy: { sortOrder: 'asc' },
-  });
-}
-
 export default async function ReportDetailPage(props: Props) {
   const params = await props.params;
   const currentUser = await requireUser();
@@ -81,11 +76,12 @@ export default async function ReportDetailPage(props: Props) {
   const isStaff = currentUser.role === 'evaluator';
   const isReviewer = currentUser.role === 'review_manager';
 
-  const [report, criteria] = await Promise.all([fetchReportDetail(params.id), fetchCriteria()]);
+  const report = await fetchReportDetail(params.id);
 
   if (!report || !(await canAccessReport(currentUser, report))) {
     return <div className="p-8 text-center text-slate-500">Тайлан олдсонгүй.</div>;
   }
+  const criteria = await fetchCriteriaFor(report.reportCategory);
 
   const uniqueAssignments = uniqueAssignmentsByEvaluator(report.assignments);
 
@@ -167,6 +163,7 @@ export default async function ReportDetailPage(props: Props) {
           emptyText="Хавсаргасан файл байхгүй байна."
         />
       )}
+      <MaterialAttachmentList attachments={attachments} reportCategory={report.reportCategory} />
 
       {!isConclusion && (
         <EvaluationSection
