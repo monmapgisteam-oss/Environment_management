@@ -1,3 +1,4 @@
+import PageHeader from '@/components/layout/PageHeader';
 import dataStore from '@/lib/db';
 import CompanyMapSection from '@/components/map/CompanyMapSection';
 import type { CompanyPoint } from '@/components/map/CompanyMap';
@@ -65,13 +66,8 @@ export default async function AdminMapPage() {
   const allPoints = [...resolvedPoints, ...surveyPoints];
 
   return (
-    <main className="w-full p-6">
-      <div className="mb-4 space-y-1">
-        <h2 className="text-2xl font-semibold tracking-tight text-slate-900">Газрын зураг</h2>
-        <p className="text-sm text-slate-500">
-          Байгууллагуудын байршил, хяналтын үнэлгээгээр өнгөөр ялгасан.
-        </p>
-      </div>
+    <main className="flex-1 min-w-0 space-y-6 px-6 py-7 lg:px-8">
+      <PageHeader title="Газрын зураг" subtitle="Байгууллагуудын байршил, хяналтын үнэлгээгээр өнгөөр ялгасан." />
 
       <div
         className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft"

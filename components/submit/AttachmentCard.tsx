@@ -52,16 +52,16 @@ export default function AttachmentCard({
   };
 
   return (
-    <div className="border border-[#E8F0FE] rounded-2xl p-6 h-fit">
+    <div className="border border-slate-200 rounded-2xl p-6 h-fit">
       {/* Header */}
       <div className="flex items-center gap-2.5 mb-1">
-        <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center">
+        <div className="w-7 h-7 rounded-lg bg-teal-50 flex items-center justify-center">
           <svg
             width="15"
             height="15"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="#2563EB"
+            stroke="#0F766E"
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -88,7 +88,7 @@ export default function AttachmentCard({
         onDragOver={(e) => e.preventDefault()}
         onDrop={handleDrop}
         className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition
-          ${isDragging ? "border-color-primary bg-blue-50" : "border-[#D9E4F0] bg-[#F8FBFF] hover:border-color-primary"}`}
+          ${isDragging ? "border-color-primary bg-teal-50" : "border-slate-200 bg-slate-50 hover:border-color-primary"}`}
       >
         <input
           type="file"
@@ -106,7 +106,7 @@ export default function AttachmentCard({
                 height="22"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="#2563EB"
+                stroke="#0F766E"
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -134,7 +134,7 @@ export default function AttachmentCard({
       {error && <p className="mt-2 text-xs font-medium text-red-500">{error}</p>}
 
       {/* Attached files */}
-      <div className="mt-5 border border-[#E8F0FE] rounded-xl p-4">
+      <div className="mt-5 border border-slate-200 rounded-xl p-4">
         <div className="flex items-center gap-2 mb-1.5">
           <svg
             width="14"
@@ -162,14 +162,14 @@ export default function AttachmentCard({
             {attachedFiles.map((file, index) => (
               <div
                 key={index}
-                className="flex items-center gap-2 p-2 rounded-lg bg-[#F8FBFF] border border-[#E8F0FE]"
+                className="flex items-center gap-2 p-2 rounded-lg bg-slate-50 border border-slate-200"
               >
                 <svg
                   width="16"
                   height="16"
                   viewBox="0 0 24 24"
                   fill="none"
-                  stroke="#2563EB"
+                  stroke="#0F766E"
                   strokeWidth="2"
                 >
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />

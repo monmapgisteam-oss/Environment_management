@@ -1,3 +1,4 @@
+import PageHeader from '@/components/layout/PageHeader';
 import { redirect } from 'next/navigation';
 import CompanyMapSection from '@/components/map/CompanyMapSection';
 import { requireUser } from '@/lib/auth';
@@ -10,11 +11,8 @@ export default async function SenderGeographyPage() {
   const points = await fetchSenderCompanyPoints(user.companyId);
 
   return (
-    <main className="flex-1 min-w-0 space-y-4 p-6">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Газарзүйн мэдээлэл</h1>
-        <p className="text-sm text-slate-500">Миний илгээсэн тайлангуудын байршил.</p>
-      </div>
+    <main className="flex-1 min-w-0 space-y-6 px-6 py-7 lg:px-8">
+      <PageHeader title="Газарзүйн мэдээлэл" subtitle="Миний илгээсэн тайлангуудын байршил." />
 
       <div
         className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft"

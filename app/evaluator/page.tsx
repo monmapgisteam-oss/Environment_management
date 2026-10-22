@@ -1,3 +1,4 @@
+import PageHeader from '@/components/layout/PageHeader';
 import dataStore from '@/lib/db';
 import { requireUser } from '@/lib/auth';
 import { isAdditionalReportType } from '@/lib/nav';
@@ -90,12 +91,8 @@ export default async function EvaluatorDashboard(props: { searchParams: Promise<
     : null;
 
   return (
-    <main className="flex-1 min-w-0 space-y-6 p-6">
-      <div className="space-y-1">
-        <h2 className="text-2xl font-semibold tracking-tight text-slate-900">
-          {isAdditional ? 'Нэмэлт мэдээлэл' : 'Надад оноогдсон тайлангууд'}
-        </h2>
-      </div>
+    <main className="flex-1 min-w-0 space-y-6 px-6 py-7 lg:px-8">
+      <PageHeader title={<>{isAdditional ? 'Нэмэлт мэдээлэл' : 'Надад оноогдсон тайлангууд'}</>} />
 
       {reports.length === 0 ? (
         <div className="rounded-3xl bg-white px-6 py-16 text-center shadow-soft border border-slate-200">

@@ -1,3 +1,5 @@
+import EmptyState from '@/components/ui/EmptyState';
+import PageHeader from '@/components/layout/PageHeader';
 import dataStore from '@/lib/db';
 import ReportTable from '@/components/reports/ReportTable';
 import { attachEffectiveSenderCompanies } from '@/lib/reports/companies';
@@ -33,16 +35,11 @@ export default async function ReturnedReportsPage() {
   }));
 
   return (
-    <main className="flex-1 min-w-0 space-y-6 p-6">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Буцаасан тайлан</h1>
-        <p className="text-sm text-slate-600">Илгээгч байгууллага руу засварлуулахаар буцаасан тайлангууд.</p>
-      </div>
+    <main className="flex-1 min-w-0 space-y-6 px-6 py-7 lg:px-8">
+      <PageHeader title="Буцаасан тайлан" subtitle="Илгээгч байгууллага руу засварлуулахаар буцаасан тайлангууд." />
 
       {tableReports.length === 0 ? (
-        <div className="rounded-3xl border border-slate-200 bg-white px-6 py-16 text-center shadow-soft">
-          <p className="text-sm font-medium text-slate-500">Буцаасан тайлан байхгүй байна.</p>
-        </div>
+        <EmptyState title="Буцаасан тайлан байхгүй байна." />
       ) : (
         <ReportTable role="reviewer" reports={tableReports} showStatusFilter={false} />
       )}

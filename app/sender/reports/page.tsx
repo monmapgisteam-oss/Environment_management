@@ -1,3 +1,4 @@
+import PageHeader from '@/components/layout/PageHeader';
 import dataStore from '@/lib/db';
 import ReportTable from '@/components/reports/ReportTable';
 import { getCurrentUser } from '@/lib/auth';
@@ -61,10 +62,8 @@ export default async function SenderReportsPage() {
 
   return (
 
-    <main className="flex-1 min-w-0 space-y-6 p-5 sm:p-6 lg:p-8">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 lg:text-3xl">Миний тайлангууд</h1>
-      </div>
+    <main className="flex-1 min-w-0 space-y-6 px-6 py-7 lg:px-8">
+      <PageHeader title="Миний тайлангууд" />
 
       <ReportTable
         role="sender"

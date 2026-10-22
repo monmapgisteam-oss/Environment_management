@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { HiArrowDown, HiArrowUp, HiCheck, HiPencil, HiPlus, HiTrash, HiX } from 'react-icons/hi';
+import { toast } from '@/lib/toast';
 
 export type AdminCriterion = {
   id: string;
@@ -46,14 +47,16 @@ export default function CriteriaManager({ sheets }: { sheets: Sheet[] }) {
   const [adding, setAdding] = useState<string | null>(null);
   const [newRow, setNewRow] = useState({ name: '', maxScore: '' });
 
-  const run = async (id: string, action: () => Promise<void>) => {
+  const run = async (id: string, action: () => Promise<void>, done = 'Хадгалагдлаа.') => {
     setBusyId(id);
     setError('');
     try {
       await action();
+      toast(done);
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Алдаа гарлаа');
+      toast(e instanceof Error ? e.message : 'Алдаа гарлаа', 'error');
     } finally {
       setBusyId(null);
     }
@@ -86,7 +89,7 @@ export default function CriteriaManager({ sheets }: { sheets: Sheet[] }) {
 
   const remove = (c: AdminCriterion) => {
     if (!window.confirm(`"${c.name}" шалгуурыг устгах уу?`)) return;
-    return run(c.id, () => send(`/api/criteria/${c.id}`, 'DELETE'));
+    return run(c.id, () => send(`/api/criteria/${c.id}`, 'DELETE'), 'Шалгуур устгагдлаа.');
   };
 
   const add = (event: FormEvent, category: string) => {

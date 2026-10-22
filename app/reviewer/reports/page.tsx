@@ -1,3 +1,4 @@
+import PageHeader from '@/components/layout/PageHeader';
 import dataStore from '@/lib/db';
 import type { ReportType } from '@/lib/db/models';
 import { ADDITIONAL_REPORT_TYPE_SLUG, isAdditionalReportType } from '@/lib/nav';
@@ -88,19 +89,14 @@ export default async function ReviewerReportsPage(props: { searchParams: Promise
   ].sort((a, b) => new Date(b.submittedAt || 0).getTime() - new Date(a.submittedAt || 0).getTime());
 
   return (
-    <main className="flex-1 min-w-0 space-y-6 p-6">
-      <div className="space-y-1">
-        <h2 className="text-2xl font-semibold tracking-tight text-slate-900">
-          {isAdditional ? 'Нэмэлт мэдээлэл' : 'Ирсэн тайлангууд'}
-        </h2>
-        {!isAdditional && (
-          <p className="text-sm text-slate-600">
-            {searchParams.type
-              ? reportTypes.find((rt) => rt.slug === searchParams.type)?.name + ' төрлийн тайлангууд'
-              : 'Бүх ирсэн тайлангуудын жагсаалт.'}
-          </p>
-        )}
-      </div>
+    <main className="flex-1 min-w-0 space-y-6 px-6 py-7 lg:px-8">
+      <PageHeader title={isAdditional ? 'Нэмэлт мэдээлэл' : 'Ирсэн тайлангууд'} subtitle={
+          !isAdditional &&
+          (searchParams.type
+            ? reportTypes.find((rt) => rt.slug === searchParams.type)?.name + ' төрлийн тайлангууд'
+            : 'Бүх ирсэн тайлангуудын жагсаалт.')
+        }
+      />
 
       {isAdditional && tableReports.length === 0 ? (
         <div className="rounded-3xl bg-white px-6 py-16 text-center shadow-soft border border-slate-200">

@@ -9,7 +9,7 @@ type AdditionalInfoFieldsProps = {
 // Нэмэлт мэдээлэл — writing only, not a full report.
 export default function AdditionalInfoFields({ title, description, onChange }: AdditionalInfoFieldsProps) {
   return (
-    <div className="border border-[#E8F0FE] rounded-2xl p-6">
+    <div className="border border-slate-200 rounded-2xl p-6">
       <div className="mb-5">
         <label className="block text-sm font-medium text-color-text-main mb-1.5">
           Гарчиг <span className="text-red-500">*</span>
@@ -21,7 +21,7 @@ export default function AdditionalInfoFields({ title, description, onChange }: A
           onChange={onChange}
           placeholder="Нэмэлт мэдээллийн гарчиг"
           required
-          className="w-full h-11 rounded-xl border border-[#D9E4F0] bg-white px-4 text-sm text-color-text-main placeholder:text-color-text-muted focus:outline-none focus:border-color-primary focus:ring-2 focus:ring-color-primary/10 transition"
+          className="w-full h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm text-color-text-main placeholder:text-color-text-muted focus:outline-none focus:border-color-primary focus:ring-2 focus:ring-color-primary/10 transition"
         />
       </div>
       <div>
@@ -35,7 +35,7 @@ export default function AdditionalInfoFields({ title, description, onChange }: A
           placeholder="Нэмэлт мэдээллээ энд бичнэ үү..."
           rows={10}
           required
-          className="w-full rounded-xl border border-[#D9E4F0] bg-white px-4 py-3 text-sm text-color-text-main placeholder:text-color-text-muted focus:outline-none focus:border-color-primary focus:ring-2 focus:ring-color-primary/10 transition resize-y"
+          className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-color-text-main placeholder:text-color-text-muted focus:outline-none focus:border-color-primary focus:ring-2 focus:ring-color-primary/10 transition resize-y"
         />
       </div>
     </div>

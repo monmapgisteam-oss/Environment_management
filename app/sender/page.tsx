@@ -4,6 +4,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { attachEffectiveSenderCompanies } from '@/lib/reports/companies';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
 import Link from 'next/link';
+import PageHeader from '@/components/layout/PageHeader';
 import {
   HiOutlineArrowRight,
   HiOutlineCalendar,
@@ -78,16 +79,14 @@ export default async function SenderDashboard() {
   ];
 
   return (
-    <main className="flex-1 min-w-0 space-y-6 p-5 sm:p-6 lg:p-8">
+    <main className="flex-1 min-w-0 space-y-6 px-6 py-7 lg:px-8">
       {/* Title and the two main submit actions */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Хяналтын самбар</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            {user?.company?.name ? `${user.company.name} · ` : ''}Тайлангуудын явцыг эндээс хянана.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
+      <PageHeader
+        title="Хяналтын самбар"
+        eyebrow={user?.company?.name}
+        subtitle="Тайлангуудын явцыг эндээс хянана."
+        actions={
+          <>
           <Link
             href="/sender/submit?type=performance"
             className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
@@ -102,8 +101,9 @@ export default async function SenderDashboard() {
             <HiOutlineCalendar size={17} />
             Жилийн төлөвлөгөө илгээх
           </Link>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {revisionCount > 0 && (
         <div className="flex flex-col gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">

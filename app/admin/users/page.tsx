@@ -1,3 +1,4 @@
+import PageHeader from '@/components/layout/PageHeader';
 import dataStore from '@/lib/db';
 import UsersView, { type UserRow } from '@/components/admin/UsersView';
 
@@ -23,13 +24,8 @@ export default async function AdminUsersPage() {
   }));
 
   return (
-    <main className="flex-1 min-w-0 space-y-6 p-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 lg:text-3xl">Хэрэглэгчид</h1>
-        <p className="mt-1.5 text-sm text-slate-500">
-          Илгээгч, хянах менежер болон ажилтны бүх хэрэглэгчийн мэдээлэл
-        </p>
-      </div>
+    <main className="flex-1 min-w-0 space-y-6 px-6 py-7 lg:px-8">
+      <PageHeader title="Хэрэглэгчид" subtitle="Илгээгч, хянах менежер болон ажилтны бүх хэрэглэгчийн мэдээлэл" />
 
       <UsersView users={rows} />
     </main>

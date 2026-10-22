@@ -34,7 +34,7 @@ export default async function StaffProfilePage(props: Props) {
 
 
   return (
-    <main className="flex-1 min-w-0 space-y-5 p-6">
+    <main className="flex-1 min-w-0 space-y-6 px-6 py-7 lg:px-8">
       {!member ? (
         <div className="bg-white rounded-2xl border border-slate-200 p-6 text-center text-sm text-slate-500">
           Гишүүн олдсонгүй.

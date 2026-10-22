@@ -1,3 +1,5 @@
+import EmptyState from '@/components/ui/EmptyState';
+import PageHeader from '@/components/layout/PageHeader';
 import dataStore from '@/lib/db';
 import ReportTable from '@/components/reports/ReportTable';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
@@ -21,16 +23,11 @@ export default async function DraftsPage() {
   const reports = user.companyId ? await fetchDraftReports(user.companyId) : [];
 
   return (
-    <main className="flex-1 min-w-0 space-y-6 p-6">
-      <div>
-        <h2 className="text-2xl font-semibold tracking-tight text-slate-900">Ноорог</h2>
-        <p className="text-sm text-slate-500 mt-1">Хадгалсан ноорог тайлангуудын жагсаалт.</p>
-      </div>
+    <main className="flex-1 min-w-0 space-y-6 px-6 py-7 lg:px-8">
+      <PageHeader title="Ноорог" subtitle="Хадгалсан ноорог тайлангуудын жагсаалт." />
 
       {reports.length === 0 ? (
-        <div className="rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center shadow-soft">
-          <p className="text-sm text-slate-400">Одоогоор хадгалсан ноорог байхгүй байна.</p>
-        </div>
+        <EmptyState title="Ноорог хадгалаагүй байна." hint="Тайлан бичиж эхлээд «Ноорог хадгалах» товчийг дарвал энд хадгалагдана." action={{ label: "Тайлан илгээх", href: "/sender/submit?type=plan" }} />
       ) : (
         <ReportTable
           role="sender"

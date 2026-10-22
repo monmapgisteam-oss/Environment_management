@@ -1,3 +1,4 @@
+import PageHeader from '@/components/layout/PageHeader';
 import dataStore from '@/lib/db';
 import CriteriaManager, { type AdminCriterion } from '@/components/admin/CriteriaManager';
 import { REPORT_CATEGORIES } from '@/lib/constants';
@@ -27,13 +28,8 @@ export default async function AdminCriteriaPage() {
   }));
 
   return (
-    <main className="flex-1 min-w-0 space-y-6 p-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 lg:text-3xl">Үнэлгээний шалгуур</h1>
-        <p className="mt-1.5 text-sm text-slate-500">
-          Хянах ажилтны тайлан үнэлэхэд ашигладаг шалгуурууд. Төрөл бүрийн идэвхтэй шалгуурын нийлбэр 100 оноо байна.
-        </p>
-      </div>
+    <main className="flex-1 min-w-0 space-y-6 px-6 py-7 lg:px-8">
+      <PageHeader title="Үнэлгээний шалгуур" subtitle="Хянах ажилтны тайлан үнэлэхэд ашигладаг шалгуурууд. Төрөл бүрийн идэвхтэй шалгуурын нийлбэр 100 оноо байна." />
 
       <CriteriaManager sheets={sheets} />
     </main>

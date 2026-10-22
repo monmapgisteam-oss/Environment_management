@@ -1,3 +1,5 @@
+import EmptyState from '@/components/ui/EmptyState';
+import PageHeader from '@/components/layout/PageHeader';
 import dataStore from '@/lib/db';
 import { formatDate } from '@/lib/utils';
 
@@ -26,18 +28,11 @@ export default async function AdminFeedbackPage() {
   const feedback = await fetchFeedback();
 
   return (
-    <main className="flex-1 min-w-0 space-y-6 p-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 lg:text-3xl">Санал хүсэлт</h1>
-        <p className="mt-1.5 text-sm text-slate-500">
-          Илгээгч, хянах менежер болон ажилтнуудаас ирсэн санал хүсэлт
-        </p>
-      </div>
+    <main className="flex-1 min-w-0 space-y-6 px-6 py-7 lg:px-8">
+      <PageHeader title="Санал хүсэлт" subtitle="Илгээгч, хянах менежер болон ажилтнуудаас ирсэн санал хүсэлт" />
 
       {feedback.length === 0 ? (
-        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-16 text-center text-slate-400 shadow-soft">
-          Санал хүсэлт ирээгүй байна.
-        </div>
+        <EmptyState title="Санал хүсэлт ирээгүй байна." />
       ) : (
         <div className="space-y-3">
           {feedback.map((f) => (

@@ -2,6 +2,7 @@ import { useState, useEffect, type ChangeEvent, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { isDocumentAttachment, isReportAttachment, parseAttachments, type Attachment } from "@/lib/reports/attachments";
 import { materialsFor } from "@/lib/reports/materials";
+import { toast } from "@/lib/toast";
 
 export type Criterion = {
   id: string;
@@ -99,6 +100,8 @@ export function useReportSubmission() {
   const pageTitle = isEdit ? "Тайлан засах" : activeType?.label || "Тайлан илгээх";
 
   const [submitted, setSubmitted] = useState(false);
+  // Number the server assigned to the report that was just sent.
+  const [submittedNumber, setSubmittedNumber] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
@@ -424,12 +427,17 @@ export function useReportSubmission() {
     try {
       const response = await sendReport("submitted");
       if (response.ok) {
+        const saved = (await response.json().catch(() => null)) as { reportNumber?: string } | null;
+        setSubmittedNumber(saved?.reportNumber ?? formData.reportNumber ?? null);
         setSubmitted(true);
+        window.scrollTo({ top: 0 });
       } else {
         setSubmitError("Илгээх үед алдаа гарлаа. Дахин оролдоно уу.");
+        toast("Илгээх үед алдаа гарлаа.", "error");
       }
     } catch {
       setSubmitError("Файл хуулах үед алдаа гарлаа. Дахин оролдоно уу.");
+      toast("Файл хуулах үед алдаа гарлаа.", "error");
     } finally {
       setSubmitting(false);
     }
@@ -444,12 +452,15 @@ export function useReportSubmission() {
     try {
       const response = await sendReport("draft");
       if (response.ok) {
+        toast("Ноорог хадгалагдлаа.");
         router.push("/sender/drafts");
       } else {
         setSubmitError("Хадгалах үед алдаа гарлаа. Дахин оролдоно уу.");
+        toast("Хадгалах үед алдаа гарлаа.", "error");
       }
     } catch {
       setSubmitError("Файл хуулах үед алдаа гарлаа. Дахин оролдоно уу.");
+      toast("Файл хуулах үед алдаа гарлаа.", "error");
     } finally {
       setSavingDraft(false);
     }
@@ -463,6 +474,7 @@ export function useReportSubmission() {
     isAdditional,
     pageTitle,
     submitted,
+    submittedNumber,
     submitting,
     savingDraft,
     attachedFiles,

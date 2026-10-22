@@ -80,7 +80,7 @@ export default async function StaffEvaluatePage(props: Props) {
       : null;
 
   return (
-    <main className="flex-1 min-w-0 p-6 space-y-6">
+    <main className="flex-1 min-w-0 space-y-6 px-6 py-7 lg:px-8">
       {/* Report info */}
       <div className="bg-white rounded-2xl border border-slate-200 p-6">
         <div className="flex items-center justify-between mb-4">

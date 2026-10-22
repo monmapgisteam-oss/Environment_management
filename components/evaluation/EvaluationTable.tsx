@@ -104,7 +104,7 @@ export default function EvaluationTable({ criteria, reportId, savedScores, saved
                 <th key={i} className="text-center py-3 px-4 text-xs font-semibold text-slate-500 uppercase w-28">{ev.evaluatorName}</th>
               ))}
               <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase w-56">Илгээсэн файл</th>
-              <th className="text-center py-3 px-4 text-xs font-semibold text-color-primary uppercase w-32 bg-blue-50">{selfName || 'Өгөх оноо'}</th>
+              <th className="text-center py-3 px-4 text-xs font-semibold text-color-primary uppercase w-32 bg-teal-50">{selfName || 'Өгөх оноо'}</th>
             </tr>
           </thead>
           <tbody>
@@ -140,7 +140,7 @@ export default function EvaluationTable({ criteria, reportId, savedScores, saved
                     <span className="text-xs text-slate-400">-</span>
                   )}
                 </td>
-                <td className="py-3 px-4 text-center bg-blue-50/40">
+                <td className="py-3 px-4 text-center bg-teal-50/40">
                   <input
                     type="number"
                     min={0}
@@ -163,7 +163,7 @@ export default function EvaluationTable({ criteria, reportId, savedScores, saved
                 <td key={i} className="py-3 px-4 text-center font-bold text-slate-600 text-lg">{ev.totalScore}</td>
               ))}
               <td className="py-3 px-4"></td>
-              <td className="py-3 px-4 text-center font-bold text-color-primary text-lg bg-blue-50">{totalScore}</td>
+              <td className="py-3 px-4 text-center font-bold text-color-primary text-lg bg-teal-50">{totalScore}</td>
             </tr>
           </tbody>
         </table>

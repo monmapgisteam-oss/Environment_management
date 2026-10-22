@@ -1,3 +1,5 @@
+import EmptyState from '@/components/ui/EmptyState';
+import PageHeader from '@/components/layout/PageHeader';
 import dataStore from '@/lib/db';
 import type { Evaluation, ReportAssignment } from '@/lib/db/models';
 import { requireUser } from '@/lib/auth';
@@ -116,16 +118,11 @@ export default async function EvaluatedReportsPage() {
   const reports = await fetchEvaluatedReports(user.id);
 
   return (
-    <main className="flex-1 min-w-0 space-y-6 p-6">
-      <div className="space-y-1">
-        <h2 className="text-2xl font-semibold tracking-tight text-slate-900">Үнэлгээ өгсөн тайлангууд</h2>
-        <p className="text-sm text-slate-600">Таны үнэлгээ өгсөн бүх тайлан.</p>
-      </div>
+    <main className="flex-1 min-w-0 space-y-6 px-6 py-7 lg:px-8">
+      <PageHeader title="Үнэлгээ өгсөн тайлангууд" subtitle="Таны үнэлгээ өгсөн бүх тайлан." />
 
       {reports.length === 0 ? (
-        <div className="rounded-3xl bg-white px-6 py-16 text-center shadow-soft border border-slate-200">
-          <p className="text-sm text-slate-400">Та одоогоор ямар ч тайланд үнэлгээ өгөөгүй байна.</p>
-        </div>
+        <EmptyState title="Та одоогоор ямар ч тайланд үнэлгээ өгөөгүй байна." hint="Танд оноогдсон тайлангууд «Надад оноогдсон тайлангууд» хэсэгт харагдана." action={{ label: "Оноогдсон тайлангууд", href: "/evaluator" }} />
       ) : (
         <ReportTable reports={reports} role="staff" showStatusFilter={false} />
       )}

@@ -11,7 +11,7 @@ export default function SignedScanCard({ url, name }: Props) {
     <div className="bg-white rounded-2xl border border-slate-200 p-6">
       <h2 className="text-base font-semibold text-slate-900 mb-4">Гарын үсэгтэй хуулбар</h2>
       <div className="flex items-center gap-3 rounded-xl border border-slate-200 p-3">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0F766E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
           <polyline points="14 2 14 8 20 8" />
         </svg>

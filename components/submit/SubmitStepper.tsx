@@ -18,7 +18,7 @@ export default function SubmitStepper({ steps, currentStep, onStepClick }: Submi
             {index > 0 && (
               <div
                 className={`absolute right-1/2 top-[18px] h-[2px] w-full -translate-y-1/2 ${
-                  index <= currentStep ? "bg-color-primary" : "bg-[#D9E4F0]"
+                  index <= currentStep ? "bg-color-primary" : "bg-slate-200"
                 }`}
               />
             )}
@@ -34,7 +34,7 @@ export default function SubmitStepper({ steps, currentStep, onStepClick }: Submi
                     ? "bg-color-primary text-white"
                     : active
                     ? "bg-color-primary text-white shadow-[0_0_0_4px_rgba(15,118,110,0.15)]"
-                    : "border-2 border-[#D9E4F0] bg-white text-color-text-muted"
+                    : "border-2 border-slate-200 bg-white text-color-text-muted"
                 }`}
               >
                 {done ? (

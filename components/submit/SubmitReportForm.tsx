@@ -179,6 +179,7 @@ export default function SubmitReportForm({ register }: { register: string }) {
           <SubmitSuccessCard
             isEdit={form.isEdit}
             isGeneralEvaluation={form.isGeneralEvaluation}
+            reportNumber={form.submittedNumber}
             onBackToReports={form.handleBackToReports}
             onReset={form.handleReset}
           />

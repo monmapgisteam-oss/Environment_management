@@ -6,7 +6,7 @@ type SubmitFormHeaderProps = {
 
 export default function SubmitFormHeader({ title, isAdditional, isGeneralEvaluation }: SubmitFormHeaderProps) {
   return (
-    <div className="px-6 sm:px-8 py-6 border-b border-[#E8F0FE]">
+    <div className="px-6 sm:px-8 py-6 border-b border-slate-200">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-color-primary flex items-center justify-center flex-shrink-0">

@@ -21,13 +21,13 @@ export default function ReportActions({ reportId, isConclusion, isReviewer, isSt
         : '/sender';
 
   return (
-    <div className="flex justify-end gap-3">
+    <div className="flex flex-col gap-2">
       {canFix && (
-        <a href={`/sender/submit?edit=${reportId}`} className="h-10 px-5 rounded-xl border border-orange-300 bg-orange-50 text-sm font-semibold text-orange-700 hover:bg-orange-100 transition inline-flex items-center">
-          Засах
+        <a href={`/sender/submit?edit=${reportId}`} className="inline-flex h-10 items-center justify-center bg-amber-500 px-5 text-sm font-semibold text-white transition hover:bg-amber-600">
+          Засаад дахин илгээх
         </a>
       )}
-      <a href={backHref} className="h-10 px-5 rounded-xl border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 transition inline-flex items-center">
+      <a href={backHref} className="inline-flex h-10 items-center justify-center border border-slate-200 bg-white px-5 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
         Буцах
       </a>
     </div>

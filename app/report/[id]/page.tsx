@@ -11,6 +11,7 @@ import ReportInfoSection from '@/components/reports/detail/ReportInfoSection';
 import RevisionNotice from '@/components/reports/detail/RevisionNotice';
 import EvaluationSection from '@/components/reports/detail/EvaluationSection';
 import ReportActions from '@/components/reports/detail/ReportActions';
+import StatusTimeline from '@/components/reports/detail/StatusTimeline';
 import type { AssignedStaffMember, EvaluationSummary, ViewerRole } from '@/components/reports/detail/types';
 import { parseAttachments } from '@/lib/reports/attachments';
 import { signAttachments, createSignedUrl } from '@/lib/db/storage';
@@ -127,65 +128,85 @@ export default async function ReportDetailPage(props: Props) {
   // not leak scores early. Managers and staff always see what they're allowed to.
   const scoresVisible = !isSenderView || !!report.signedScanUrl;
 
+  const scoredCount = assignedStaff.filter((member) => member.submitted).length;
+
   return (
-    <main className="flex-1 min-w-0 p-6 space-y-5">
-      {(isReviewer || isStaff) && !isConclusion && <ReportCoverLink reportId={report.id} isStaff={isStaff} />}
+    <main className="flex-1 min-w-0 px-6 py-7 lg:px-8">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+        {/* Left: everything about the report itself */}
+        <div className="min-w-0 space-y-5">
+          <ReportInfoSection report={report} isConclusion={isConclusion} isSenderView={isSenderView} />
 
-      {/* Sender downloads the manager's scanned, physically-signed copy — top of screen. */}
-      {isSenderView && signedScanDownloadUrl && (
-        <SignedScanCard url={signedScanDownloadUrl} name={report.signedScanName} />
-      )}
+          {/* Sender sees why the manager returned the report for revision. */}
+          {needsRevision && report.returnReason && <RevisionNotice reason={report.returnReason} />}
 
-      {/* Manager sees which staff this report was distributed to (top). */}
-      {isReviewer && !isConclusion && <AssignedStaffCard staff={assignedStaff} />}
+          {reportAttachments.length > 0 && (
+            <AttachmentList
+              attachments={reportAttachments}
+              title="Хавсаргасан файл"
+              emptyText="Хавсаргасан файл байхгүй байна."
+            />
+          )}
+          <MaterialAttachmentList attachments={attachments} reportType={report.reportType.name} reportCategory={report.reportCategory} />
 
-      <ReportInfoSection report={report} isConclusion={isConclusion} isSenderView={isSenderView} />
+          {!isConclusion && (
+            <EvaluationSection
+              report={report}
+              criteria={criteria}
+              criterionAttachments={criterionAttachments}
+              evaluations={evaluations}
+              viewerRole={viewerRole}
+              isReviewer={isReviewer}
+              allEvaluatorsDone={allEvaluatorsDone}
+              scoresVisible={scoresVisible}
+            />
+          )}
+        </div>
 
-      {/* Sender sees why the manager returned the report for revision. */}
-      {needsRevision && report.returnReason && <RevisionNotice reason={report.returnReason} />}
+        {/* Right: progress and actions, kept in view while scrolling */}
+        <aside className="space-y-4 lg:sticky lg:top-20">
+          {!isConclusion && (
+            <StatusTimeline
+              status={report.status}
+              submittedAt={report.submittedAt}
+              assignedCount={assignedStaff.length}
+              scoredCount={scoredCount}
+              signedScanAt={report.signedScanUploadedAt ?? null}
+              isSenderView={isSenderView}
+            />
+          )}
 
-      {/* Manager controls: confirm/dismiss a staff return request, or return
-          the report to the sender directly. */}
-      {isReviewer && !isConclusion && (
-        <ManagerReturnPanel
-          reportId={report.id}
-          status={report.status}
-          returnReason={report.returnReason}
-          returnRequestedBy={report.returnRequestedBy}
-        />
-      )}
+          {/* Sender downloads the manager's scanned, physically-signed copy. */}
+          {isSenderView && signedScanDownloadUrl && (
+            <SignedScanCard url={signedScanDownloadUrl} name={report.signedScanName} />
+          )}
 
-      {/* Attachments */}
-      {reportAttachments.length > 0 && (
-        <AttachmentList
-          attachments={reportAttachments}
-          title="Хавсаргасан файл"
-          emptyText="Хавсаргасан файл байхгүй байна."
-        />
-      )}
-      <MaterialAttachmentList attachments={attachments} reportType={report.reportType.name} reportCategory={report.reportCategory} />
+          {/* Manager sees which staff this report was distributed to. */}
+          {isReviewer && !isConclusion && <AssignedStaffCard staff={assignedStaff} />}
 
-      {!isConclusion && (
-        <EvaluationSection
-          report={report}
-          criteria={criteria}
-          criterionAttachments={criterionAttachments}
-          evaluations={evaluations}
-          viewerRole={viewerRole}
-          isReviewer={isReviewer}
-          allEvaluatorsDone={allEvaluatorsDone}
-          scoresVisible={scoresVisible}
-        />
-      )}
+          {/* Manager controls: confirm/dismiss a staff return request, or return
+              the report to the sender directly. */}
+          {isReviewer && !isConclusion && (
+            <ManagerReturnPanel
+              reportId={report.id}
+              status={report.status}
+              returnReason={report.returnReason}
+              returnRequestedBy={report.returnRequestedBy}
+            />
+          )}
 
-      {/* Back + (for a returned report) Fix */}
-      <ReportActions
-        reportId={report.id}
-        isConclusion={isConclusion}
-        isReviewer={isReviewer}
-        isStaff={isStaff}
-        canFix={needsRevision}
-      />
+          <div className="space-y-2">
+            {(isReviewer || isStaff) && !isConclusion && <ReportCoverLink reportId={report.id} isStaff={isStaff} />}
+            <ReportActions
+              reportId={report.id}
+              isConclusion={isConclusion}
+              isReviewer={isReviewer}
+              isStaff={isStaff}
+              canFix={needsRevision}
+            />
+          </div>
+        </aside>
+      </div>
     </main>
   );
 }

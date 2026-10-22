@@ -1,3 +1,4 @@
+import PageHeader from '@/components/layout/PageHeader';
 import dataStore from '@/lib/db';
 import ReportTable from '@/components/reports/ReportTable';
 import { attachEffectiveSenderCompanies } from '@/lib/reports/companies';
@@ -27,11 +28,8 @@ export default async function ReviewerDashboard() {
   const completedCount = reports.filter((r) => r.status === 'completed').length;
 
   return (
-    <main className="flex-1 min-w-0 space-y-6 p-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 lg:text-3xl">Хяналтын самбар</h1>
-        <p className="mt-1.5 text-sm text-slate-500">Ирсэн тайлан, оноолт болон үнэлгээний нэгтгэл</p>
-      </div>
+    <main className="flex-1 min-w-0 space-y-6 px-6 py-7 lg:px-8">
+      <PageHeader title="Хяналтын самбар" subtitle="Ирсэн тайлан, оноолт болон үнэлгээний нэгтгэл" />
 
       <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {[

@@ -86,7 +86,7 @@ export default async function ReportScoresPage(props: Props) {
   const backHref = isReviewer ? '/reviewer/survey' : isStaff ? '/evaluator/survey' : '/sender';
 
   return (
-    <main className="flex-1 min-w-0 p-6 space-y-5">
+    <main className="flex-1 min-w-0 space-y-6 px-6 py-7 lg:px-8">
       {scoreRows.length > 0 ? (
         <div className="bg-white rounded-2xl border border-slate-200 p-6">
           <h2 className="text-base font-semibold text-slate-900 mb-5">Үнэлгээний дүн</h2>

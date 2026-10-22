@@ -35,7 +35,7 @@ const sampleLinkClass =
 
 // Outlined download button under a row's label.
 const sampleButtonClass =
-  "inline-flex items-center gap-1.5 border border-[#D9E4F0] bg-white px-2.5 py-1.5 text-xs font-semibold text-color-primary transition hover:border-color-primary hover:bg-teal-50";
+  "inline-flex items-center gap-1.5 border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-color-primary transition hover:border-color-primary hover:bg-teal-50";
 
 function DownloadIcon() {
   return (
@@ -74,8 +74,8 @@ export default function EvidenceUploadCard({
   onExistingChange,
 }: Props) {
   return (
-    <div className="rounded-2xl border border-[#E8F0FE] bg-white">
-      <div className="border-b border-[#E8F0FE] px-6 py-4">
+    <div className="rounded-2xl border border-slate-200 bg-white">
+      <div className="border-b border-slate-200 px-6 py-4">
         <h3 className="text-base font-semibold text-color-text-main">{title}</h3>
         {description && <p className="mt-1 text-sm text-color-text-muted">{description}</p>}
         {headerLink && (
@@ -86,7 +86,7 @@ export default function EvidenceUploadCard({
         )}
       </div>
 
-      <div className="divide-y divide-[#E8F0FE]">
+      <div className="divide-y divide-slate-200">
         {rows.map((row, index) => {
           const pickedFiles = filesByRow[row.id] || [];
           const existingFiles = existingByRow[row.id] || [];
@@ -123,7 +123,7 @@ export default function EvidenceUploadCard({
                 </div>
               </div>
 
-              <div className="rounded-xl border border-dashed border-[#D9E4F0] bg-[#F8FBFF] p-3">
+              <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-3">
                 <input
                   id={inputId}
                   type="file"
@@ -138,7 +138,7 @@ export default function EvidenceUploadCard({
                 />
                 <label
                   htmlFor={inputId}
-                  className="flex cursor-pointer items-center justify-center rounded-lg border border-[#D9E4F0] bg-white px-3 py-2 text-sm font-semibold text-color-primary transition hover:bg-teal-50"
+                  className="flex cursor-pointer items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-color-primary transition hover:bg-teal-50"
                 >
                   Файл сонгох
                 </label>
@@ -148,7 +148,7 @@ export default function EvidenceUploadCard({
                 ) : (
                   <div className="mt-3 space-y-2">
                     {existingFiles.map((file, fileIndex) => (
-                      <div key={`${file.url}-${fileIndex}`} className="flex items-center gap-2 rounded-lg border border-[#E8F0FE] bg-white px-3 py-2">
+                      <div key={`${file.url}-${fileIndex}`} className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2">
                         <span className="min-w-0 flex-1 truncate text-sm text-slate-700">{file.name}</span>
                         {onExistingChange && (
                           <button
@@ -167,7 +167,7 @@ export default function EvidenceUploadCard({
                       </div>
                     ))}
                     {pickedFiles.map((file, fileIndex) => (
-                      <div key={`${file.name}-${fileIndex}`} className="flex items-center gap-2 rounded-lg border border-[#E8F0FE] bg-white px-3 py-2">
+                      <div key={`${file.name}-${fileIndex}`} className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2">
                         <span className="min-w-0 flex-1 truncate text-sm text-slate-700">{file.name}</span>
                         <button
                           type="button"

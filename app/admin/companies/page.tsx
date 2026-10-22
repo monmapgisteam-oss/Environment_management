@@ -1,3 +1,4 @@
+import PageHeader from '@/components/layout/PageHeader';
 import dataStore from '@/lib/db';
 import CompaniesView, { type CompanyRow } from '@/components/admin/CompaniesView';
 import { attachEffectiveSenderCompanies, normalizeRegister } from '@/lib/reports/companies';
@@ -81,13 +82,8 @@ export default async function AdminCompaniesPage() {
   const rows = await fetchCompanyRows();
 
   return (
-    <main className="flex-1 min-w-0 space-y-6 p-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 lg:text-3xl">Компаниуд</h1>
-        <p className="mt-1.5 text-sm text-slate-500">
-          Бүх байгууллага болон тэдгээрийн бөглөсөн судалгааны мэдээлэл
-        </p>
-      </div>
+    <main className="flex-1 min-w-0 space-y-6 px-6 py-7 lg:px-8">
+      <PageHeader title="Компаниуд" subtitle="Бүх байгууллага болон тэдгээрийн бөглөсөн судалгааны мэдээлэл" />
 
       <CompaniesView companies={rows} />
     </main>

@@ -1,3 +1,4 @@
+import PageHeader from '@/components/layout/PageHeader';
 import dataStore from '@/lib/db';
 import LocationMap from '@/components/map/LocationMapClient';
 import { canAccessReport, requireUser, VIEWER_ROLE } from '@/lib/auth';
@@ -30,11 +31,8 @@ export default async function ReportLocationPage(props: Props) {
   const lng = report.location?.longitude;
 
   return (
-    <main className="flex-1 min-w-0 p-6 space-y-4">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Байршил</h1>
-        <p className="text-sm text-slate-500">{report.reportNumber} — {report.title}</p>
-      </div>
+    <main className="flex-1 min-w-0 space-y-6 px-6 py-7 lg:px-8">
+      <PageHeader title="Байршил" subtitle={<>{report.reportNumber} — {report.title}</>} />
 
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft" style={{ height: 'calc(100vh - 220px)' }}>
         {lat != null && lng != null ? (

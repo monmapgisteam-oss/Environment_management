@@ -20,12 +20,12 @@ export default function SubmitActions({
 }: SubmitActionsProps) {
   return (
     // Sticks to the bottom of the screen so the buttons stay in reach on long steps.
-    <div className="sticky bottom-0 z-20 -mx-6 -mb-6 mt-8 flex flex-wrap justify-end gap-3 rounded-b-3xl border-t border-[#E8F0FE] bg-white/95 px-6 py-4 backdrop-blur sm:-mx-8 sm:-mb-8 sm:px-8">
+    <div className="sticky bottom-0 z-20 -mx-6 -mb-6 mt-8 flex flex-wrap justify-end gap-3 rounded-b-3xl border-t border-slate-200 bg-white/95 px-6 py-4 backdrop-blur sm:-mx-8 sm:-mb-8 sm:px-8">
       {onBack && (
         <button
           type="button"
           onClick={onBack}
-          className="mr-auto h-11 px-6 rounded-xl border border-[#D9E4F0] bg-white text-color-text-main text-sm font-semibold hover:bg-slate-50 transition"
+          className="mr-auto h-11 px-6 rounded-xl border border-slate-200 bg-white text-color-text-main text-sm font-semibold hover:bg-slate-50 transition"
         >
           Өмнөх
         </button>
@@ -35,7 +35,7 @@ export default function SubmitActions({
           type="button"
           onClick={onSaveDraft}
           disabled={savingDraft}
-          className="h-11 px-6 rounded-xl border border-[#D9E4F0] bg-white text-color-text-main text-sm font-semibold hover:bg-slate-50 transition inline-flex items-center gap-2 disabled:opacity-50"
+          className="h-11 px-6 rounded-xl border border-slate-200 bg-white text-color-text-main text-sm font-semibold hover:bg-slate-50 transition inline-flex items-center gap-2 disabled:opacity-50"
         >
           {savingDraft ? (
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-color-primary border-t-transparent" />

@@ -13,7 +13,7 @@ interface ReportInfoCardProps {
   handleChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void;
 }
 
-const inputClass = 'w-full h-11 rounded-xl border border-[#D9E4F0] bg-white px-4 text-sm text-color-text-main placeholder:text-color-text-muted focus:outline-none focus:border-color-primary focus:ring-2 focus:ring-color-primary/10 transition';
+const inputClass = 'w-full h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm text-color-text-main placeholder:text-color-text-muted focus:outline-none focus:border-color-primary focus:ring-2 focus:ring-color-primary/10 transition';
 
 const labelClass = 'block text-sm font-medium text-color-text-main mb-1.5';
 
@@ -23,12 +23,12 @@ function Required() {
 
 export default function ReportInfoCard({ formData, handleChange }: ReportInfoCardProps) {
   return (
-    <div className="border border-[#E8F0FE] rounded-2xl bg-white p-6">
+    <div className="border border-slate-200 rounded-2xl bg-white p-6">
       {/* Header, with the number the server assigned once the report is saved */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <div className="w-7 h-7 rounded-lg bg-teal-50 flex items-center justify-center">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0F766E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
               <polyline points="14 2 14 8 20 8" />
               <line x1="16" y1="13" x2="8" y2="13" />
@@ -99,7 +99,7 @@ export default function ReportInfoCard({ formData, handleChange }: ReportInfoCar
             onChange={handleChange}
             placeholder="Ногоон байгууламжийн талаарх мэдээллээ бичнэ үү"
             rows={4}
-            className="w-full rounded-xl border border-[#D9E4F0] bg-white px-4 py-3 text-sm text-color-text-main placeholder:text-color-text-muted focus:outline-none focus:border-color-primary focus:ring-2 focus:ring-color-primary/10 transition resize-y"
+            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-color-text-main placeholder:text-color-text-muted focus:outline-none focus:border-color-primary focus:ring-2 focus:ring-color-primary/10 transition resize-y"
           />
         </div>
       </div>
