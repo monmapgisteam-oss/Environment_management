@@ -15,7 +15,7 @@ export default function OrgLoginCard({ title, subtitle, icon, href }: Props) {
   return (
     <Link
       href={href}
-      className="group/card relative flex flex-col rounded-[20px] border border-slate-200 bg-white px-8 py-10 text-center shadow-soft transition-all duration-300 hover:-translate-y-0.5 hover:border-teal-300 hover:shadow-[0_18px_45px_rgba(15,23,42,0.10)]"
+      className="group/card relative flex flex-col border border-slate-200 bg-white px-8 py-10 text-center shadow-soft transition-all duration-300 hover:-translate-y-0.5 hover:border-teal-300 hover:shadow-[0_18px_45px_rgba(15,23,42,0.10)]"
     >
       <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-teal-50 text-teal-600 ring-1 ring-teal-100">
         {icon}

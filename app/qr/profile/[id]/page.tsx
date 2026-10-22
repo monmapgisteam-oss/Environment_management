@@ -60,9 +60,9 @@ export default async function QrProfilePage(props: Props) {
   return (
     <main className="min-h-screen bg-slate-100 px-4 py-5 text-slate-900 sm:px-6">
       <section className="mx-auto flex min-h-[calc(100vh-2.5rem)] w-full max-w-md flex-col justify-center">
-        <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_18px_60px_rgba(15,23,42,0.16)]">
+        <div className="overflow-hidden border border-slate-200 bg-white shadow-[0_18px_60px_rgba(15,23,42,0.16)]">
           <div className="bg-[#0F766E] px-6 pb-16 pt-7 text-white">
-            <div className="inline-flex items-center gap-2 rounded-full bg-white/12 px-3 py-1.5 text-xs font-semibold">
+            <div className="inline-flex items-center gap-2 bg-white/12 px-3 py-1.5 text-xs font-semibold">
               <HiShieldCheck size={16} />
               Баталгаажсан ажилтан
             </div>

@@ -1,6 +1,5 @@
 import dataStore from '@/lib/db';
 import AssignBoard from '@/components/evaluation/AssignBoard';
-import { STAFF_EMAILS } from '@/lib/constants';
 import { attachEffectiveSenderCompanies } from '@/lib/reports/companies';
 import { fetchSurveyReports } from '@/lib/survey/reports';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
@@ -8,7 +7,7 @@ import { uniqueAssignmentsByEvaluator } from '@/lib/reports/assignments';
 
 async function fetchStaff() {
   const staff = await dataStore.user.findMany({
-    where: { role: 'evaluator', email: { in: STAFF_EMAILS } },
+    where: { role: 'evaluator' },
     select: {
       id: true,
       name: true,

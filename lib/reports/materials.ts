@@ -1,7 +1,9 @@
 import type { Attachment } from '@/lib/reports/attachments';
 
-// Supporting materials ("Тайлангийн хавсралтууд") a performance report must
-// attach, per report category, from Журмын 3 дугаар хавсралтын Б хэсэг.
+// Documents a report must attach, per report type and category. A plan uses
+// Журмын 5 дугаар хавсралтын А хэсэг (plus the attachments the mining checklist
+// in Журмын 6 дугаар хавсралт asks for); a performance report uses
+// "Тайлангийн хавсралтууд" from Журмын 3 дугаар хавсралтын Б хэсэг.
 // Uploaded files carry the item's `id` as `materialId`. Ids are shared between
 // categories where the regulation asks for the same thing.
 
@@ -133,13 +135,79 @@ export const REPORT_MATERIALS: Record<string, ReportMaterial[]> = {
   ],
 };
 
-export function materialsFor(reportCategory: string | null | undefined): ReportMaterial[] {
-  return (reportCategory && REPORT_MATERIALS[reportCategory]) || [];
+// Журмын 5 дугаар хавсралтын А хэсэг: documents needed to accept a plan.
+// Item 6 asks for the plan itself (3 printed copies and an electronic copy).
+const PLAN_COMPANY_CERTIFICATE: ReportMaterial = { id: 'plan-company-certificate', label: 'Аж ахуйн нэгжийн гэрчилгээ' };
+const PLAN_LICENSE_COPY: ReportMaterial = {
+  id: 'plan-license-copy',
+  label: 'Тусгай зөвшөөрлийн хуулбар',
+  note: 'Хуулиар тусгай зөвшөөрөл шаардлагатай үйл ажиллагааны хувьд',
+};
+const PLAN_CHECKLIST: ReportMaterial = {
+  id: 'plan-checklist',
+  label: 'Байгаль орчны менежментийн төлөвлөгөөний хяналтын хуудас',
+  note: 'аж ахуйн нэгж бөглөх',
+};
+const PLAN_NO_OPERATION_STATEMENT: ReportMaterial = {
+  id: 'plan-no-operation-statement',
+  label: 'Энэ журмын 2.6-д заасан нөхцөл байдлын улмаас өмнөх онд ашиглалт хийгээгүй, үйл ажиллагаа явуулаагүй тухай тодорхойлолт',
+  note: 'хамаарах тохиолдолд',
+};
+const PLAN_DOCUMENT: ReportMaterial = {
+  id: 'plan-document',
+  label: 'Тухайн жилийн байгаль орчны менежментийн төлөвлөгөө',
+  note: 'цахим хэлбэрээр; хэвлэмэл хэлбэрээр 3 хувь ирүүлнэ',
+};
+
+const PLAN_COMMON_BEFORE: ReportMaterial[] = [PLAN_COMPANY_CERTIFICATE, PLAN_LICENSE_COPY, PLAN_CHECKLIST, PLAN_NO_OPERATION_STATEMENT];
+
+export const PLAN_MATERIALS: Record<string, ReportMaterial[]> = {
+  'Уул уурхай, газрын тос': [
+    ...PLAN_COMMON_BEFORE,
+    {
+      id: 'plan-mining-work-plan',
+      label: 'Тухайн жилийн уулын ажлын төлөвлөгөөний баталгаажсан нүүр, байгаль орчинтой холбоотой маягтууд',
+      note: 'маягт 1.1, 2.1, 6.2, 7.1, 10 ...',
+    },
+    // Журмын 6 дугаар хавсралт, 2.1.9 and 2.1.11.
+    {
+      id: 'plan-mining-work-plan-forms',
+      label: 'Батлагдсан уулын ажлын төлөвлөгөөний 1.1, 1.5, 1.7, 1.9, 1.10, 1.11 дэх маягт',
+    },
+    {
+      id: 'plan-protected-area-reference',
+      label: 'ТХГН, гол, мөрний урсац бүрэлдэх эх, усны сан бүхий газрын хамгаалалтын бүс, ойн сан бүхий газрын хилийн заагтай давхцсан эсэхийг тодорхойлсон лавлагаа',
+    },
+    PLAN_DOCUMENT,
+  ],
+  'Дэд бүтэц, барилга, ШТС': [...PLAN_COMMON_BEFORE, PLAN_DOCUMENT],
+  'Аялал жуулчлал, үйлчилгээ': [...PLAN_COMMON_BEFORE, PLAN_DOCUMENT],
+  Үйлдвэрлэл: [...PLAN_COMMON_BEFORE, PLAN_DOCUMENT],
+};
+
+const PLAN_REPORT_TYPE = 'Жилийн төлөвлөгөө';
+
+export function materialsFor(
+  reportType: string | null | undefined,
+  reportCategory: string | null | undefined,
+): ReportMaterial[] {
+  if (!reportCategory) return [];
+  const lists = reportType === PLAN_REPORT_TYPE ? PLAN_MATERIALS : REPORT_MATERIALS;
+  return lists[reportCategory] || [];
+}
+
+// Heading for the material list of a report type.
+export function materialsTitle(reportType: string | null | undefined) {
+  return reportType === PLAN_REPORT_TYPE ? 'Бичиг баримтын бүрдэл' : 'Тайлангийн хавсралтууд';
 }
 
 // Files of each material of the report's category that has any, in list order.
-export function groupMaterialAttachments(attachments: Attachment[], reportCategory: string | null | undefined) {
-  return materialsFor(reportCategory)
+export function groupMaterialAttachments(
+  attachments: Attachment[],
+  reportType: string | null | undefined,
+  reportCategory: string | null | undefined,
+) {
+  return materialsFor(reportType, reportCategory)
     .map((material) => ({ material, files: attachments.filter((file) => file.materialId === material.id) }))
     .filter((group) => group.files.length > 0);
 }

@@ -7,7 +7,7 @@ import { HiOutlineQuestionMarkCircle, HiX } from "react-icons/hi";
 // Sidebar "Санал хүсэлт" action. Opens a small dialog where the logged-in
 // user can write a message that is delivered to the system admin(s) via the
 // notification system (POST /api/support).
-export default function SupportButton() {
+export default function SupportButton({ className }: { className: string }) {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
@@ -51,9 +51,12 @@ export default function SupportButton() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium text-slate-200 transition-colors hover:bg-white/5 hover:text-white"
+        className={className}
       >
-        <HiOutlineQuestionMarkCircle size={18} className="flex-shrink-0" />
+        <HiOutlineQuestionMarkCircle
+          size={18}
+          className="flex-shrink-0 text-slate-400 transition-colors group-hover:text-slate-600"
+        />
         <span className="truncate">Санал хүсэлт</span>
       </button>
 

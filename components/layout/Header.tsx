@@ -82,15 +82,13 @@ export default function Header({ userName, companyName, role }: Props) {
       <div className="flex items-center justify-between px-4 sm:px-6 h-16">
         {/* Left - brand (shown on mobile where the sidebar is hidden) */}
         <Link href={HOME_HREF[role]} className="flex items-center gap-2.5 md:hidden">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-              <polyline points="14 2 14 8 20 8" />
-            </svg>
-          </div>
+          <img src="/logo.svg" alt="" width={32} height={32} className="h-8 w-8 shrink-0" />
           <span className="max-w-[180px] text-[10px] font-bold leading-tight tracking-wide text-color-text-main uppercase">Байгаль орчны менежментийн төлөвлөгөөний систем</span>
         </Link>
-        <div className="hidden md:block" />
+        {/* Full system name on desktop; the sidebar shows only the short name. */}
+        <p className="hidden min-w-0 truncate pr-4 text-[15px] font-semibold text-slate-800 md:block">
+          Байгаль орчны менежментийн төлөвлөгөөний систем
+        </p>
 
         {/* Right */}
         <div className="flex items-center gap-1 sm:gap-2">

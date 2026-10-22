@@ -34,9 +34,27 @@ function decode(model: ModelName, row: Row | null): Row | null {
   return result;
 }
 
+// A dropped connection to Convex surfaces as "fetch failed". Reads are safe to
+// repeat, so they get one more try after a short pause; writes are not retried
+// because a write that reached Convex before the drop would run twice.
+const READ_RETRY_DELAY_MS = 500;
+
+function isNetworkError(error: unknown) {
+  return error instanceof TypeError && error.message === 'fetch failed';
+}
+
 function repository(model: ModelName) {
-  const read = async (op: string, args: Row = {}) =>
+  const query = (op: string, args: Row) =>
     convex().query(api.data.read, { secret: serverSecret(), model, op, args: encode(args) });
+  const read = async (op: string, args: Row = {}) => {
+    try {
+      return await query(op, args);
+    } catch (error) {
+      if (!isNetworkError(error)) throw error;
+      await new Promise((resolve) => setTimeout(resolve, READ_RETRY_DELAY_MS));
+      return query(op, args);
+    }
+  };
   const write = async (op: string, args: Row) =>
     convex().mutation(api.data.write, { secret: serverSecret(), model, op, args: encode(args) });
   return {

@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import dataStore from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
 import { serializeDocumentAttachments, serializeReportAttachments } from '@/lib/reports/attachments';
-import { resolveReportSenderCompany } from '@/lib/reports/companies';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
 import { REPORT_CATEGORIES } from '@/lib/constants';
 import { withNextReportNumber } from '@/lib/reports/reportNumber';
@@ -21,11 +20,11 @@ export async function POST(request: Request) {
     if ((data.title || '').trim() === GENERAL_EVALUATION_CONCLUSION_TITLE) {
       return NextResponse.json({ error: 'Ерөнхий үнэлгээний дүгнэлт илгээх хэсэг хаагдсан.' }, { status: 400 });
     }
-    const loginCompany = currentUser.company;
-    if (!loginCompany) {
+    // The sender's own company is the project implementer; the form does not ask for it.
+    const senderCompany = currentUser.company;
+    if (!senderCompany) {
       return NextResponse.json({ error: 'No sender company found' }, { status: 400 });
     }
-    const senderCompany = await resolveReportSenderCompany(loginCompany, data.implementerRegister);
 
     const typeValue = data.reportType?.trim() || '';
     let reportType = typeValue
@@ -57,8 +56,8 @@ export async function POST(request: Request) {
               ? serializeDocumentAttachments(data.fileUrl)
               : serializeReportAttachments(data.fileUrl),
           reportCategory: REPORT_CATEGORIES.includes(data.reportCategory) ? data.reportCategory : null,
-          implementerName: data.implementerName || null,
-          implementerRegister: data.implementerRegister?.trim() || null,
+          implementerName: senderCompany.name,
+          implementerRegister: senderCompany.registerNumber,
           approvedDate: data.approvedDate ? new Date(data.approvedDate) : null,
           hasGreenery: data.hasGreenery === 'yes' ? true : data.hasGreenery === 'no' ? false : null,
           treeCount: data.hasGreenery === 'yes' && data.treeCount !== '' && data.treeCount != null ? parseInt(data.treeCount) : null,

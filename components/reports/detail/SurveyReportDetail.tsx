@@ -51,7 +51,7 @@ export default function SurveyReportDetail({ survey }: Props) {
         <div className="rounded-2xl border border-slate-200 bg-white p-6">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-base font-semibold text-slate-900">Хавсаргасан зураг</h2>
-            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-500">
+            <span className="bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-500">
               {survey.photos.length}
             </span>
           </div>

@@ -212,7 +212,7 @@ export default async function StaffEvaluatePage(props: Props) {
           attachments={reportAttachments}
         />
       )}
-      <MaterialAttachmentList attachments={signedAttachments} reportCategory={report.reportCategory} />
+      <MaterialAttachmentList attachments={signedAttachments} reportType={report.reportType.name} reportCategory={report.reportCategory} />
 
       {/* Scoring — staff see only their own column, never other evaluators'. */}
       <EvaluationTable

@@ -113,7 +113,7 @@ export default function AssignBoard({ reports, staff }: { reports: Report[]; sta
                   </p>
                   <p className="text-xs text-slate-500 truncate">{member.position || 'Үнэлэгч'}</p>
                 </div>
-                <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
+                <span className="shrink-0 bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
                   {member.assignedCount} тайлан
                 </span>
               </Link>

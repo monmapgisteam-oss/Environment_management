@@ -19,7 +19,8 @@ export default function SubmitActions({
   onBack,
 }: SubmitActionsProps) {
   return (
-    <div className="flex justify-end gap-3 mt-10 pt-6 border-t border-[#E8F0FE]">
+    // Sticks to the bottom of the screen so the buttons stay in reach on long steps.
+    <div className="sticky bottom-0 z-20 -mx-6 -mb-6 mt-8 flex flex-wrap justify-end gap-3 rounded-b-3xl border-t border-[#E8F0FE] bg-white/95 px-6 py-4 backdrop-blur sm:-mx-8 sm:-mb-8 sm:px-8">
       {onBack && (
         <button
           type="button"

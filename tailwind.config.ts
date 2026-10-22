@@ -7,6 +7,20 @@ const config: Config = {
     "./components/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
+    // The design uses square corners: every rounded-* step is 0, so existing
+    // classes render square. rounded-full stays for real circles (dots,
+    // avatars, spinners).
+    borderRadius: {
+      none: "0",
+      sm: "0",
+      DEFAULT: "0",
+      md: "0",
+      lg: "0",
+      xl: "0",
+      "2xl": "0",
+      "3xl": "0",
+      full: "9999px",
+    },
     extend: {
       colors: {
         // Surfaces
@@ -57,11 +71,6 @@ const config: Config = {
         card: "0 1px 3px rgba(15, 23, 42, 0.06), 0 10px 30px rgba(15, 23, 42, 0.05)",
         input: "0 0 0 4px rgba(15, 118, 110, 0.10)",
         btn: "0 6px 16px rgba(15, 118, 110, 0.22)",
-      },
-      borderRadius: {
-        card: "18px",
-        section: "16px",
-        input: "12px",
       },
     },
   },

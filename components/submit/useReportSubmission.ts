@@ -24,8 +24,6 @@ export type ReportFormData = {
   reportCategory: string;
   reportNumber: string;
   title: string;
-  implementerName: string;
-  implementerRegister: string;
   approvedDate: string;
   description: string;
   hasGreenery: string;
@@ -45,8 +43,6 @@ type EditableReport = {
   reportType?: { name?: string | null } | null;
   reportCategory?: string | null;
   reportNumber?: string | null;
-  implementerName?: string | null;
-  implementerRegister?: string | null;
   approvedDate?: string | number | null;
   description?: string | null;
   hasGreenery?: boolean | null;
@@ -122,18 +118,18 @@ export function useReportSubmission() {
     reportCategory: "",
     reportNumber: "",
     title: "",
-    implementerName: "",
-    implementerRegister: "",
     approvedDate: "",
     description: "",
     hasGreenery: "",
     treeCount: "",
     spentAmount: "",
   });
-  // The regulation's scoring sheets and material lists are for performance
-  // reports only; plans and other forms attach general files only.
+  // The regulation's scoring sheets are for performance reports only. Plans and
+  // performance reports each attach the documents their "Тайлангийн төрөл"
+  // requires (lib/reports/materials.ts); the other forms attach general files only.
   const isPerformanceReport = !isGeneralEvaluation && formData.reportType === PERFORMANCE_REPORT_LABEL;
-  const materials = isPerformanceReport ? materialsFor(formData.reportCategory) : [];
+  const materials =
+    isGeneralEvaluation || isAdditional ? [] : materialsFor(formData.reportType, formData.reportCategory);
   const materialIds = new Set(materials.map((material) => material.id));
 
   useEffect(() => {
@@ -196,8 +192,6 @@ export function useReportSubmission() {
         reportCategory: r.reportCategory || "",
         reportNumber: r.reportNumber || "",
         title: r.title || "",
-        implementerName: r.implementerName || "",
-        implementerRegister: r.implementerRegister || "",
         approvedDate: r.approvedDate ? String(r.approvedDate).slice(0, 10) : "",
         description: r.description || "",
         hasGreenery: r.hasGreenery == null ? "" : r.hasGreenery ? "yes" : "no",
@@ -408,8 +402,6 @@ export function useReportSubmission() {
       reportCategory: "",
       reportNumber: "",
       title: isGeneralEvaluation ? GENERAL_EVALUATION_LABEL : "",
-      implementerName: "",
-      implementerRegister: "",
       approvedDate: "",
       description: "",
       hasGreenery: "",

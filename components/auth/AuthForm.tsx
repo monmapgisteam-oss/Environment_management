@@ -84,7 +84,7 @@ export default function AuthForm({ title, subtitle, allowedRoles, exampleEmail, 
       </div>
 
       {/* Card */}
-      <div className="relative z-10 w-full max-w-md rounded-[28px] border border-slate-200 bg-white/85 p-8 shadow-[0_24px_70px_rgba(15,23,42,0.10)] backdrop-blur-xl sm:p-10">
+      <div className="relative z-10 w-full max-w-md border border-slate-200 bg-white/85 p-8 shadow-[0_24px_70px_rgba(15,23,42,0.10)] backdrop-blur-xl sm:p-10">
         {/* Header */}
         <div className="text-center">
           <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg shadow-teal-600/25">

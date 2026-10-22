@@ -4,31 +4,31 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import {
-  HiViewGrid,
-  HiCalendar,
-  HiTrendingUp,
-  HiDocumentText,
-  HiPencilAlt,
-  HiFolder,
-  HiExclamation,
-  HiCheckCircle,
-  HiInbox,
-  HiUserGroup,
-  HiClock,
-  HiReply,
-  HiOfficeBuilding,
-  HiUser,
-  HiClipboardList,
-  HiChartBar,
-  HiMap,
-  HiBookmark,
-  HiCog,
-  HiChevronDown,
-  HiDocumentDuplicate,
-  HiSearch,
+  HiOutlineViewGrid,
+  HiOutlineCalendar,
+  HiOutlineTrendingUp,
+  HiOutlineDocumentText,
+  HiOutlinePencilAlt,
+  HiOutlineFolder,
+  HiOutlineExclamation,
+  HiOutlineCheckCircle,
+  HiOutlineInbox,
+  HiOutlineUserGroup,
+  HiOutlineClock,
+  HiOutlineReply,
+  HiOutlineOfficeBuilding,
+  HiOutlineUser,
+  HiOutlineClipboardList,
+  HiOutlineChartBar,
+  HiOutlineMap,
+  HiOutlineBookmark,
+  HiOutlineCog,
+  HiOutlineChevronDown,
+  HiOutlineDocumentDuplicate,
+  HiOutlineSearch,
+  HiOutlineQuestionMarkCircle,
 } from "react-icons/hi";
 import SupportButton from "./SupportButton";
-import { HiOutlineQuestionMarkCircle } from "react-icons/hi";
 import { findActiveHref, type NavItem } from "@/lib/nav";
 import type { ViewerRole } from "@/lib/auth/session";
 
@@ -40,31 +40,58 @@ type Props = {
 };
 
 const iconMap: Record<string, ReactNode> = {
-  "Удирдлагын хуудас": <HiViewGrid size={18} />,
-  "Хяналтын самбар": <HiViewGrid size={18} />,
-  "Жилийн төлөвлөгөө": <HiCalendar size={18} />,
-  "Биелэлтийн тайлан": <HiTrendingUp size={18} />,
-  "Ерөнхий үнэлгээний дүгнэлт": <HiDocumentText size={18} />,
-  "Нэмэлт мэдээлэл": <HiPencilAlt size={18} />,
-  "Миний тайлангууд": <HiFolder size={18} />,
-  "Засвар шаардсан тайлан": <HiExclamation size={18} />,
-  Ноорог: <HiDocumentDuplicate size={18} />,
-  "Үнэлгээний хариу": <HiCheckCircle size={18} />,
-  "Ирсэн тайлангууд": <HiInbox size={18} />,
-  "Гишүүдэд оноох": <HiUserGroup size={18} />,
-  "Үнэлгээний явц": <HiClock size={18} />,
-  "Буцаасан тайлан": <HiReply size={18} />,
-  Компаниуд: <HiOfficeBuilding size={18} />,
-  Хэрэглэгчид: <HiUser size={18} />,
-  "Бүх тайлан": <HiClipboardList size={18} />,
-  "Бүх үнэлгээ": <HiChartBar size={18} />,
-  "Газрын зураг": <HiMap size={18} />,
-  "Газарзүйн мэдээлэл": <HiMap size={18} />,
-  "Тайлан хайх": <HiSearch size={18} />,
-  "Тайлангийн төрөл": <HiBookmark size={18} />,
-  "Үнэлгээний шалгуур": <HiCog size={18} />,
-  Тохиргоо: <HiCog size={18} />,
+  "Удирдлагын хуудас": <HiOutlineViewGrid size={18} />,
+  "Хяналтын самбар": <HiOutlineViewGrid size={18} />,
+  "Жилийн төлөвлөгөө": <HiOutlineCalendar size={18} />,
+  "Биелэлтийн тайлан": <HiOutlineTrendingUp size={18} />,
+  "Ерөнхий үнэлгээний дүгнэлт": <HiOutlineDocumentText size={18} />,
+  "Нэмэлт мэдээлэл": <HiOutlinePencilAlt size={18} />,
+  "Миний тайлангууд": <HiOutlineFolder size={18} />,
+  "Засвар шаардсан тайлан": <HiOutlineExclamation size={18} />,
+  Ноорог: <HiOutlineDocumentDuplicate size={18} />,
+  "Үнэлгээний хариу": <HiOutlineCheckCircle size={18} />,
+  "Ирсэн тайлангууд": <HiOutlineInbox size={18} />,
+  "Надад оноогдсон тайлангууд": <HiOutlineInbox size={18} />,
+  "Үнэлгээ өгсөн тайлангууд": <HiOutlineCheckCircle size={18} />,
+  "Гишүүдэд оноох": <HiOutlineUserGroup size={18} />,
+  "Үнэлгээний явц": <HiOutlineClock size={18} />,
+  "Буцаасан тайлан": <HiOutlineReply size={18} />,
+  Компаниуд: <HiOutlineOfficeBuilding size={18} />,
+  Хэрэглэгчид: <HiOutlineUser size={18} />,
+  "Бүх тайлан": <HiOutlineClipboardList size={18} />,
+  "Бүх үнэлгээ": <HiOutlineChartBar size={18} />,
+  "Газрын зураг": <HiOutlineMap size={18} />,
+  "Газарзүйн мэдээлэл": <HiOutlineMap size={18} />,
+  "Тайлан хайх": <HiOutlineSearch size={18} />,
+  "Тайлангийн төрөл": <HiOutlineBookmark size={18} />,
+  "Үнэлгээний шалгуур": <HiOutlineCog size={18} />,
+  Тохиргоо: <HiOutlineCog size={18} />,
+  "Санал хүсэлт": <HiOutlineQuestionMarkCircle size={18} />,
 };
+
+const itemClass =
+  "group relative flex w-full items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] font-medium transition-colors";
+
+function itemStateClass(isActive: boolean) {
+  return isActive ? "bg-teal-50 text-teal-800" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900";
+}
+
+function ItemIcon({ label, isActive }: { label: string; isActive: boolean }) {
+  return (
+    <span
+      className={`flex-shrink-0 transition-colors ${
+        isActive ? "text-teal-600" : "text-slate-400 group-hover:text-slate-600"
+      }`}
+    >
+      {iconMap[label] ?? <HiOutlineDocumentText size={18} />}
+    </span>
+  );
+}
+
+// Bar on the left edge of the active item.
+function ActiveMarker() {
+  return <span className="absolute -left-3 top-1/2 h-5 w-1 -translate-y-1/2 bg-teal-600" />;
+}
 
 function SidebarItem({ item, activeHref }: { item: NavItem; activeHref: string | null }) {
   const children = item.children ?? [];
@@ -82,37 +109,38 @@ function SidebarItem({ item, activeHref }: { item: NavItem; activeHref: string |
     return (
       <div>
         <button
+          type="button"
           onClick={() => setExpanded(!expanded)}
-          className={`group w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-all ${
-            isActive
-              ? "bg-white/10 text-white"
-              : "text-slate-200 hover:bg-white/5 hover:text-white"
-          }`}
+          className={`${itemClass} ${isActive ? "text-teal-800" : itemStateClass(false)}`}
         >
-          <span className="flex-shrink-0">
-            {iconMap[item.label] ?? <HiDocumentText size={18} />}
-          </span>
-          <span className="flex-1 text-left truncate">{item.label}</span>
-          <HiChevronDown
+          <ItemIcon label={item.label} isActive={isActive} />
+          <span className="flex-1 truncate text-left">{item.label}</span>
+          <HiOutlineChevronDown
             size={14}
-            className={`flex-shrink-0 transition-transform duration-200 ${expanded ? "rotate-180" : ""} text-slate-400`}
+            className={`flex-shrink-0 text-slate-400 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}
           />
         </button>
         {expanded && (
-          <div className="ml-[26px] mt-1 space-y-0.5 border-l border-white/10 pl-3">
-            {children.map((child) => (
-              <Link
-                key={child.href}
-                href={child.href}
-                className={`block rounded-lg px-3 py-1.5 text-[12.5px] transition-colors ${
-                  child.href === activeHref
-                    ? "text-white font-medium bg-white/10"
-                    : "text-slate-300 hover:text-white hover:bg-white/5"
-                }`}
-              >
-                {child.label}
-              </Link>
-            ))}
+          <div className="ml-[21px] mt-0.5 space-y-0.5 border-l border-slate-200 pl-3">
+            {children.map((child) => {
+              const childActive = child.href === activeHref;
+              return (
+                <Link
+                  key={child.href}
+                  href={child.href}
+                  className={`relative block rounded-md px-3 py-1.5 text-[13px] transition-colors ${
+                    childActive
+                      ? "bg-teal-50 font-medium text-teal-800"
+                      : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+                  }`}
+                >
+                  {childActive && (
+                    <span className="absolute -left-[13px] top-1/2 h-4 w-px -translate-y-1/2 bg-teal-600" />
+                  )}
+                  {child.label}
+                </Link>
+              );
+            })}
           </div>
         )}
       </div>
@@ -120,17 +148,9 @@ function SidebarItem({ item, activeHref }: { item: NavItem; activeHref: string |
   }
 
   return (
-    <Link
-      href={item.href}
-      className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-all ${
-        isActive
-          ? "sidebar-active text-white"
-          : "text-slate-200 hover:bg-white/5 hover:text-white"
-      }`}
-    >
-      <span className="flex-shrink-0">
-        {iconMap[item.label] ?? <HiDocumentText size={18} />}
-      </span>
+    <Link href={item.href} className={`${itemClass} ${itemStateClass(isActive)}`}>
+      {isActive && <ActiveMarker />}
+      <ItemIcon label={item.label} isActive={isActive} />
       <span className="truncate">{item.label}</span>
     </Link>
   );
@@ -140,38 +160,56 @@ export default function Sidebar({ items, role }: Props) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const activeHref = findActiveHref(items, pathname, new URLSearchParams(searchParams.toString()));
+  const bottomItemClass = `${itemClass} ${itemStateClass(false)}`;
 
   return (
-    <aside
-      className="app-chrome hidden md:flex md:flex-col sticky top-0 h-screen w-[250px] shrink-0 text-white"
-      style={{ backgroundColor: "#064E3B" }}
-    >
-      {/* Logo */}
-      <div className="flex items-center px-5 h-16 border-b border-white/10">
-        <span className="text-[11px] font-bold tracking-[0.08em] text-white leading-tight uppercase">
-          Байгаль орчны менежментийн төлөвлөгөөний систем
-        </span>
-      </div>
+    <aside className="app-chrome hidden md:flex md:flex-col sticky top-0 h-screen w-64 shrink-0 border-r border-slate-200 bg-white">
+      {/* Logo only, same height as the header so their borders line up. The
+          full system name is shown in the header. */}
+      <Link
+        href={items[0]?.href ?? "/"}
+        title="Байгаль орчны менежментийн төлөвлөгөөний систем"
+        className="flex h-16 shrink-0 items-center justify-center border-b border-slate-200"
+      >
+        {/* The link has no text, so the logo carries the name for screen readers. */}
+        <img
+          src="/logo.svg"
+          alt="Байгаль орчны менежментийн төлөвлөгөөний систем"
+          width={56}
+          height={56}
+          className="h-14 w-14 shrink-0"
+        />
+      </Link>
 
       {/* Navigation */}
-      <nav className="sidebar-scroll flex-1 space-y-1 overflow-y-auto px-3 py-4">
-        {items.map((item) => (
-          <SidebarItem key={item.href} item={item} activeHref={activeHref} />
+      <nav className="sidebar-scroll flex-1 overflow-y-auto px-3 py-4">
+        {items.map((item, index) => (
+          <div key={item.href}>
+            {item.section && (
+              <p
+                className={`mb-1.5 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 ${
+                  index === 0 ? "mt-1" : "mt-5"
+                }`}
+              >
+                {item.section}
+              </p>
+            )}
+            <div className="py-0.5">
+              <SidebarItem item={item} activeHref={activeHref} />
+            </div>
+          </div>
         ))}
       </nav>
 
       {/* Bottom — feedback: admins read it, everyone else sends it */}
-      <div className="border-t border-white/10 px-3 py-4">
+      <div className="border-t border-slate-200 px-3 py-3">
         {role === "admin" ? (
-          <Link
-            href="/admin/feedback"
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium text-slate-200 transition-colors hover:bg-white/5 hover:text-white"
-          >
-            <HiOutlineQuestionMarkCircle size={18} className="flex-shrink-0" />
+          <Link href="/admin/feedback" className={bottomItemClass}>
+            <ItemIcon label="Санал хүсэлт" isActive={false} />
             <span className="truncate">Санал хүсэлт</span>
           </Link>
         ) : (
-          <SupportButton />
+          <SupportButton className={bottomItemClass} />
         )}
       </div>
     </aside>

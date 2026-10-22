@@ -25,7 +25,7 @@ export default function ReportInfoSection({ report, isConclusion, isSenderView }
       <div className="flex items-center justify-between mb-5">
         <div>
           {isSurveySource && (
-            <span className="mb-2 inline-flex rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
+            <span className="mb-2 inline-flex bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
               Survey системээс тайлан ирлээ
             </span>
           )}

@@ -220,7 +220,7 @@ export default function ReportTable({ reports, role = 'sender', showStatusFilter
                       <div className="flex flex-wrap items-center gap-1.5">
                         <span>{report.reportNumber}</span>
                         {sourceLabel(report.source) && (
-                          <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700">
+                          <span className="bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700">
                             {sourceLabel(report.source)}
                           </span>
                         )}

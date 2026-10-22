@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import dataStore from '@/lib/db';
 import { canAccessReport, getApiUser, unauthorized } from '@/lib/auth';
 import { serializeDocumentAttachments, serializeReportAttachments } from '@/lib/reports/attachments';
-import { findSenderCompanyByRegister } from '@/lib/reports/companies';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
 import { REPORT_CATEGORIES } from '@/lib/constants';
 
@@ -61,13 +60,17 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
     const status = data.status === 'draft' ? 'draft' : 'submitted';
     const hasLocation =
       (data.latitude != null && data.longitude != null) || data.province || data.district || data.khoroo;
-    const matchedCompany = await findSenderCompanyByRegister(data.implementerRegister);
+    // The sender's own company is the project implementer; the form does not ask for it.
+    const senderCompany = user.company;
+    if (!senderCompany) {
+      return NextResponse.json({ error: 'No sender company found' }, { status: 400 });
+    }
 
     const report = await dataStore.report.update({
       where: { id: params.id },
       data: {
         reportTypeId: reportType.id,
-        ...(matchedCompany ? { senderCompanyId: matchedCompany.id } : {}),
+        senderCompanyId: senderCompany.id,
         title: data.title || 'Тайлан',
         description: data.description || null,
         fileUrl:
@@ -75,8 +78,8 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
             ? serializeDocumentAttachments(data.fileUrl)
             : serializeReportAttachments(data.fileUrl),
         reportCategory: REPORT_CATEGORIES.includes(data.reportCategory) ? data.reportCategory : null,
-        implementerName: data.implementerName || null,
-        implementerRegister: data.implementerRegister?.trim() || null,
+        implementerName: senderCompany.name,
+        implementerRegister: senderCompany.registerNumber,
         approvedDate: data.approvedDate ? new Date(data.approvedDate) : null,
         hasGreenery: data.hasGreenery === 'yes' ? true : data.hasGreenery === 'no' ? false : null,
         treeCount: data.hasGreenery === 'yes' && data.treeCount !== '' && data.treeCount != null ? parseInt(data.treeCount) : null,

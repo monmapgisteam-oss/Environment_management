@@ -9,6 +9,8 @@ export type NavItem = {
   // Extra path prefixes that also mark this item active, e.g. detail pages.
   match?: string[];
   children?: NavItem[];
+  // Heading shown above this item; it starts a new group in the sidebar.
+  section?: string;
 };
 
 export type NavReportType = { name: string; slug: string };
@@ -43,12 +45,12 @@ function additionalSlug(reportTypes: NavReportType[]) {
 export function senderNav(): NavItem[] {
   return [
     { label: 'Хяналтын самбар', href: '/sender' },
-    { label: 'Жилийн төлөвлөгөө', href: '/sender/submit?type=plan' },
+    { label: 'Жилийн төлөвлөгөө', href: '/sender/submit?type=plan', section: 'Тайлан илгээх' },
     { label: 'Биелэлтийн тайлан', href: '/sender/submit?type=performance' },
     { label: 'Нэмэлт мэдээлэл', href: '/sender/submit?type=additional' },
-    { label: 'Миний тайлангууд', href: '/sender/reports', match: ['/report/'] },
-    { label: 'Газарзүйн мэдээлэл', href: '/sender/geography' },
+    { label: 'Миний тайлангууд', href: '/sender/reports', match: ['/report/'], section: 'Миний ажил' },
     { label: 'Ноорог', href: '/sender/drafts' },
+    { label: 'Газарзүйн мэдээлэл', href: '/sender/geography' },
   ];
 }
 
@@ -60,13 +62,14 @@ export function reviewerNav(reportTypes: NavReportType[]): NavItem[] {
       href: '/reviewer/reports',
       match: ['/report/'],
       children: reportTypeChildren(reportTypes, '/reviewer/reports'),
+      section: 'Тайлан',
     },
     { label: 'Ерөнхий үнэлгээний дүгнэлт', href: '/reviewer/conclusions' },
-    { label: 'Үнэлгээний явц', href: '/reviewer/evaluation-progress' },
-    { label: 'Газарзүйн мэдээлэл', href: '/reviewer/geography' },
-    { label: 'Тайлан хайх', href: '/reviewer/survey' },
     { label: 'Буцаасан тайлан', href: '/reviewer/returned' },
     { label: 'Нэмэлт мэдээлэл', href: `/reviewer/reports?type=${additionalSlug(reportTypes)}` },
+    { label: 'Үнэлгээний явц', href: '/reviewer/evaluation-progress', section: 'Хяналт' },
+    { label: 'Газарзүйн мэдээлэл', href: '/reviewer/geography' },
+    { label: 'Тайлан хайх', href: '/reviewer/survey' },
   ];
 }
 
@@ -77,21 +80,22 @@ export function staffNav(reportTypes: NavReportType[]): NavItem[] {
       href: '/evaluator',
       match: ['/evaluator/evaluate/', '/report/'],
       children: reportTypeChildren(reportTypes, '/evaluator'),
+      section: 'Тайлан',
     },
     { label: 'Ерөнхий үнэлгээний дүгнэлт', href: '/evaluator/conclusions' },
     { label: 'Үнэлгээ өгсөн тайлангууд', href: '/evaluator/evaluated' },
-    { label: 'Газарзүйн мэдээлэл', href: '/evaluator/geography' },
-    { label: 'Тайлан хайх', href: '/evaluator/survey' },
     { label: 'Нэмэлт мэдээлэл', href: `/evaluator?type=${additionalSlug(reportTypes)}` },
+    { label: 'Газарзүйн мэдээлэл', href: '/evaluator/geography', section: 'Хяналт' },
+    { label: 'Тайлан хайх', href: '/evaluator/survey' },
   ];
 }
 
 export function adminNav(): NavItem[] {
   return [
     { label: 'Удирдлагын хуудас', href: '/admin' },
-    { label: 'Компаниуд', href: '/admin/companies' },
+    { label: 'Компаниуд', href: '/admin/companies', section: 'Бүртгэл' },
     { label: 'Хэрэглэгчид', href: '/admin/users' },
-    { label: 'Газрын зураг', href: '/admin/map' },
+    { label: 'Газрын зураг', href: '/admin/map', section: 'Систем' },
     { label: 'Үнэлгээний шалгуур', href: '/admin/criteria' },
     { label: 'Тохиргоо', href: '/admin/settings' },
   ];

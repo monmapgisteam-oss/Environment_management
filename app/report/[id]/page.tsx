@@ -163,7 +163,7 @@ export default async function ReportDetailPage(props: Props) {
           emptyText="Хавсаргасан файл байхгүй байна."
         />
       )}
-      <MaterialAttachmentList attachments={attachments} reportCategory={report.reportCategory} />
+      <MaterialAttachmentList attachments={attachments} reportType={report.reportType.name} reportCategory={report.reportCategory} />
 
       {!isConclusion && (
         <EvaluationSection

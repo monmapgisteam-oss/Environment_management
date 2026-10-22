@@ -171,7 +171,7 @@ export default function CompaniesView({ companies }: { companies: CompanyRow[] }
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="text-base font-bold text-slate-900">{company.name}</h3>
-                      <span className={`inline-flex items-center whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold ${TYPE_BADGE[company.type] ?? 'badge-gray'}`}>
+                      <span className={`inline-flex items-center whitespace-nowrap px-3 py-1 text-xs font-semibold ${TYPE_BADGE[company.type] ?? 'badge-gray'}`}>
                         {TYPE_LABELS[company.type] ?? company.type}
                       </span>
                     </div>

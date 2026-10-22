@@ -166,7 +166,7 @@ export default function UsersView({ users }: { users: UserRow[] }) {
                     </td>
                     <td className="px-4 py-3.5 text-slate-600">{u.position || '—'}</td>
                     <td className="px-4 py-3.5">
-                      <span className={`inline-flex items-center whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold ${ROLE_BADGE[u.role] ?? 'badge-gray'}`}>
+                      <span className={`inline-flex items-center whitespace-nowrap px-3 py-1 text-xs font-semibold ${ROLE_BADGE[u.role] ?? 'badge-gray'}`}>
                         {ROLE_LABELS[u.role] ?? u.role}
                       </span>
                     </td>

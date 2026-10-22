@@ -82,8 +82,6 @@ export const ADMIN_ACCOUNTS: LoginAccount[] = [
 // The review organisation has exactly three evaluation staff. Other evaluator
 // accounts may exist in the database (test/seed data), but only these three are
 // shown for assignment.
-export const STAFF_EMAILS = ['staff@tailan.mn', 'staff2@tailan.mn', 'staff3@tailan.mn'];
-
 export const SENDER_ROLES = ['sender'];
 export const REVIEWER_ROLES = ['review_manager', 'evaluator'];
 export const ADMIN_ROLES = ['admin'];

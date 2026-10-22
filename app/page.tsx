@@ -67,7 +67,7 @@ export default function HomePage() {
       </div>
 
       {/* Main container */}
-      <div className="relative z-10 w-full max-w-[1100px] rounded-[28px] border border-slate-200 bg-white/85 p-8 shadow-[0_24px_70px_rgba(15,23,42,0.10)] backdrop-blur-xl sm:p-12 lg:p-16">
+      <div className="relative z-10 w-full max-w-[1100px] border border-slate-200 bg-white/85 p-8 shadow-[0_24px_70px_rgba(15,23,42,0.10)] backdrop-blur-xl sm:p-12 lg:p-16">
         {/* Top section */}
         <div className="text-center">
           <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg shadow-teal-600/25">

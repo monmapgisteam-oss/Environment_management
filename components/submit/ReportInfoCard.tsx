@@ -4,8 +4,6 @@ type ReportInfoFields = {
   reportCategory: string;
   reportNumber: string;
   title: string;
-  implementerName: string;
-  implementerRegister: string;
   approvedDate: string;
   description: string;
 };
@@ -17,27 +15,39 @@ interface ReportInfoCardProps {
 
 const inputClass = 'w-full h-11 rounded-xl border border-[#D9E4F0] bg-white px-4 text-sm text-color-text-main placeholder:text-color-text-muted focus:outline-none focus:border-color-primary focus:ring-2 focus:ring-color-primary/10 transition';
 
+const labelClass = 'block text-sm font-medium text-color-text-main mb-1.5';
+
+function Required() {
+  return <span className="text-red-500">*</span>;
+}
+
 export default function ReportInfoCard({ formData, handleChange }: ReportInfoCardProps) {
   return (
-    <div className="border border-[#E8F0FE] rounded-2xl p-6">
-      {/* Header */}
-      <div className="flex items-center gap-2.5 mb-6">
-        <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-            <polyline points="14 2 14 8 20 8" />
-            <line x1="16" y1="13" x2="8" y2="13" />
-            <line x1="16" y1="17" x2="8" y2="17" />
-          </svg>
+    <div className="border border-[#E8F0FE] rounded-2xl bg-white p-6">
+      {/* Header, with the number the server assigned once the report is saved */}
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="16" y1="13" x2="8" y2="13" />
+              <line x1="16" y1="17" x2="8" y2="17" />
+            </svg>
+          </div>
+          <h2 className="text-base font-semibold text-color-text-main">Тайлангийн мэдээлэл</h2>
         </div>
-        <h2 className="text-base font-semibold text-color-text-main">Тайлангийн мэдээлэл</h2>
+        {formData.reportNumber && (
+          <span className="rounded-lg bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+            Тайлангийн дугаар: <span className="font-semibold text-slate-800">{formData.reportNumber}</span>
+          </span>
+        )}
       </div>
 
-      {/* Row 1: Report Type (& number once assigned) */}
-      <div className="grid grid-cols-2 gap-5 mb-5">
+      <div className="grid grid-cols-1 gap-x-5 gap-y-5 md:grid-cols-2">
         <div>
-          <label className="block text-sm font-medium text-color-text-main mb-1.5">
-            Тайлангийн төрөл <span className="text-red-500">*</span>
+          <label className={labelClass}>
+            Тайлангийн төрөл <Required />
           </label>
           <select
             name="reportCategory"
@@ -52,70 +62,9 @@ export default function ReportInfoCard({ formData, handleChange }: ReportInfoCar
             ))}
           </select>
         </div>
-        {/* The server assigns the number; a saved report shows it read-only. */}
-        {formData.reportNumber && (
-          <div>
-            <label className="block text-sm font-medium text-color-text-main mb-1.5">Тайлангийн дугаар</label>
-            <div className={inputClass + ' flex items-center bg-slate-50 cursor-not-allowed'}>
-              {formData.reportNumber}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Row 2: Project Name */}
-      <div className="mb-5">
-        <label className="block text-sm font-medium text-color-text-main mb-1.5">
-          Төслийн нэр <span className="text-red-500">*</span>
-        </label>
-        <input
-          type="text"
-          name="title"
-          value={formData.title}
-          onChange={handleChange}
-          placeholder="Төслийн нэр"
-          required
-          className={inputClass}
-        />
-      </div>
-
-      {/* Row 3: Implementer name & register */}
-      <div className="grid grid-cols-2 gap-5 mb-5">
         <div>
-          <label className="block text-sm font-medium text-color-text-main mb-1.5">
-            Төсөл хэрэгжүүлэгчийн нэр <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            name="implementerName"
-            value={formData.implementerName}
-            onChange={handleChange}
-            placeholder="Төсөл хэрэгжүүлэгч байгууллага"
-            required
-            className={inputClass}
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-color-text-main mb-1.5">
-            Төсөл хэрэгжүүлэгчийн РД <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            name="implementerRegister"
-            value={formData.implementerRegister}
-            onChange={handleChange}
-            placeholder="РД-12345"
-            required
-            className={inputClass}
-          />
-        </div>
-      </div>
-
-      {/* Row 4: Approved date */}
-      <div className="grid grid-cols-2 gap-5 mb-5">
-        <div>
-          <label className="block text-sm font-medium text-color-text-main mb-1.5">
-            Тайлан батлагдсан огноо <span className="text-red-500">*</span>
+          <label className={labelClass}>
+            Тайлан батлагдсан огноо <Required />
           </label>
           <input
             type="date"
@@ -126,21 +75,33 @@ export default function ReportInfoCard({ formData, handleChange }: ReportInfoCar
             className={inputClass}
           />
         </div>
-      </div>
 
-      {/* Row 5: Greenery information */}
-      <div>
-        <label className="block text-sm font-medium text-color-text-main mb-1.5">
-          Ногоон байгууламжийн талаарх мэдээлэл
-        </label>
-        <textarea
-          name="description"
-          value={formData.description}
-          onChange={handleChange}
-          placeholder="Ногоон байгууламжийн талаарх мэдээллээ бичнэ үү"
-          rows={5}
-          className="w-full rounded-xl border border-[#D9E4F0] bg-white px-4 py-3 text-sm text-color-text-main placeholder:text-color-text-muted focus:outline-none focus:border-color-primary focus:ring-2 focus:ring-color-primary/10 transition resize-y"
-        />
+        <div className="md:col-span-2">
+          <label className={labelClass}>
+            Төслийн нэр <Required />
+          </label>
+          <input
+            type="text"
+            name="title"
+            value={formData.title}
+            onChange={handleChange}
+            placeholder="Төслийн нэр"
+            required
+            className={inputClass}
+          />
+        </div>
+
+        <div className="md:col-span-2">
+          <label className={labelClass}>Ногоон байгууламжийн талаарх мэдээлэл</label>
+          <textarea
+            name="description"
+            value={formData.description}
+            onChange={handleChange}
+            placeholder="Ногоон байгууламжийн талаарх мэдээллээ бичнэ үү"
+            rows={4}
+            className="w-full rounded-xl border border-[#D9E4F0] bg-white px-4 py-3 text-sm text-color-text-main placeholder:text-color-text-muted focus:outline-none focus:border-color-primary focus:ring-2 focus:ring-color-primary/10 transition resize-y"
+          />
+        </div>
       </div>
     </div>
   );

@@ -413,7 +413,7 @@ export default function CompanyMap({ points, detailRole = 'reviewer' }: CompanyM
                     <div key={row.province} className="rounded-lg border border-slate-100 bg-white px-2.5 py-2">
                       <div className="flex items-center justify-between gap-3">
                         <span className="min-w-0 truncate text-[11.5px] font-semibold text-slate-700">{row.province}</span>
-                        <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">
+                        <span className="shrink-0 bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">
                           {row.count}
                         </span>
                       </div>
@@ -440,7 +440,7 @@ export default function CompanyMap({ points, detailRole = 'reviewer' }: CompanyM
                     >
                       <div className="flex items-center justify-between gap-3">
                         <span className="min-w-0 truncate text-[11.5px] font-semibold text-slate-700">{row.district}</span>
-                        <span className="shrink-0 rounded-full bg-teal-100 px-2 py-0.5 text-[10px] font-bold text-teal-700">
+                        <span className="shrink-0 bg-teal-100 px-2 py-0.5 text-[10px] font-bold text-teal-700">
                           {row.count}
                         </span>
                       </div>

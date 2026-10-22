@@ -32,7 +32,7 @@ export default function AssignedStaffCard({ staff }: Props) {
                 <p className="text-sm font-semibold text-slate-800 truncate">{member.name}-т оноогдсон</p>
                 <p className="text-xs text-slate-500 truncate">{member.position || 'Үнэлэгч'}</p>
               </div>
-              <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${member.submitted ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
+              <span className={`shrink-0 px-2.5 py-1 text-xs font-medium ${member.submitted ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
                 {member.submitted ? 'Үнэлсэн' : 'Хүлээгдэж буй'}
               </span>
             </div>

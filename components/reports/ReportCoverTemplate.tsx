@@ -81,7 +81,7 @@ function SignatureRow({ label, person, verifiedAt }: { label: string; person: Pe
           className="h-[92px] w-[92px] rounded-lg border border-slate-200 bg-white p-1.5"
         />
         {verifiedAt && (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700 ring-1 ring-emerald-200">
+          <span className="inline-flex items-center gap-1.5 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700 ring-1 ring-emerald-200">
             <HiCheckCircle size={16} />
             Гарын үсгээр баталгаажсан
           </span>

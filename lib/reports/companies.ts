@@ -27,13 +27,6 @@ export async function findSenderCompanyByRegister(register: unknown): Promise<Co
   return companies.find((company) => normalizeRegister(company.registerNumber) === normalized) || null;
 }
 
-export async function resolveReportSenderCompany(
-  fallbackCompany: CompanyIdentity,
-  implementerRegister: unknown,
-): Promise<CompanyIdentity> {
-  return (await findSenderCompanyByRegister(implementerRegister)) || fallbackCompany;
-}
-
 export async function attachEffectiveSenderCompanies<T extends ReportWithCompany>(
   reports: T[],
 ): Promise<T[]> {
