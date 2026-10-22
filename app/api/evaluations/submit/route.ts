@@ -179,7 +179,8 @@ export async function POST(request: Request) {
     const signedFields = {
       totalScore,
       comment: comment || null,
-      signature: numericSignature,
+      // The PIN is verified against the user's hash above and never stored.
+      signature: null,
       status: 'SIGNED',
       signatureStatus: 'VERIFIED',
       signedAt,

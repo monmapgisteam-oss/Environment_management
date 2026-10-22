@@ -46,11 +46,18 @@ export function unauthorized() {
 
 // Senders may only open reports of their own company. The company is the one
 // stored on the report or the one its implementer register resolves to.
-// Review staff and admins may open every report.
+// Evaluators open only reports assigned to them; managers and admins open all.
 export async function canAccessReport(
   user: CurrentUser,
-  report: { senderCompanyId: string; implementerRegister?: string | null },
+  report: { id: string; senderCompanyId: string; implementerRegister?: string | null },
 ) {
+  if (user.role === 'evaluator') {
+    const assignment = await dataStore.reportAssignment.findFirst({
+      where: { reportId: report.id, evaluatorUserId: user.id },
+      select: { id: true },
+    });
+    return !!assignment;
+  }
   if (user.role !== 'sender') return true;
   if (!user.companyId) return false;
   if (report.senderCompanyId === user.companyId) return true;

@@ -12,6 +12,9 @@
     "convex:deploy": "convex deploy",
     "migrate:arcgis": "node scripts/migrate-arcgis-to-convex.mjs",
     "seed:criteria": "node --env-file=.env.local scripts/seed-category-criteria.mjs",
+    "fix:signatures": "node --env-file=.env.local scripts/scrub-evaluation-signatures.mjs",
+    "fix:locations": "node --env-file=.env.local --require ./scripts/register-typescript.cjs scripts/backfill-locations.cjs",
+    "seed:report-types": "node --env-file=.env.local scripts/seed-report-types.mjs",
     "seed:evaluators": "node --env-file=.env.local scripts/seed-evaluators.mjs"
   },
   "dependencies": {
@@ -21,7 +24,7 @@
     "jsonwebtoken": "^9.0.2",
     "leaflet": "^1.9.4",
     "leaflet.markercluster": "^1.5.3",
-    "next": "16.2.9",
+    "next": "16.4.2",
     "react": "19.2.7",
     "react-dom": "19.2.7",
     "react-icons": "^5.6.0"

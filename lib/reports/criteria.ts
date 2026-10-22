@@ -17,3 +17,32 @@ export async function fetchCriteriaFor(reportCategory: string | null | undefined
     orderBy: { sortOrder: 'asc' },
   });
 }
+
+// Validates admin edits of a criterion. With `partial`, missing fields are
+// skipped; otherwise name, category and maxScore are all required.
+export function parseCriterionFields(
+  data: Record<string, unknown>,
+  { partial = false } = {},
+): { fields: { name?: string; category?: string; maxScore?: number } } | { error: string } {
+  const fields: { name?: string; category?: string; maxScore?: number } = {};
+  if (data.name !== undefined || !partial) {
+    const name = typeof data.name === 'string' ? data.name.trim() : '';
+    if (!name) return { error: 'Шалгуурын нэр оруулна уу' };
+    if (name.length > 500) return { error: 'Шалгуурын нэр хэт урт байна' };
+    fields.name = name;
+  }
+  if (data.category !== undefined || !partial) {
+    if (typeof data.category !== 'string' || !REPORT_CATEGORIES.includes(data.category)) {
+      return { error: 'Тайлангийн төрөл буруу байна' };
+    }
+    fields.category = data.category;
+  }
+  if (data.maxScore !== undefined || !partial) {
+    const maxScore = Number(data.maxScore);
+    if (!Number.isInteger(maxScore) || maxScore < 1 || maxScore > 100) {
+      return { error: 'Авбал зохих оноо 1-100 хооронд бүхэл тоо байна' };
+    }
+    fields.maxScore = maxScore;
+  }
+  return { fields };
+}

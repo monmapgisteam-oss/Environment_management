@@ -36,6 +36,10 @@ Use Node.js 20.12 or newer. Install with `npm install`, then follow [SETUP.md](S
 npx convex dev --once       # link the deployment and push functions and schema
 npm run migrate:arcgis      # one time: copy ArcGIS data into an empty deployment
 npm run seed:criteria       # once per deployment: scoring sheets for each report category
+npm run seed:report-types   # core report types; folds Survey123-made types into them
+npm run fix:locations       # fills missing province/district of saved report locations from their coordinates
+npm run fix:signatures      # once after upgrading: clears signature PINs older versions stored in plaintext
+python3 -I scripts/split-sample-tables.py public/samples/bomt-zagvaruud.pdf   # regenerates public/samples/<category>/*.pdf (needs PyMuPDF) after replacing the regulation PDF
 SEED_PASSWORD=... npm run seed:evaluators   # 10 evaluator accounts staff1..staff10@tailan.mn
 npm run dev
 ```

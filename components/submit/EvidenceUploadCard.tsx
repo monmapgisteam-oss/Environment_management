@@ -6,11 +6,16 @@ export type EvidenceRow = {
   id: string;
   label: string;
   detail?: string;
+  // Approved templates from the regulation for this row; `download` names the
+  // saved file, otherwise the link opens in a new tab.
+  samples?: { href: string; label: string; download?: string }[];
 };
 
 type Props = {
   title: string;
   description?: string;
+  // Link shown under the title, e.g. the scoring sheet of the category.
+  headerLink?: { href: string; label: string };
   // Keeps file input ids unique when several cards are on one page.
   idPrefix: string;
   rows: EvidenceRow[];
@@ -25,6 +30,34 @@ const accept =
 
 const allowedPattern = /\.(jpe?g|png|webp|gif|bmp|heic|heif|pdf|docx?|odt)$/i;
 
+const sampleLinkClass =
+  "mt-1.5 inline-flex items-center gap-1.5 text-xs font-semibold text-color-primary hover:underline";
+
+// Outlined download button under a row's label.
+const sampleButtonClass =
+  "inline-flex items-center gap-1.5 border border-[#D9E4F0] bg-white px-2.5 py-1.5 text-xs font-semibold text-color-primary transition hover:border-color-primary hover:bg-teal-50";
+
+function DownloadIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="7 10 12 15 17 10" />
+      <line x1="12" y1="15" x2="12" y2="3" />
+    </svg>
+  );
+}
+
+function SampleIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
+      <line x1="16" y1="13" x2="8" y2="13" />
+      <line x1="16" y1="17" x2="8" y2="17" />
+    </svg>
+  );
+}
+
 function validFiles(files: File[]) {
   return files.filter((file) => file.type.startsWith("image/") || allowedPattern.test(file.name));
 }
@@ -32,6 +65,7 @@ function validFiles(files: File[]) {
 export default function EvidenceUploadCard({
   title,
   description,
+  headerLink,
   idPrefix,
   rows,
   filesByRow,
@@ -44,6 +78,12 @@ export default function EvidenceUploadCard({
       <div className="border-b border-[#E8F0FE] px-6 py-4">
         <h3 className="text-base font-semibold text-color-text-main">{title}</h3>
         {description && <p className="mt-1 text-sm text-color-text-muted">{description}</p>}
+        {headerLink && (
+          <a href={headerLink.href} target="_blank" rel="noopener noreferrer" className={sampleLinkClass}>
+            <SampleIcon />
+            {headerLink.label}
+          </a>
+        )}
       </div>
 
       <div className="divide-y divide-[#E8F0FE]">
@@ -62,6 +102,23 @@ export default function EvidenceUploadCard({
                   <div>
                     <p className="text-sm font-semibold leading-6 text-slate-900">{row.label}</p>
                     {row.detail && <p className="mt-1 text-xs font-medium text-slate-500">{row.detail}</p>}
+                    {row.samples && row.samples.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {row.samples.map((sample) => (
+                          <a
+                            key={sample.href}
+                            href={sample.href}
+                            download={sample.download}
+                            target={sample.download ? undefined : "_blank"}
+                            rel="noopener noreferrer"
+                            className={sampleButtonClass}
+                          >
+                            <DownloadIcon />
+                            {sample.label}
+                          </a>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

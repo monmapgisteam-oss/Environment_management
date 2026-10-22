@@ -185,6 +185,26 @@ async function reverseGeocodeLocation(lat: number, lng: number): Promise<Adminis
   }
 }
 
+// Fills in the province and district of a point when the sender's form did not
+// supply them (the survey record or the map click had no usable address). Saved
+// names win; the geocoders only fill the blanks.
+export async function resolveAdministrativeLocation(
+  lat: number | null | undefined,
+  lng: number | null | undefined,
+  given: { province?: string | null; district?: string | null; khoroo?: string | null } = {},
+): Promise<AdministrativeLocation> {
+  const province = canonicalName(cleanText(given.province), PROVINCES, PROVINCE_OVERRIDES);
+  const district = canonicalName(
+    cleanText(given.district),
+    province ? DISTRICTS[province] || [] : Object.values(DISTRICTS).flat(),
+    DISTRICT_OVERRIDES,
+  );
+  const khoroo = cleanText(given.khoroo);
+  if ((province && district) || lat == null || lng == null) return { province, district, khoroo };
+  const reversed = await reverseGeocodeLocation(lat, lng);
+  return { province: province || reversed.province, district: district || reversed.district, khoroo };
+}
+
 export async function resolveReportPointLocations<T extends LocationPoint>(points: T[]): Promise<T[]> {
   const cache = new Map<string, AdministrativeLocation>();
 

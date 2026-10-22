@@ -35,6 +35,12 @@ function reportTypeChildren(reportTypes: NavReportType[], basePath: string): Nav
   for (const core of CORE_REPORT_TYPES) {
     if (!types.some((rt) => rt.slug === core.slug || rt.name === core.name)) types.push(core);
   }
+  // Core types first, in their own order (plan, then performance).
+  const rank = (rt: NavReportType) => {
+    const index = CORE_REPORT_TYPES.findIndex((core) => core.slug === rt.slug || core.name === rt.name);
+    return index === -1 ? CORE_REPORT_TYPES.length : index;
+  };
+  types.sort((a, b) => rank(a) - rank(b));
   return types.map((rt) => ({ label: rt.name, href: `${basePath}?type=${rt.slug}` }));
 }
 

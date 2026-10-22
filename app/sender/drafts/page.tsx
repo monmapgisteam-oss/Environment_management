@@ -1,10 +1,12 @@
 import dataStore from '@/lib/db';
 import ReportTable from '@/components/reports/ReportTable';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
+import { requireUser } from '@/lib/auth';
 
-async function fetchDraftReports() {
+// Drafts are private to the company that is writing them.
+async function fetchDraftReports(companyId: string) {
   return dataStore.report.findMany({
-    where: { status: 'draft', title: { not: GENERAL_EVALUATION_CONCLUSION_TITLE } },
+    where: { status: 'draft', senderCompanyId: companyId, title: { not: GENERAL_EVALUATION_CONCLUSION_TITLE } },
     include: {
       reportType: true,
       senderCompany: true,
@@ -15,7 +17,8 @@ async function fetchDraftReports() {
 }
 
 export default async function DraftsPage() {
-  const reports = await fetchDraftReports();
+  const user = await requireUser('sender');
+  const reports = user.companyId ? await fetchDraftReports(user.companyId) : [];
 
   return (
     <main className="flex-1 min-w-0 space-y-6 p-6">

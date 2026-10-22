@@ -14,6 +14,7 @@ import SubmitActions from "@/components/submit/SubmitActions";
 import SubmitStepper from "@/components/submit/SubmitStepper";
 import { useReportSubmission } from "@/components/submit/useReportSubmission";
 import { materialsTitle } from "@/lib/reports/materials";
+import { sampleForCriterion, samplesForMaterial, scoringSheetSample } from "@/lib/reports/samples";
 
 // `register` is the sender company's РД. The server stores that company as the
 // project implementer, so the form does not ask for it.
@@ -48,6 +49,7 @@ export default function SubmitReportForm({ register }: { register: string }) {
         id: material.id,
         label: material.label,
         detail: material.note,
+        samples: samplesForMaterial(form.formData.reportType, form.formData.reportCategory, material.id),
       }))}
       filesByRow={form.materialFiles}
       existingByRow={form.existingMaterialAttachments}
@@ -88,12 +90,16 @@ export default function SubmitReportForm({ register }: { register: string }) {
                 {form.criteria.length > 0 && (
                   <EvidenceUploadCard
                     title="Үнэлгээний шалгуурын нотлох файл"
-                    description="Шалгуур бүрийн баруун талд зураг, PDF эсвэл Word файл хавсаргана уу."
+                    description="Шалгуур бүрийн баруун талд зураг, PDF эсвэл Word файл хавсаргана уу. Журмын батлагдсан загварыг шалгуур бүрийн доор үзнэ үү."
+                    headerLink={scoringSheetSample(form.formData.reportCategory) ?? undefined}
                     idPrefix="criterion"
                     rows={form.criteria.map((criterion) => ({
                       id: criterion.id,
                       label: criterion.name,
                       detail: `Авбал зохих оноо: ${criterion.maxScore}`,
+                      samples: [sampleForCriterion(form.formData.reportCategory, criterion.name)].filter(
+                        (sample): sample is NonNullable<typeof sample> => sample !== null,
+                      ),
                     }))}
                     filesByRow={form.criterionFiles}
                     existingByRow={form.existingCriterionAttachments}

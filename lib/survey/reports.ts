@@ -2,6 +2,7 @@ import dataStore from '@/lib/db';
 import { fetchSurveyPhotoMap, type SurveyPhoto } from '@/lib/survey/photos';
 import { findSenderCompanyByRegister, normalizeRegister } from '@/lib/reports/companies';
 import { normalizeSurveyReportType } from '@/lib/survey/reportType';
+import { resolveAdministrativeLocation } from '@/lib/map/locationResolver';
 
 import { SURVEY_LAYER_ID, querySurvey } from '@/lib/db/survey';
 
@@ -197,16 +198,18 @@ async function resolveSurveyReportType(reportTypeName: string | null) {
   }
 
   const name = reportTypeName || '';
-  const exact = types.find((type) => type.name === name);
-  if (exact) return exact;
-  if (name.includes('Жилийн')) {
+  // Survey123 names the types "Төлөвлөгөө" and "Тайлан" (normalizeSurveyReportType);
+  // they are the app's annual plan and performance report.
+  if (name === 'Төлөвлөгөө' || name.includes('Жилийн')) {
     const plan = types.find((type) => type.slug === 'type-1' || type.name.includes('Жилийн'));
     if (plan) return plan;
   }
-  if (name.includes('Биелэлт')) {
+  if (name === 'Тайлан' || name.includes('Биелэлт')) {
     const performance = types.find((type) => type.slug === 'type-2' || type.name.includes('Биелэлт'));
     if (performance) return performance;
   }
+  const exact = types.find((type) => type.name === name);
+  if (exact) return exact;
   return types[0];
 }
 
@@ -238,9 +241,10 @@ export async function materializeSurveyReportByObjectId(objectId: number) {
     throw new Error('Survey123 тайлан олдсонгүй.');
   }
 
-  const [reportType, senderCompany] = await Promise.all([
+  const [reportType, senderCompany, place] = await Promise.all([
     resolveSurveyReportType(survey.reportType.name),
     resolveSurveyCompany(survey),
+    resolveAdministrativeLocation(survey.lat, survey.lng, survey),
   ]);
   const submittedAt =
     survey.submittedAt ? new Date(survey.submittedAt) : survey.projectDate ? new Date(survey.projectDate) : new Date();
@@ -265,9 +269,9 @@ export async function materializeSurveyReportByObjectId(objectId: number) {
         ? {
             location: {
               create: {
-                province: survey.province || 'Тодорхойгүй',
-                district: survey.district || 'Тодорхойгүй',
-                khoroo: survey.khoroo || 'Тодорхойгүй',
+                province: place.province || 'Тодорхойгүй',
+                district: place.district || 'Тодорхойгүй',
+                khoroo: place.khoroo || 'Тодорхойгүй',
                 latitude: survey.lat,
                 longitude: survey.lng,
               },

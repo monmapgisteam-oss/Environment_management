@@ -5,6 +5,7 @@ import { serializeDocumentAttachments, serializeReportAttachments } from '@/lib/
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
 import { REPORT_CATEGORIES } from '@/lib/constants';
 import { withNextReportNumber } from '@/lib/reports/reportNumber';
+import { resolveAdministrativeLocation } from '@/lib/map/locationResolver';
 
 export async function POST(request: Request) {
   try {
@@ -41,6 +42,10 @@ export async function POST(request: Request) {
     const reportTypeId = reportType.id;
 
     const status = data.status === 'draft' ? 'draft' : 'submitted';
+    const latitude = data.latitude != null ? parseFloat(String(data.latitude)) : null;
+    const longitude = data.longitude != null ? parseFloat(String(data.longitude)) : null;
+    const hasLocation = (latitude != null && longitude != null) || data.province || data.district || data.khoroo;
+    const place = hasLocation ? await resolveAdministrativeLocation(latitude, longitude, data) : {};
 
     // The number is always assigned here, never taken from the form.
     const report = await withNextReportNumber((reportNumber) =>
@@ -65,15 +70,15 @@ export async function POST(request: Request) {
           status,
           year: new Date().getFullYear(),
           submittedAt: status === 'draft' ? null : new Date(),
-          ...((data.latitude != null && data.longitude != null) || data.province || data.district || data.khoroo ? {
+          ...(hasLocation ? {
             location: {
               create: {
-                province: data.province || 'Тодорхойгүй',
-                district: data.district || 'Тодорхойгүй',
-                khoroo: data.khoroo || 'Тодорхойгүй',
+                province: place.province || 'Тодорхойгүй',
+                district: place.district || 'Тодорхойгүй',
+                khoroo: place.khoroo || 'Тодорхойгүй',
                 addressDetail: data.addressDetail || null,
-                latitude: data.latitude != null ? parseFloat(String(data.latitude)) : null,
-                longitude: data.longitude != null ? parseFloat(String(data.longitude)) : null,
+                latitude,
+                longitude,
               },
             },
           } : {}),

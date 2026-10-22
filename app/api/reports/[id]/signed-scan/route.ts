@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dataStore from '@/lib/db';
 import { getApiUser, unauthorized } from '@/lib/auth';
+import { isUploadReference } from '@/lib/db/storage';
 
 // Manager uploads the scanned, physically-signed score sheet (after printing
 // the evaluation table and getting every evaluator's signature on paper) and
@@ -10,7 +11,8 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
   const params = await props.params;
   try {
     const { url, name } = await request.json();
-    if (!url) {
+    // Only a file uploaded through the app, never an outside address.
+    if (!isUploadReference(url)) {
       return NextResponse.json({ error: 'url required' }, { status: 400 });
     }
 
@@ -18,7 +20,7 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
       where: { id: params.id },
       data: {
         signedScanUrl: url,
-        signedScanName: name || null,
+        signedScanName: typeof name === 'string' ? name.slice(0, 255) : null,
         signedScanUploadedAt: new Date(),
       },
       include: { senderCompany: { include: { users: { select: { id: true } } } } },

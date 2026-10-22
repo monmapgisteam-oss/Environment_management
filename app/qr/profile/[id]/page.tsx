@@ -12,34 +12,26 @@ const ROLE_LABEL: Record<string, string> = {
   evaluator: 'Үнэлгээний ажилтан',
 };
 
-const SIGNATURE_BY_EMAIL: Record<string, string> = {
-  'manager@tailan.mn': '1234',
-  'staff@tailan.mn': '1111',
-  'staff2@tailan.mn': '2222',
-  'staff3@tailan.mn': '3333',
-};
-
+// Public card: name, role, workplace and phone. The signature PIN is a secret
+// and is never read here; only whether one is registered.
 async function fetchQrProfile(id: string) {
-  return dataStore.user.findFirst({
+  const profile = await dataStore.user.findFirst({
     where: {
       id,
       role: { in: ['review_manager', 'evaluator'] },
     },
     select: {
       name: true,
-      email: true,
+      role: true,
       phone: true,
       position: true,
-      role: true,
+      signaturePinHash: true,
       company: { select: { name: true } },
-      evaluatorAssignments: {
-        where: { evaluation: { signature: { not: null } } },
-        select: { evaluation: { select: { signature: true, signedAt: true, submittedAt: true } } },
-        orderBy: { submittedAt: 'desc' },
-        take: 1,
-      },
     },
   });
+  if (!profile) return null;
+  const { signaturePinHash, ...publicProfile } = profile;
+  return { ...publicProfile, signatureRegistered: !!signaturePinHash };
 }
 
 export default async function QrProfilePage(props: Props) {
@@ -52,10 +44,6 @@ export default async function QrProfilePage(props: Props) {
   const position = profile.position || ROLE_LABEL[profile.role] || 'Ажилтан';
   const phone = profile.phone || '-';
   const initial = profile.name.trim().charAt(0) || 'A';
-  const signature =
-    SIGNATURE_BY_EMAIL[profile.email] ||
-    profile.evaluatorAssignments[0]?.evaluation?.signature ||
-    null;
 
   return (
     <main className="min-h-screen bg-slate-100 px-4 py-5 text-slate-900 sm:px-6">
@@ -109,7 +97,7 @@ export default async function QrProfilePage(props: Props) {
                 </div>
               </div>
 
-              <QrSignatureReveal signature={signature} />
+              <QrSignatureReveal registered={profile.signatureRegistered} />
             </div>
           </div>
         </div>

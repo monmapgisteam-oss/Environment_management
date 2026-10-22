@@ -32,10 +32,11 @@ async function fetchAllReports(typeSlug?: string) {
   return attachEffectiveSenderCompanies(reports);
 }
 
+// Survey123 report type name (normalizeSurveyReportType) for an app type.
 function surveyReportTypeName(reportType: Pick<ReportType, 'name'> | undefined) {
   const name = reportType?.name || '';
-  if (name.includes('Жилийн')) return 'Жилийн тайлан';
-  if (name.includes('Биелэлт')) return 'Биелэлтийн тайлан';
+  if (name.includes('Жилийн')) return 'Төлөвлөгөө';
+  if (name.includes('Биелэлт')) return 'Тайлан';
   return null;
 }
 

@@ -1,7 +1,9 @@
 import type { Attachment } from '@/lib/reports/attachments';
 import { downloadUrl, isImageAttachment } from '@/lib/reports/attachments';
+import AttachmentRow from '@/components/reports/AttachmentRow';
 
 // Shows sender-uploaded report attachments. Reused on report detail and evaluation pages.
+// Photos get a thumbnail grid; documents are listed as compact rows.
 export default function AttachmentList({
   attachments,
   title = 'Хавсаргасан файл',
@@ -11,30 +13,32 @@ export default function AttachmentList({
   title?: string;
   emptyText?: string;
 }) {
+  const images = attachments.filter(isImageAttachment);
+  const documents = attachments.filter((file) => !isImageAttachment(file));
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-6">
-      <h2 className="text-base font-semibold text-slate-900 mb-4">{title}</h2>
-      {attachments.length === 0 ? (
-        <p className="text-sm text-slate-500">{emptyText}</p>
-      ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {attachments.map((file, index) => (
+      <div className="mb-4 flex items-baseline justify-between gap-3">
+        <h2 className="text-base font-semibold text-slate-900">{title}</h2>
+        {attachments.length > 0 && <span className="text-xs text-slate-500">{attachments.length} файл</span>}
+      </div>
+      {attachments.length === 0 && <p className="text-sm text-slate-500">{emptyText}</p>}
+      {documents.length > 0 && (
+        <ul className="divide-y divide-slate-100 border border-slate-200">
+          {documents.map((file, index) => (
+            <AttachmentRow key={`${file.url}-${index}`} file={file} />
+          ))}
+        </ul>
+      )}
+      {images.length > 0 && (
+        <div className={`grid gap-3 sm:grid-cols-2 lg:grid-cols-3 ${documents.length ? 'mt-4' : ''}`}>
+          {images.map((file, index) => (
             <div
               key={index}
               className="overflow-hidden rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition"
             >
-              {isImageAttachment(file) ? (
-                <a href={file.url} target="_blank" rel="noopener noreferrer" className="block bg-slate-50">
-                  <img src={file.url} alt={file.name} className="h-40 w-full object-cover" loading="lazy" />
-                </a>
-              ) : (
-                <div className="flex h-40 items-center justify-center bg-slate-50 text-slate-400">
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                    <polyline points="14 2 14 8 20 8" />
-                  </svg>
-                </div>
-              )}
+              <a href={file.url} target="_blank" rel="noopener noreferrer" className="block bg-slate-50">
+                <img src={file.url} alt={file.name} className="h-40 w-full object-cover" loading="lazy" />
+              </a>
               <div className="flex items-center gap-2 p-3">
                 <span className="text-sm font-medium text-slate-800 flex-1 min-w-0 truncate">{file.name}</span>
                 <a

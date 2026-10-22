@@ -2,11 +2,27 @@ import { NextResponse } from 'next/server';
 import dataStore from '@/lib/db';
 import { createToken, isRole, ROLE_HOME, SESSION_COOKIE, SESSION_MAX_AGE_SECONDS } from '@/lib/auth/session';
 import { verifyPassword } from '@/lib/auth/password';
+import { clientIp, rateLimit } from '@/lib/auth/rateLimit';
+
+// Brute-force guard: a handful of attempts per account and per address.
+const ATTEMPT_WINDOW_MS = 15 * 60 * 1000;
+const ATTEMPTS_PER_EMAIL = 10;
+const ATTEMPTS_PER_ADDRESS = 30;
 
 export async function POST(request: Request) {
-  const { email, password, allowedRoles } = await request.json();
+  const body = await request.json().catch(() => null);
+  const { email, password, allowedRoles } = body ?? {};
   if (typeof email !== 'string' || !email.trim() || typeof password !== 'string') {
     return NextResponse.json({ error: 'Email and password are required.' }, { status: 400 });
+  }
+  const byAddress = rateLimit(`login:ip:${clientIp(request)}`, ATTEMPTS_PER_ADDRESS, ATTEMPT_WINDOW_MS);
+  const byEmail = rateLimit(`login:email:${email.trim().toLowerCase()}`, ATTEMPTS_PER_EMAIL, ATTEMPT_WINDOW_MS);
+  if (!byAddress.ok || !byEmail.ok) {
+    const retryAfter = Math.max(byAddress.retryAfterSeconds, byEmail.retryAfterSeconds);
+    return NextResponse.json(
+      { error: 'Хэт олон оролдлого. Түр хүлээгээд дахин оролдоно уу.' },
+      { status: 429, headers: { 'Retry-After': String(retryAfter) } },
+    );
   }
   let user;
   try {
@@ -46,6 +62,8 @@ export async function POST(request: Request) {
   response.cookies.set(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: 'lax',
+    // Only over HTTPS outside local development.
+    secure: process.env.NODE_ENV === 'production',
     path: '/',
     maxAge: SESSION_MAX_AGE_SECONDS,
   });

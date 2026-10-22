@@ -21,6 +21,17 @@ test('report type submenu leaves out the additional type and keeps the core type
   );
 });
 
+test('report type submenu lists the plan before the performance report', () => {
+  const received = reviewerNav([
+    { name: 'Биелэлтийн тайлан', slug: 'type-2' },
+    { name: 'Жилийн төлөвлөгөө', slug: 'type-1' },
+  ])[1];
+  assert.deepEqual(
+    received.children.map((child) => child.label),
+    ['Жилийн төлөвлөгөө', 'Биелэлтийн тайлан'],
+  );
+});
+
 test('the item with the most matching query values wins', () => {
   const nav = reviewerNav(reportTypes);
   assert.equal(active(nav, '/reviewer/reports'), '/reviewer/reports');

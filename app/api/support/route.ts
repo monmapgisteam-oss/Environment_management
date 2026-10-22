@@ -5,6 +5,8 @@ import { getCurrentUser } from '@/lib/auth';
 // A logged-in user sends feedback ("Санал хүсэлт") to the system admin(s). The
 // message is delivered through the existing notification system, so each admin
 // sees it in their notification bell and on /admin/feedback.
+const MAX_MESSAGE_LENGTH = 2000;
+
 export async function POST(request: NextRequest) {
   try {
     const user = await getCurrentUser();
@@ -13,9 +15,12 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json().catch(() => ({}));
-    const message: string = (body.message || '').trim();
+    const message = typeof body.message === 'string' ? body.message.trim() : '';
     if (!message) {
       return NextResponse.json({ error: 'Зурвасаа бичнэ үү.' }, { status: 400 });
+    }
+    if (message.length > MAX_MESSAGE_LENGTH) {
+      return NextResponse.json({ error: `Зурвас ${MAX_MESSAGE_LENGTH} тэмдэгтээс хэтрэхгүй байна.` }, { status: 400 });
     }
 
     const admins = await dataStore.user.findMany({

@@ -4,6 +4,7 @@ import { canAccessReport, getApiUser, unauthorized } from '@/lib/auth';
 import { serializeDocumentAttachments, serializeReportAttachments } from '@/lib/reports/attachments';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
 import { REPORT_CATEGORIES } from '@/lib/constants';
+import { resolveAdministrativeLocation } from '@/lib/map/locationResolver';
 
 // Returns a single report with everything the sender's edit form needs to
 // pre-fill (type, location, attachments).
@@ -58,8 +59,18 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
     }
 
     const status = data.status === 'draft' ? 'draft' : 'submitted';
-    const hasLocation =
-      (data.latitude != null && data.longitude != null) || data.province || data.district || data.khoroo;
+    const latitude = data.latitude != null ? parseFloat(String(data.latitude)) : null;
+    const longitude = data.longitude != null ? parseFloat(String(data.longitude)) : null;
+    const hasLocation = (latitude != null && longitude != null) || data.province || data.district || data.khoroo;
+    const place = hasLocation ? await resolveAdministrativeLocation(latitude, longitude, data) : {};
+    const locationData = {
+      province: place.province || 'Тодорхойгүй',
+      district: place.district || 'Тодорхойгүй',
+      khoroo: place.khoroo || 'Тодорхойгүй',
+      addressDetail: data.addressDetail || null,
+      latitude,
+      longitude,
+    };
     // The sender's own company is the project implementer; the form does not ask for it.
     const senderCompany = user.company;
     if (!senderCompany) {
@@ -92,24 +103,7 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
         ...(hasLocation
           ? {
               location: {
-                upsert: {
-                  create: {
-                    province: data.province || 'Тодорхойгүй',
-                    district: data.district || 'Тодорхойгүй',
-                    khoroo: data.khoroo || 'Тодорхойгүй',
-                    addressDetail: data.addressDetail || null,
-                    latitude: data.latitude != null ? parseFloat(String(data.latitude)) : null,
-                    longitude: data.longitude != null ? parseFloat(String(data.longitude)) : null,
-                  },
-                  update: {
-                    province: data.province || 'Тодорхойгүй',
-                    district: data.district || 'Тодорхойгүй',
-                    khoroo: data.khoroo || 'Тодорхойгүй',
-                    addressDetail: data.addressDetail || null,
-                    latitude: data.latitude != null ? parseFloat(String(data.latitude)) : null,
-                    longitude: data.longitude != null ? parseFloat(String(data.longitude)) : null,
-                  },
-                },
+                upsert: { create: locationData, update: locationData },
               },
             }
           : {}),

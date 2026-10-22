@@ -9,6 +9,11 @@ export const SIGNED_URL_TTL = 60 * 60;
 // Stored file references point at an upload record, never at a storage URL.
 const REFERENCE = /^convex-upload:([0-9a-f-]{36})$/i;
 
+// True for a reference to a file uploaded through /api/upload.
+export function isUploadReference(value: unknown): value is string {
+  return typeof value === 'string' && REFERENCE.test(value);
+}
+
 function signingSecret() {
   const secret = process.env.JWT_SECRET;
   if (!secret) throw new Error('JWT_SECRET is required for private file access.');

@@ -5,13 +5,17 @@ import { syncSurveyReportsForManagerNotifications } from '@/lib/survey/reports';
 
 export async function PATCH(request: NextRequest) {
   try {
-    const body = await request.json();
-    const ids: string[] = body.ids || (body.id ? [body.id] : []);
+    const user = await getCurrentUser();
+    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    const body = await request.json().catch(() => ({}));
+    const raw: unknown[] = Array.isArray(body.ids) ? body.ids : body.id ? [body.id] : [];
+    const ids = raw.filter((id): id is string => typeof id === 'string').slice(0, 200);
     if (ids.length === 0) {
       return NextResponse.json({ error: 'Missing id or ids' }, { status: 400 });
     }
+    // Scoped to the caller: ids of other users' notifications are ignored.
     await dataStore.notification.updateMany({
-      where: { id: { in: ids } },
+      where: { id: { in: ids }, userId: user.id },
       data: { isRead: true },
     });
     return NextResponse.json({ success: true });

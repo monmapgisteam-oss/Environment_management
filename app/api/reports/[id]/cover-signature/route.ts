@@ -3,13 +3,6 @@ import { getCurrentUser } from '@/lib/auth';
 import dataStore from '@/lib/db';
 import { hashPin, verifyPin } from '@/lib/auth/signature';
 
-const KNOWN_SIGNATURES: Record<string, string> = {
-  'manager@tailan.mn': '1234',
-  'staff@tailan.mn': '1111',
-  'staff2@tailan.mn': '2222',
-  'staff3@tailan.mn': '3333',
-};
-
 export async function POST(request: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
 
@@ -54,11 +47,6 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
 
     if (existing) {
       return NextResponse.json({ error: 'Гарын үсэг аль хэдийн баталгаажсан байна.' }, { status: 409 });
-    }
-
-    const knownSignature = KNOWN_SIGNATURES[user.email];
-    if (knownSignature && numericSignature !== knownSignature) {
-      return NextResponse.json({ error: 'Тоон гарын үсэг буруу байна.' }, { status: 400 });
     }
 
     if (user.signaturePinHash) {
