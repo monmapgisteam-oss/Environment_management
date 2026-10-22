@@ -47,6 +47,18 @@ function sessionSecret() {
   return process.env.JWT_SECRET;
 }
 
+// Cookie settings shared by login and sign-up.
+export function sessionCookieOptions() {
+  return {
+    httpOnly: true,
+    sameSite: 'lax' as const,
+    // Only over HTTPS outside local development.
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    maxAge: SESSION_MAX_AGE_SECONDS,
+  };
+}
+
 export function isRole(value: unknown): value is Role {
   return typeof value === 'string' && value in ROLE_HOME;
 }

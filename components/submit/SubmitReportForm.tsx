@@ -8,7 +8,6 @@ import DocumentUploadCard from "@/components/submit/DocumentUploadCard";
 import EvidenceUploadCard from "@/components/submit/EvidenceUploadCard";
 import SubmitSuccessCard from "@/components/submit/SubmitSuccessCard";
 import SubmitFormHeader from "@/components/submit/SubmitFormHeader";
-import AdditionalInfoFields from "@/components/submit/AdditionalInfoFields";
 import SavedAttachmentList from "@/components/submit/SavedAttachmentList";
 import SubmitActions from "@/components/submit/SubmitActions";
 import SubmitStepper from "@/components/submit/SubmitStepper";
@@ -21,7 +20,7 @@ import { sampleForCriterion, samplesForMaterial, scoringSheetSample } from "@/li
 export default function SubmitReportForm({ register }: { register: string }) {
   const form = useReportSubmission();
   const showSavedAttachments = form.isEdit && form.existingAttachments.length > 0;
-  const isStepForm = !form.isAdditional && !form.isGeneralEvaluation;
+  const isStepForm = !form.isGeneralEvaluation;
   const [currentStep, setCurrentStep] = useState(0);
   const stepRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -191,19 +190,12 @@ export default function SubmitReportForm({ register }: { register: string }) {
             {/* Card Header */}
             <SubmitFormHeader
               title={form.pageTitle}
-              isAdditional={form.isAdditional}
               isGeneralEvaluation={form.isGeneralEvaluation}
             />
 
             {/* Card Body */}
             <form onSubmit={handleFormSubmit} noValidate={isStepForm} className="p-6 sm:p-8">
-              {form.isAdditional ? (
-                <AdditionalInfoFields
-                  title={form.formData.title}
-                  description={form.formData.description}
-                  onChange={form.handleChange}
-                />
-              ) : form.isGeneralEvaluation ? (
+              {form.isGeneralEvaluation ? (
                 <div className="max-w-3xl">
                   {showSavedAttachments && (
                     <SavedAttachmentList
@@ -244,17 +236,14 @@ export default function SubmitReportForm({ register }: { register: string }) {
                 <p className="mt-4 text-sm font-medium text-red-500">{form.submitError}</p>
               )}
 
-              {/* Action Buttons — Нэмэлт мэдээлэл has no submit action. */}
-              {!form.isAdditional && (
-                <SubmitActions
-                  isGeneralEvaluation={form.isGeneralEvaluation}
-                  submitting={form.submitting}
-                  savingDraft={form.savingDraft}
-                  onSaveDraft={form.handleSaveDraft}
-                  isLastStep={isLastStep}
-                  onBack={isStepForm && activeStep > 0 ? () => goToStep(activeStep - 1) : undefined}
-                />
-              )}
+              <SubmitActions
+                isGeneralEvaluation={form.isGeneralEvaluation}
+                submitting={form.submitting}
+                savingDraft={form.savingDraft}
+                onSaveDraft={form.handleSaveDraft}
+                isLastStep={isLastStep}
+                onBack={isStepForm && activeStep > 0 ? () => goToStep(activeStep - 1) : undefined}
+              />
             </form>
           </div>
         )}

@@ -1,7 +1,11 @@
+import Link from 'next/link';
 import PageHeader from '@/components/layout/PageHeader';
+import KpiStrip from '@/components/ui/KpiStrip';
+import Panel, { PanelEmpty } from '@/components/ui/Panel';
+import EmptyState from '@/components/ui/EmptyState';
+import { formatDate } from '@/lib/utils';
 import dataStore from '@/lib/db';
 import { requireUser } from '@/lib/auth';
-import { isAdditionalReportType } from '@/lib/nav';
 import ReportTable from '@/components/reports/ReportTable';
 import { attachEffectiveSenderCompanies } from '@/lib/reports/companies';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
@@ -58,6 +62,8 @@ async function fetchAssignedReports(evaluatorUserId: string, typeSlug?: string) 
           ? 'completed'
           : 'in_review';
     return {
+      assignmentStatus: assignment.status,
+      dueDate: assignment.deadline ? assignment.deadline.toISOString() : null,
       id: report.id,
       reportNumber: report.reportNumber,
       reportType: report.reportType,
@@ -81,30 +87,82 @@ export default async function EvaluatorDashboard(props: { searchParams: Promise<
     fetchAssignedReports(user.id, searchParams.type),
   ]);
 
-  // "Нэмэлт мэдээлэл" is shown as its own top-level menu item (below
-  // "Үнэлгээ өгсөн тайлангууд"), so it is excluded from the report-type submenu.
-  const additionalType = reportTypes.find(isAdditionalReportType);
-  const isAdditional = !!additionalType && searchParams.type === additionalType.slug;
-
   const activeTypeName = searchParams.type
     ? reportTypes.find((rt) => rt.slug === searchParams.type)?.name
     : null;
 
+  const queue = reports.filter((r) => r.assignmentStatus !== 'submitted' && r.status !== 'needs_revision');
+  const scored = reports.filter((r) => r.assignmentStatus === 'submitted').length;
+  const returnRequested = reports.filter((r) => r.status === 'return_requested').length;
+  const today = new Date();
+  const overdue = queue.filter((r) => r.dueDate && new Date(r.dueDate) < today).length;
+  const dueLabel = (due: string | null) => {
+    if (!due) return 'Хугацаа заагаагүй';
+    const days = Math.ceil((new Date(due).getTime() - today.getTime()) / 86_400_000);
+    if (days < 0) return `${-days} өдөр хэтэрсэн`;
+    if (days === 0) return 'Өнөөдөр дуусна';
+    return `${days} өдөр үлдсэн`;
+  };
+  const tableRows = reports.map(({ assignmentStatus, dueDate, ...row }) => row);
+
   return (
     <main className="flex-1 min-w-0 space-y-6 px-6 py-7 lg:px-8">
-      <PageHeader title={<>{isAdditional ? 'Нэмэлт мэдээлэл' : 'Надад оноогдсон тайлангууд'}</>} />
+      <PageHeader
+        title="Надад оноогдсон тайлангууд"
+        eyebrow={user.name}
+        subtitle={activeTypeName ? `${activeTypeName} төрлийн тайлангууд` : 'Хянах менежерээс танд оноосон тайлангууд'}
+      />
 
-      {reports.length === 0 ? (
-        <div className="rounded-3xl bg-white px-6 py-16 text-center shadow-soft border border-slate-200">
-          <p className="text-sm text-slate-400">
-            {activeTypeName
-              ? `${activeTypeName} төрлийн оноогдсон тайлан алга байна.`
-              : 'Танд оноогдсон тайлан одоогоор алга байна.'}
-          </p>
-        </div>
-      ) : (
-        <ReportTable reports={reports} role="staff" showStatusFilter={false} />
-      )}
+      <KpiStrip
+          items={[
+            { label: 'Оноогдсон нийт', value: reports.length, note: `${new Date().getFullYear()} оны байдлаар`, accent: 'bg-teal-600' },
+            { label: 'Үнэлгээ өгөх', value: queue.length, note: overdue ? `${overdue} нь хугацаа хэтэрсэн` : 'Хугацаандаа', accent: overdue ? 'bg-rose-500' : 'bg-amber-400' },
+            { label: 'Үнэлсэн', value: scored, note: 'Гарын үсгээр баталгаажсан', accent: 'bg-emerald-500' },
+            { label: 'Буцаах хүсэлт', value: returnRequested, note: 'Менежерийн шийдвэр хүлээж байна', accent: 'bg-sky-500' },
+          ]}
+        />
+
+      <Panel title="Үнэлгээ хүлээж буй" count={queue.length} subtitle="Хугацааны дарааллаар" link={{ label: 'Үнэлсэн тайлангууд', href: '/evaluator/evaluated' }}>
+          {queue.length === 0 ? (
+            <PanelEmpty>Үнэлэх тайлан алга. Шинэ тайлан оноогдоход мэдэгдэл ирнэ.</PanelEmpty>
+          ) : (
+            <ul className="divide-y divide-slate-100">
+              {[...queue]
+                .sort((a, b) => (a.dueDate ? new Date(a.dueDate).getTime() : Infinity) - (b.dueDate ? new Date(b.dueDate).getTime() : Infinity))
+                .slice(0, 6)
+                .map((report) => {
+                  const late = !!report.dueDate && new Date(report.dueDate) < today;
+                  return (
+                    <li key={report.id} className="grid items-center gap-4 px-5 py-3.5 sm:grid-cols-[140px_minmax(0,1fr)_150px_auto]">
+                      <span className="font-mono text-sm font-semibold text-slate-900">{report.reportNumber}</span>
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-medium text-slate-800">{report.title}</span>
+                        <span className="block truncate text-xs text-slate-500">
+                          {report.senderCompany?.name} · {report.reportType.name} · {formatDate(report.submittedAt)}
+                        </span>
+                      </span>
+                      <span className={`text-xs font-medium ${late ? 'text-rose-600' : 'text-slate-500'}`}>{dueLabel(report.dueDate)}</span>
+                      <Link href={`/evaluator/evaluate/${report.id}`} className="inline-flex h-8 items-center bg-color-primary px-3 text-xs font-semibold text-white hover:bg-color-primary-dark">
+                        Үнэлэх
+                      </Link>
+                    </li>
+                  );
+                })}
+            </ul>
+          )}
+        </Panel>
+
+      <section className="space-y-3">
+        <h2 className="text-base font-semibold text-slate-900">Бүх оноогдсон тайлан</h2>
+        {reports.length === 0 ? (
+          <EmptyState
+            title={activeTypeName ? `${activeTypeName} төрлийн оноогдсон тайлан алга байна.` : 'Танд оноогдсон тайлан одоогоор алга байна.'}
+            hint="Хянах менежер тайлан оноосны дараа энд харагдана."
+          />
+        ) : (
+          <ReportTable reports={tableRows} role="staff" showStatusFilter={false} />
+        )}
+      </section>
     </main>
   );
 }

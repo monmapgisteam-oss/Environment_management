@@ -13,9 +13,11 @@ type Props = {
   // their own email/password once accounts are created for them.
   exampleEmail: string;
   examplePassword: string;
+  // Shown under the form when the organisation can register itself.
+  signupHref?: string;
 };
 
-export default function AuthForm({ title, subtitle, allowedRoles, exampleEmail, examplePassword }: Props) {
+export default function AuthForm({ title, subtitle, allowedRoles, exampleEmail, examplePassword, signupHref }: Props) {
   const [email, setEmail] = useState(exampleEmail);
   const [password, setPassword] = useState(examplePassword);
   const [loading, setLoading] = useState(false);
@@ -49,12 +51,12 @@ export default function AuthForm({ title, subtitle, allowedRoles, exampleEmail, 
 
   return (
     <AuthLayout>
-      <div className="w-full max-w-md">
+      <div>
         <Link href="/" className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-teal-700">
           <LuArrowLeft size={15} /> Бусад байгууллагаар нэвтрэх
         </Link>
         <p className="mt-6 text-xs font-semibold uppercase tracking-wider text-teal-700">Нэвтрэх</p>
-        <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">{title}</h1>
+        <h1 className="mt-2 text-[28px] font-bold leading-tight tracking-tight text-slate-900">{title}</h1>
         <p className="mt-2 text-sm text-slate-500">{subtitle}</p>
 
         {/* Email / password login */}
@@ -66,7 +68,7 @@ export default function AuthForm({ title, subtitle, allowedRoles, exampleEmail, 
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="h-12 w-full border border-slate-300 bg-white px-4 text-sm text-slate-800 transition focus:border-teal-600 focus:outline-none focus:ring-4 focus:ring-teal-600/10"
+              className="h-11 w-full border border-slate-300 bg-white px-3.5 text-sm text-slate-800 transition focus:border-teal-600 focus:outline-none focus:ring-4 focus:ring-teal-600/10"
             />
           </div>
           <div>
@@ -80,7 +82,7 @@ export default function AuthForm({ title, subtitle, allowedRoles, exampleEmail, 
             />
           </div>
 
-          {error && <p className="text-center text-sm font-medium text-red-500">{error}</p>}
+          {error && <p className="border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
 
           <button
             type="submit"
@@ -92,6 +94,14 @@ export default function AuthForm({ title, subtitle, allowedRoles, exampleEmail, 
           </button>
         </form>
 
+        {signupHref && (
+          <p className="mt-6 border-t border-slate-200 pt-5 text-center text-sm text-slate-500">
+            Байгууллага бүртгэлгүй юу?{' '}
+            <Link href={signupHref} className="font-semibold text-teal-700 hover:underline">
+              Бүртгүүлэх
+            </Link>
+          </p>
+        )}
       </div>
     </AuthLayout>
   );

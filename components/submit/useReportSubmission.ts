@@ -32,7 +32,7 @@ export type ReportFormData = {
   spentAmount: string;
 };
 
-type SubmitTypeSlug = "plan" | "performance" | "additional" | "general-evaluation";
+type SubmitTypeSlug = "plan" | "performance" | "general-evaluation";
 
 type SubmitType = { label: string; slug: SubmitTypeSlug };
 
@@ -68,7 +68,6 @@ const GENERAL_EVALUATION_LABEL = "Ерөнхий үнэлгээний дүгнэ
 const SUBMIT_TYPES: SubmitType[] = [
   { label: "Жилийн төлөвлөгөө", slug: "plan" },
   { label: PERFORMANCE_REPORT_LABEL, slug: "performance" },
-  { label: "Нэмэлт мэдээлэл", slug: "additional" },
 ];
 
 // Upload one file and return the stored { url, name } entry.
@@ -95,8 +94,6 @@ export function useReportSubmission() {
   const [editSubmitType, setEditSubmitType] = useState<SubmitTypeSlug | null>(null);
   const selectedSubmitType = activeType?.slug || editSubmitType;
   const isGeneralEvaluation = selectedSubmitType === "general-evaluation";
-  // "Нэмэлт мэдээлэл" is not a full report — it only needs a short writing area.
-  const isAdditional = selectedSubmitType === "additional";
   const pageTitle = isEdit ? "Тайлан засах" : activeType?.label || "Тайлан илгээх";
 
   const [submitted, setSubmitted] = useState(false);
@@ -131,8 +128,7 @@ export function useReportSubmission() {
   // performance reports each attach the documents their "Тайлангийн төрөл"
   // requires (lib/reports/materials.ts); the other forms attach general files only.
   const isPerformanceReport = !isGeneralEvaluation && formData.reportType === PERFORMANCE_REPORT_LABEL;
-  const materials =
-    isGeneralEvaluation || isAdditional ? [] : materialsFor(formData.reportType, formData.reportCategory);
+  const materials = isGeneralEvaluation ? [] : materialsFor(formData.reportType, formData.reportCategory);
   const materialIds = new Set(materials.map((material) => material.id));
 
   useEffect(() => {
@@ -471,7 +467,6 @@ export function useReportSubmission() {
     activeType,
     isEdit,
     isGeneralEvaluation,
-    isAdditional,
     pageTitle,
     submitted,
     submittedNumber,

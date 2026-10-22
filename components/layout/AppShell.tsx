@@ -26,7 +26,7 @@ export default async function AppShell({ user, children }: Props) {
       <div className="flex min-w-0 flex-1 flex-col">
         <Header userName={user.name} companyName={user.company?.name || 'Ажлын газар бүртгэгдээгүй'} role={role} />
         {/* Every page sits in the same centred column so wide screens stay readable. */}
-        <div className="mx-auto flex w-full max-w-[1320px] flex-1 flex-col">{children}</div>
+        <div className="mx-auto flex w-full max-w-[1480px] flex-1 flex-col">{children}</div>
         <Toaster />
       </div>
     </div>

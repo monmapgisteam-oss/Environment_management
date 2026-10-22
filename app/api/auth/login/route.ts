@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import dataStore from '@/lib/db';
-import { createToken, isRole, ROLE_HOME, SESSION_COOKIE, SESSION_MAX_AGE_SECONDS } from '@/lib/auth/session';
+import { createToken, isRole, ROLE_HOME, SESSION_COOKIE, sessionCookieOptions } from '@/lib/auth/session';
 import { verifyPassword } from '@/lib/auth/password';
 import { clientIp, rateLimit } from '@/lib/auth/rateLimit';
 
@@ -59,13 +59,6 @@ export async function POST(request: Request) {
     role: user.role,
     redirect: ROLE_HOME[user.role],
   });
-  response.cookies.set(SESSION_COOKIE, token, {
-    httpOnly: true,
-    sameSite: 'lax',
-    // Only over HTTPS outside local development.
-    secure: process.env.NODE_ENV === 'production',
-    path: '/',
-    maxAge: SESSION_MAX_AGE_SECONDS,
-  });
+  response.cookies.set(SESSION_COOKIE, token, sessionCookieOptions());
   return response;
 }

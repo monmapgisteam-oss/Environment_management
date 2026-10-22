@@ -36,7 +36,8 @@ test('the item with the most matching query values wins', () => {
   const nav = reviewerNav(reportTypes);
   assert.equal(active(nav, '/reviewer/reports'), '/reviewer/reports');
   assert.equal(active(nav, '/reviewer/reports?type=type-1'), '/reviewer/reports?type=type-1');
-  assert.equal(active(nav, '/reviewer/reports?type=type-5'), '/reviewer/reports?type=type-5');
+  // The retired type has no menu item of its own; its list falls under the parent.
+  assert.equal(active(nav, '/reviewer/reports?type=type-5'), '/reviewer/reports');
   assert.equal(active(nav, '/reviewer/assign'), null);
 });
 
@@ -49,6 +50,5 @@ test('match prefixes mark detail pages active', () => {
 test('sender submit links match on the type query', () => {
   const nav = senderNav();
   assert.equal(active(nav, '/sender/submit?type=performance'), '/sender/submit?type=performance');
-  assert.equal(active(nav, '/sender/submit?type=additional'), '/sender/submit?type=additional');
   assert.equal(active(nav, '/sender/submit?edit=abc'), null);
 });

@@ -61,7 +61,8 @@ test('no signature PIN is hardcoded, stored in plaintext or shown on the public 
 });
 
 test('login sets a secure cookie in production and notifications are scoped to the caller', () => {
-  assert.match(read('app/api/auth/login/route.ts'), /secure:\s*process\.env\.NODE_ENV === 'production'/);
+  assert.match(read('lib/auth/session.ts'), /secure:\s*process\.env\.NODE_ENV === 'production'/);
+  assert.match(read('app/api/auth/login/route.ts'), /sessionCookieOptions\(\)/);
   assert.match(read('app/api/auth/login/route.ts'), /rateLimit\(/);
   const notifications = read('app/api/notifications/route.ts');
   const patch = notifications.slice(notifications.indexOf('export async function PATCH'), notifications.indexOf('export async function GET'));

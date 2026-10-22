@@ -1,32 +1,33 @@
+import Link from 'next/link';
 import dataStore from '@/lib/db';
 import ReportTable from '@/components/reports/ReportTable';
+import StatusBadge from '@/components/ui/StatusBadge';
+import PageHeader from '@/components/layout/PageHeader';
 import { getCurrentUser } from '@/lib/auth';
 import { attachEffectiveSenderCompanies } from '@/lib/reports/companies';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
-import Link from 'next/link';
-import PageHeader from '@/components/layout/PageHeader';
+import { formatDate } from '@/lib/utils';
 import {
   HiOutlineArrowRight,
   HiOutlineCalendar,
-  HiOutlineCheckCircle,
-  HiOutlineClock,
+  HiOutlineCheck,
   HiOutlineDocumentDuplicate,
-  HiOutlineExclamation,
   HiOutlineFolder,
   HiOutlineMap,
-  HiOutlinePaperAirplane,
-  HiOutlineStar,
   HiOutlineTrendingUp,
 } from 'react-icons/hi';
 
-// Statuses grouped the way the sender follows them. Every status except draft
-// falls in exactly one group, so the groups add up to the total.
-const STATUS_GROUPS = [
-  { key: 'review', label: 'Хянагдаж байгаа', statuses: ['submitted', 'assigned', 'in_review', 'return_requested'], bar: 'bg-amber-400', dot: 'bg-amber-400' },
-  { key: 'revision', label: 'Засвар шаардсан', statuses: ['needs_revision'], bar: 'bg-rose-500', dot: 'bg-rose-500' },
-  { key: 'completed', label: 'Үнэлгээ дууссан', statuses: ['completed', 'approved'], bar: 'bg-teal-500', dot: 'bg-teal-500' },
-  { key: 'rejected', label: 'Татгалзсан', statuses: ['rejected'], bar: 'bg-slate-400', dot: 'bg-slate-400' },
-];
+const IN_REVIEW = ['submitted', 'assigned', 'in_review', 'return_requested'];
+const DONE = ['completed', 'approved'];
+
+// Review flow as four steps, for the small progress dots on each report.
+function progressStep(status: string, hasScan: boolean) {
+  if (status === 'needs_revision' || status === 'rejected') return { step: 0, tone: 'bg-rose-500' };
+  if (DONE.includes(status) && hasScan) return { step: 4, tone: 'bg-teal-600' };
+  if (DONE.includes(status) || status === 'in_review') return { step: 3, tone: 'bg-teal-600' };
+  if (status === 'assigned') return { step: 2, tone: 'bg-teal-600' };
+  return { step: 1, tone: 'bg-teal-600' };
+}
 
 async function fetchSenderReports(companyId: string, drafts = false) {
   const reports = await dataStore.report.findMany({
@@ -50,158 +51,178 @@ export default async function SenderDashboard() {
   const [reports, drafts] = user?.companyId
     ? await Promise.all([fetchSenderReports(user.companyId), fetchSenderReports(user.companyId, true)])
     : [[], []];
+  const year = new Date().getFullYear();
   const totalCount = reports.length;
-  const groups = STATUS_GROUPS.map((group) => ({
-    ...group,
-    count: reports.filter((r) => group.statuses.includes(r.status)).length,
-  }));
-  const countOf = (key: string) => groups.find((group) => group.key === key)?.count ?? 0;
-  const revisionCount = countOf('revision');
+  const inReviewCount = reports.filter((r) => IN_REVIEW.includes(r.status)).length;
+  const revisionCount = reports.filter((r) => r.status === 'needs_revision').length;
+  const doneCount = reports.filter((r) => DONE.includes(r.status)).length;
   // A report's score stays hidden from the sender until the manager sends the
   // signed scan, even once every staff member has finished scoring it.
   const visibleScores = reports.filter((r) => r.finalScore != null && r.signedScanUrl != null);
   const averageScore = visibleScores.length
     ? (visibleScores.reduce((sum: number, r) => sum + (r.finalScore ?? 0), 0) / visibleScores.length).toFixed(1)
     : null;
-  const share = (count: number) => (totalCount ? Math.round((count / totalCount) * 100) : 0);
 
-  const stats = [
-    { label: 'Нийт илгээсэн', value: totalCount, note: `${new Date().getFullYear()} оны байдлаар`, icon: <HiOutlinePaperAirplane size={20} />, chip: 'bg-teal-50 text-teal-600' },
-    { label: 'Хянагдаж байгаа', value: countOf('review'), note: `Нийт тайлангийн ${share(countOf('review'))}%`, icon: <HiOutlineClock size={20} />, chip: 'bg-amber-50 text-amber-600' },
-    { label: 'Засвар шаардсан', value: revisionCount, note: revisionCount ? 'Засаад дахин илгээнэ үү' : 'Засах тайлан алга', icon: <HiOutlineExclamation size={20} />, chip: 'bg-rose-50 text-rose-600' },
-    { label: 'Үнэлгээ дууссан', value: countOf('completed'), note: `Нийт тайлангийн ${share(countOf('completed'))}%`, icon: <HiOutlineCheckCircle size={20} />, chip: 'bg-sky-50 text-sky-600' },
+  // This year's two obligations: the annual plan and the performance report.
+  const thisYear = reports.filter((r) => r.year === year);
+  const plan = thisYear.find((r) => r.reportType.name.includes('Жилийн'));
+  const performance = thisYear.find((r) => r.reportType.name.includes('Биелэлт'));
+  const duties = [
+    { label: 'Жилийн төлөвлөгөө', report: plan, href: '/sender/submit?type=plan', icon: <HiOutlineCalendar size={20} /> },
+    { label: 'Биелэлтийн тайлан', report: performance, href: '/sender/submit?type=performance', icon: <HiOutlineTrendingUp size={20} /> },
   ];
 
+  const kpis = [
+    { label: 'Нийт илгээсэн', value: totalCount, note: `${year} оны байдлаар`, accent: 'bg-teal-600' },
+    { label: 'Хянагдаж байгаа', value: inReviewCount, note: 'Хянах байгууллагад', accent: 'bg-amber-400' },
+    { label: 'Засвар шаардсан', value: revisionCount, note: revisionCount ? 'Засаад дахин илгээнэ үү' : 'Засах тайлан алга', accent: 'bg-rose-500' },
+    { label: 'Үнэлгээ дууссан', value: doneCount, note: averageScore ? `Дундаж оноо ${averageScore}` : 'Дүн гараагүй', accent: 'bg-sky-500' },
+  ];
+
+  const recent = reports.slice(0, 5);
   const shortcuts = [
-    { label: 'Ноорог', note: drafts.length ? `${drafts.length} хадгалсан ноорог` : 'Хадгалсан ноорог алга', href: '/sender/drafts', icon: <HiOutlineDocumentDuplicate size={18} /> },
-    { label: 'Миний тайлангууд', note: 'Илгээсэн бүх тайлан', href: '/sender/reports', icon: <HiOutlineFolder size={18} /> },
-    { label: 'Газарзүйн мэдээлэл', note: 'Төслийн байршлууд', href: '/sender/geography', icon: <HiOutlineMap size={18} /> },
+    { label: 'Ноорог', note: drafts.length ? `${drafts.length} хадгалсан` : 'Хоосон', href: '/sender/drafts', icon: <HiOutlineDocumentDuplicate size={18} /> },
+    { label: 'Миний тайлангууд', note: `${totalCount} тайлан`, href: '/sender/reports', icon: <HiOutlineFolder size={18} /> },
+    { label: 'Газарзүйн мэдээлэл', note: 'Байршлууд', href: '/sender/geography', icon: <HiOutlineMap size={18} /> },
   ];
 
   return (
     <main className="flex-1 min-w-0 space-y-6 px-6 py-7 lg:px-8">
-      {/* Title and the two main submit actions */}
       <PageHeader
         title="Хяналтын самбар"
         eyebrow={user?.company?.name}
-        subtitle="Тайлангуудын явцыг эндээс хянана."
+        subtitle={user?.company?.registerNumber ? `РД ${user.company.registerNumber} · ${year} он` : `${year} он`}
         actions={
-          <>
-          <Link
-            href="/sender/submit?type=performance"
-            className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-          >
-            <HiOutlineTrendingUp size={17} className="text-slate-400" />
-            Биелэлтийн тайлан
-          </Link>
           <Link
             href="/sender/submit?type=plan"
-            className="inline-flex h-10 items-center gap-2 rounded-xl bg-color-primary px-4 text-sm font-semibold text-white shadow-btn transition hover:bg-color-primary-dark"
+            className="inline-flex h-10 items-center gap-2 bg-color-primary px-4 text-sm font-semibold text-white shadow-btn transition hover:bg-color-primary-dark"
           >
             <HiOutlineCalendar size={17} />
-            Жилийн төлөвлөгөө илгээх
+            Шинэ тайлан илгээх
           </Link>
-          </>
         }
       />
 
       {revisionCount > 0 && (
-        <div className="flex flex-col gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-rose-600">
-              <HiOutlineExclamation size={18} />
-            </span>
-            <p className="text-sm text-rose-900">
-              <span className="font-semibold">{revisionCount} тайлан</span> засвар шаардаж байна. Засаад дахин илгээнэ үү.
-            </p>
-          </div>
+        <div className="flex flex-col gap-3 border-l-4 border-rose-500 bg-rose-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-rose-900">
+            <span className="font-semibold">{revisionCount} тайлан</span> засвар шаардаж байна. Засаад дахин илгээнэ үү.
+          </p>
           <Link href="/sender/reports" className="inline-flex items-center gap-1.5 text-sm font-semibold text-rose-700 hover:text-rose-800">
             Тайлангууд руу очих <HiOutlineArrowRight size={15} />
           </Link>
         </div>
       )}
 
-      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {stats.map((stat) => (
-          <div key={stat.label} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-slate-500">{stat.label}</span>
-              <span className={`flex h-9 w-9 items-center justify-center rounded-xl ${stat.chip}`}>{stat.icon}</span>
+      {/* One strip of four numbers */}
+      <section className="grid grid-cols-2 divide-slate-200 border border-slate-200 bg-white shadow-soft md:grid-cols-4 md:divide-x">
+        {kpis.map((kpi) => (
+          <div key={kpi.label} className="flex gap-4 px-6 py-5">
+            <span className={`w-1 shrink-0 ${kpi.accent}`} />
+            <div>
+              <p className="text-sm font-medium text-slate-500">{kpi.label}</p>
+              <p className="mt-1 text-[32px] font-bold leading-none tracking-tight text-slate-900">{kpi.value}</p>
+              <p className="mt-2 text-xs text-slate-400">{kpi.note}</p>
             </div>
-            <p className="mt-2 text-3xl font-bold tracking-tight text-slate-900">{stat.value}</p>
-            <p className="mt-1 text-xs text-slate-400">{stat.note}</p>
           </div>
         ))}
       </section>
 
-      <section className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {/* Status breakdown */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-soft lg:col-span-2">
-          <div className="flex items-baseline justify-between">
-            <h2 className="text-base font-semibold text-slate-900">Тайлангийн төлөв</h2>
-            <span className="text-sm text-slate-400">Нийт {totalCount}</span>
+      <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+        {/* Latest reports with a 4-step progress */}
+        <div className="border border-slate-200 bg-white shadow-soft">
+          <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+            <h2 className="text-base font-semibold text-slate-900">Сүүлийн тайлангууд</h2>
+            <Link href="/sender/reports" className="inline-flex items-center gap-1 text-sm font-medium text-teal-700 hover:underline">
+              Бүгдийг харах <HiOutlineArrowRight size={14} />
+            </Link>
           </div>
-          {totalCount === 0 ? (
-            <div className="mt-6 rounded-xl border border-dashed border-slate-200 px-4 py-8 text-center">
-              <p className="text-sm text-slate-500">Одоогоор илгээсэн тайлан алга.</p>
-              <Link href="/sender/submit?type=plan" className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-teal-700 hover:text-teal-800">
+          {recent.length === 0 ? (
+            <div className="px-6 py-14 text-center">
+              <p className="text-sm font-medium text-slate-700">Одоогоор илгээсэн тайлан алга.</p>
+              <Link href="/sender/submit?type=plan" className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-teal-700 hover:underline">
                 Эхний тайлангаа илгээх <HiOutlineArrowRight size={15} />
               </Link>
             </div>
           ) : (
-            <>
-              <div className="mt-5 flex h-3 overflow-hidden bg-slate-100">
-                {groups
-                  .filter((group) => group.count > 0)
-                  .map((group) => (
-                    <div key={group.key} className={group.bar} style={{ width: `${(group.count / totalCount) * 100}%` }} />
-                  ))}
-              </div>
-              <ul className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {groups.map((group) => (
-                  <li key={group.key} className="rounded-xl bg-slate-50 px-4 py-3">
-                    <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
-                      <span className={`h-2 w-2 rounded-full ${group.dot}`} />
-                      {group.label}
-                    </div>
-                    <p className="mt-1 text-lg font-semibold text-slate-900">
-                      {group.count}
-                      <span className="ml-1.5 text-xs font-normal text-slate-400">{share(group.count)}%</span>
-                    </p>
+            <ul className="divide-y divide-slate-100">
+              {recent.map((report) => {
+                const progress = progressStep(report.status, !!report.signedScanUrl);
+                return (
+                  <li key={report.id}>
+                    <Link href={`/report/${report.id}?role=sender`} className="grid items-center gap-4 px-6 py-3.5 transition hover:bg-slate-50 sm:grid-cols-[150px_minmax(0,1fr)_104px_160px]">
+                      <span className="font-mono text-sm font-semibold text-slate-900">{report.reportNumber}</span>
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-medium text-slate-800">{report.title}</span>
+                        <span className="block text-xs text-slate-500">
+                          {report.reportType.name} · {formatDate(report.submittedAt)}
+                        </span>
+                      </span>
+                      <span className="flex items-center gap-1" title="Илгээсэн · Оноосон · Үнэлсэн · Дүгнэсэн">
+                        {[1, 2, 3, 4].map((step) => (
+                          <span key={step} className={`h-1.5 w-5 ${step <= progress.step ? progress.tone : 'bg-slate-200'}`} />
+                        ))}
+                      </span>
+                      <span className="flex sm:justify-end">
+                        <StatusBadge status={report.status === 'return_requested' ? 'in_review' : report.status === 'approved' ? 'completed' : report.status} />
+                      </span>
+                    </Link>
                   </li>
-                ))}
-              </ul>
-            </>
+                );
+              })}
+            </ul>
           )}
         </div>
 
-        {/* Average score and shortcuts */}
-        <div className="flex flex-col gap-4">
-          <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-teal-600 to-emerald-600 p-5 text-white shadow-soft">
-            <div className="flex items-center gap-2 text-sm font-medium text-teal-50">
-              <HiOutlineStar size={18} />
-              Дундаж үнэлгээ
+        <div className="space-y-6">
+          {/* This year's obligations */}
+          <div className="border border-slate-200 bg-white shadow-soft">
+            <div className="border-b border-slate-200 px-5 py-4">
+              <h2 className="text-base font-semibold text-slate-900">{year} оны үүрэг</h2>
+              <p className="mt-0.5 text-xs text-slate-500">Журмаар жил бүр илгээх хоёр тайлан</p>
             </div>
-            <p className="mt-2 text-3xl font-bold tracking-tight">{averageScore ?? '—'}</p>
-            <p className="mt-1 text-xs text-teal-50/80">
-              {visibleScores.length ? `${visibleScores.length} тайлангийн дүнгээр` : 'Үнэлгээний дүн гараагүй байна'}
-            </p>
+            <ul className="divide-y divide-slate-100">
+              {duties.map((duty) => (
+                <li key={duty.label} className="flex items-center gap-3 px-5 py-4">
+                  <span
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center ${
+                      duty.report ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-400'
+                    }`}
+                  >
+                    {duty.report ? <HiOutlineCheck size={18} /> : duty.icon}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-semibold text-slate-900">{duty.label}</span>
+                    <span className="block text-xs text-slate-500">
+                      {duty.report ? `Илгээсэн · ${formatDate(duty.report.submittedAt)}` : 'Илгээгээгүй'}
+                    </span>
+                  </span>
+                  {duty.report ? (
+                    <Link href={`/report/${duty.report.id}?role=sender`} className="text-xs font-semibold text-teal-700 hover:underline">
+                      Харах
+                    </Link>
+                  ) : (
+                    <Link
+                      href={duty.href}
+                      className="inline-flex h-8 items-center border border-teal-600 px-3 text-xs font-semibold text-teal-700 transition hover:bg-teal-50"
+                    >
+                      Илгээх
+                    </Link>
+                  )}
+                </li>
+              ))}
+            </ul>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white p-2 shadow-soft">
+
+          {/* Shortcuts */}
+          <div className="grid grid-cols-3 divide-x divide-slate-200 border border-slate-200 bg-white shadow-soft">
             {shortcuts.map((shortcut) => (
-              <Link
-                key={shortcut.href}
-                href={shortcut.href}
-                className="group flex items-center gap-3 rounded-xl px-3 py-2.5 transition hover:bg-slate-50"
-              >
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500 group-hover:bg-teal-50 group-hover:text-teal-600">
+              <Link key={shortcut.href} href={shortcut.href} className="group flex flex-col items-center gap-2 px-3 py-4 text-center transition hover:bg-slate-50">
+                <span className="flex h-9 w-9 items-center justify-center bg-slate-100 text-slate-500 transition group-hover:bg-teal-50 group-hover:text-teal-700">
                   {shortcut.icon}
                 </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-medium text-slate-800">{shortcut.label}</span>
-                  <span className="block truncate text-xs text-slate-400">{shortcut.note}</span>
-                </span>
-                <HiOutlineArrowRight size={15} className="text-slate-300 group-hover:text-teal-600" />
+                <span className="text-xs font-semibold text-slate-800">{shortcut.label}</span>
+                <span className="text-[11px] text-slate-400">{shortcut.note}</span>
               </Link>
             ))}
           </div>
@@ -209,7 +230,7 @@ export default async function SenderDashboard() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-base font-semibold text-slate-900">Илгээсэн тайлангууд</h2>
+        <h2 className="text-base font-semibold text-slate-900">Бүх тайлан</h2>
         <ReportTable
           role="sender"
           reports={reports.map((report) => ({

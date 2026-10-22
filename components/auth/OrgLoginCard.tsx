@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { LuArrowRight } from 'react-icons/lu';
+import { LuChevronRight } from 'react-icons/lu';
 
 type Props = {
   title: string;
@@ -9,21 +9,22 @@ type Props = {
   href: string;
 };
 
-// A landing-page card that links to the organisation's own login page, where
-// the person types their email and password.
+// One organisation type on the landing page: a row that links to that
+// organisation's own login page.
 export default function OrgLoginCard({ title, subtitle, icon, href }: Props) {
   return (
     <Link
       href={href}
-      className="group/card flex flex-col border border-slate-200 bg-white p-6 shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-teal-400 hover:shadow-card"
+      className="group flex items-center gap-4 border border-slate-200 bg-white px-4 py-4 transition hover:border-teal-500 hover:bg-teal-50/40"
     >
-      <span className="flex h-12 w-12 items-center justify-center bg-teal-50 text-teal-700">{icon}</span>
-      <h3 className="mt-5 text-lg font-bold text-slate-900">{title}</h3>
-      <p className="mt-1.5 flex-1 text-sm leading-relaxed text-slate-500">{subtitle}</p>
-      <span className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-teal-700">
-        Нэвтрэх
-        <LuArrowRight size={16} className="transition-transform duration-200 group-hover/card:translate-x-1" />
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center bg-teal-50 text-teal-700 transition group-hover:bg-teal-600 group-hover:text-white">
+        {icon}
       </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[15px] font-semibold text-slate-900">{title}</span>
+        <span className="mt-0.5 block text-sm text-slate-500">{subtitle}</span>
+      </span>
+      <LuChevronRight size={18} className="shrink-0 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-teal-600" />
     </Link>
   );
 }

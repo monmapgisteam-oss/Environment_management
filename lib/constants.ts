@@ -30,7 +30,6 @@ export const STATUS_BADGE_COLORS: { [key: string]: string } = {
 export const REPORT_TYPES = [
   { id: 'type-1', name: 'Жилийн төлөвлөгөө' },
   { id: 'type-2', name: 'Биелэлтийн тайлан' },
-  { id: 'type-5', name: 'Нэмэлт мэдээ' },
 ];
 
 // Sector of the project a plan or performance report covers. The sender picks

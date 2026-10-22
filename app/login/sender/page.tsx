@@ -9,6 +9,7 @@ export default function SenderLoginPage() {
       allowedRoles={SENDER_ROLES}
       exampleEmail={SENDER_ACCOUNTS[0].email}
       examplePassword={SENDER_ACCOUNTS[0].password}
+      signupHref="/signup"
     />
   );
 }

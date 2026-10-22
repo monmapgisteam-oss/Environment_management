@@ -1,7 +1,6 @@
 import PageHeader from '@/components/layout/PageHeader';
 import dataStore from '@/lib/db';
 import type { ReportType } from '@/lib/db/models';
-import { ADDITIONAL_REPORT_TYPE_SLUG, isAdditionalReportType } from '@/lib/nav';
 import ReportTable from '@/components/reports/ReportTable';
 import { fetchSurveyReports } from '@/lib/survey/reports';
 import { attachEffectiveSenderCompanies } from '@/lib/reports/companies';
@@ -55,8 +54,6 @@ export default async function ReviewerReportsPage(props: { searchParams: Promise
       : fetchSurveyReports({ reportTypeName: selectedSurveyType }),
   ]);
 
-  const isAdditional =
-    searchParams.type === ADDITIONAL_REPORT_TYPE_SLUG || (!!selectedType && isAdditionalReportType(selectedType));
   const existingReportNumbers = new Set(reports.map((report) => report.reportNumber));
   const tableReports = [
     ...reports.map((report) => ({
@@ -90,25 +87,16 @@ export default async function ReviewerReportsPage(props: { searchParams: Promise
 
   return (
     <main className="flex-1 min-w-0 space-y-6 px-6 py-7 lg:px-8">
-      <PageHeader title={isAdditional ? 'Нэмэлт мэдээлэл' : 'Ирсэн тайлангууд'} subtitle={
-          !isAdditional &&
-          (searchParams.type
+      <PageHeader
+        title="Ирсэн тайлангууд"
+        subtitle={
+          searchParams.type
             ? reportTypes.find((rt) => rt.slug === searchParams.type)?.name + ' төрлийн тайлангууд'
-            : 'Бүх ирсэн тайлангуудын жагсаалт.')
+            : 'Бүх ирсэн тайлангуудын жагсаалт.'
         }
       />
 
-      {isAdditional && tableReports.length === 0 ? (
-        <div className="rounded-3xl bg-white px-6 py-16 text-center shadow-soft border border-slate-200">
-          <p className="text-sm text-slate-400">Мэдээлэл ирээгүй байна.</p>
-        </div>
-      ) : (
-        <ReportTable
-          role="reviewer"
-          showStatusFilter={!isAdditional}
-          reports={tableReports}
-        />
-      )}
+      <ReportTable role="reviewer" reports={tableReports} />
     </main>
   );
 }

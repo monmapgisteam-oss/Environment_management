@@ -1,10 +1,9 @@
 type SubmitFormHeaderProps = {
   title: string;
-  isAdditional: boolean;
   isGeneralEvaluation: boolean;
 };
 
-export default function SubmitFormHeader({ title, isAdditional, isGeneralEvaluation }: SubmitFormHeaderProps) {
+export default function SubmitFormHeader({ title, isGeneralEvaluation }: SubmitFormHeaderProps) {
   return (
     <div className="px-6 sm:px-8 py-6 border-b border-slate-200">
       <div className="flex items-center justify-between">
@@ -31,9 +30,7 @@ export default function SubmitFormHeader({ title, isAdditional, isGeneralEvaluat
               {title}
             </h1>
             <p className="text-sm text-color-text-muted mt-0.5">
-              {isAdditional
-                ? "Нэмэлт мэдээллээ бичнэ үү."
-                : isGeneralEvaluation
+              {isGeneralEvaluation
                 ? "Ерөнхий үнэлгээний дүгнэлтийн PDF эсвэл Word файлыг хавсаргана уу."
                 : "Тайлангийн мэдээлэл болон байршлын хаягийг оруулна уу."}
             </p>

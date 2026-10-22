@@ -17,8 +17,8 @@ export type NavReportType = { name: string; slug: string };
 
 export const ADDITIONAL_REPORT_TYPE_SLUG = 'type-5';
 
-// "Нэмэлт мэдээлэл" is a report type of its own with a separate menu entry,
-// so report-type submenus leave it out.
+// The retired "Нэмэлт мэдээлэл" report type may still exist in the database;
+// report-type submenus leave it out.
 export function isAdditionalReportType(reportType: NavReportType) {
   return reportType.slug === ADDITIONAL_REPORT_TYPE_SLUG || reportType.name.includes('Нэмэлт');
 }
@@ -44,16 +44,11 @@ function reportTypeChildren(reportTypes: NavReportType[], basePath: string): Nav
   return types.map((rt) => ({ label: rt.name, href: `${basePath}?type=${rt.slug}` }));
 }
 
-function additionalSlug(reportTypes: NavReportType[]) {
-  return reportTypes.find(isAdditionalReportType)?.slug ?? ADDITIONAL_REPORT_TYPE_SLUG;
-}
-
 export function senderNav(): NavItem[] {
   return [
     { label: 'Хяналтын самбар', href: '/sender' },
     { label: 'Жилийн төлөвлөгөө', href: '/sender/submit?type=plan', section: 'Тайлан илгээх' },
     { label: 'Биелэлтийн тайлан', href: '/sender/submit?type=performance' },
-    { label: 'Нэмэлт мэдээлэл', href: '/sender/submit?type=additional' },
     { label: 'Миний тайлангууд', href: '/sender/reports', match: ['/report/'], section: 'Миний ажил' },
     { label: 'Ноорог', href: '/sender/drafts' },
     { label: 'Газарзүйн мэдээлэл', href: '/sender/geography' },
@@ -72,7 +67,6 @@ export function reviewerNav(reportTypes: NavReportType[]): NavItem[] {
     },
     { label: 'Ерөнхий үнэлгээний дүгнэлт', href: '/reviewer/conclusions' },
     { label: 'Буцаасан тайлан', href: '/reviewer/returned' },
-    { label: 'Нэмэлт мэдээлэл', href: `/reviewer/reports?type=${additionalSlug(reportTypes)}` },
     { label: 'Үнэлгээний явц', href: '/reviewer/evaluation-progress', section: 'Хяналт' },
     { label: 'Газарзүйн мэдээлэл', href: '/reviewer/geography' },
     { label: 'Тайлан хайх', href: '/reviewer/survey' },
@@ -90,7 +84,6 @@ export function staffNav(reportTypes: NavReportType[]): NavItem[] {
     },
     { label: 'Ерөнхий үнэлгээний дүгнэлт', href: '/evaluator/conclusions' },
     { label: 'Үнэлгээ өгсөн тайлангууд', href: '/evaluator/evaluated' },
-    { label: 'Нэмэлт мэдээлэл', href: `/evaluator?type=${additionalSlug(reportTypes)}` },
     { label: 'Газарзүйн мэдээлэл', href: '/evaluator/geography', section: 'Хяналт' },
     { label: 'Тайлан хайх', href: '/evaluator/survey' },
   ];
