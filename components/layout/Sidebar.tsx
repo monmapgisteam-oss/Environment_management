@@ -167,16 +167,14 @@ export default function Sidebar({ items, role }: Props) {
       <Link
         href={items[0]?.href ?? "/"}
         title="Байгаль орчны менежментийн төлөвлөгөөний систем"
-        className="flex h-16 shrink-0 items-center justify-center border-b border-slate-200"
+        className="flex h-16 shrink-0 items-center gap-3 border-b border-slate-200 px-4"
       >
-        {/* The link has no text, so the logo carries the name for screen readers. */}
-        <img
-          src="/logo.svg"
-          alt="Байгаль орчны менежментийн төлөвлөгөөний систем"
-          width={56}
-          height={56}
-          className="h-14 w-14 shrink-0"
-        />
+        <img src="/logo.svg" alt="" width={44} height={44} className="h-11 w-11 shrink-0" />
+        <span className="text-[13px] font-bold leading-[1.2] text-slate-900">
+          Нийслэлийн байгаль
+          <br />
+          орчны газар
+        </span>
       </Link>
 
       {/* Navigation */}
