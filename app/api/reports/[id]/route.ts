@@ -3,6 +3,7 @@ import dataStore from '@/lib/db';
 import { canAccessReport, getApiUser, unauthorized } from '@/lib/auth';
 import { deleteUploads, droppedReferences } from '@/lib/db/storage';
 import { notifyReportResubmitted } from '@/lib/reports/resubmitNotifications';
+import { attachmentError } from '@/lib/reports/attachmentOwnership';
 import { parseAttachments, serializeDocumentAttachments, serializeReportAttachments } from '@/lib/reports/attachments';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
 import { REPORT_CATEGORIES } from '@/lib/constants';
@@ -42,6 +43,13 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
     }
 
     const data = await request.json();
+    // Files already on the report may stay; new ones must be the company's own PDF uploads.
+    const fileError = await attachmentError(
+      data.fileUrl,
+      user,
+      parseAttachments(existing.fileUrl).map((file) => file.url),
+    );
+    if (fileError) return NextResponse.json({ error: fileError }, { status: 400 });
     if ((data.title || '').trim() === GENERAL_EVALUATION_CONCLUSION_TITLE) {
       return NextResponse.json({ error: 'Ерөнхий үнэлгээний дүгнэлт илгээх хэсэг хаагдсан.' }, { status: 400 });
     }

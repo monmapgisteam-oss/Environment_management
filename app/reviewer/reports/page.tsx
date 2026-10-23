@@ -5,7 +5,7 @@ import ReportTable from '@/components/reports/ReportTable';
 import { fetchSurveyReports } from '@/lib/survey/reports';
 import { attachEffectiveSenderCompanies } from '@/lib/reports/companies';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
-import { nounForReportType, REPORT_NOUN } from '@/lib/reports/terms';
+import { listTitleNoun, nounForReportType, REPORT_NOUN } from '@/lib/reports/terms';
 
 async function fetchReportTypes() {
   return dataStore.reportType.findMany({
@@ -90,7 +90,7 @@ export default async function ReviewerReportsPage(props: { searchParams: Promise
   return (
     <main className="flex-1 min-w-0 space-y-6 px-6 py-7 lg:px-8">
       <PageHeader
-        title={`Ирсэн ${noun.many}`}
+        title={`Ирсэн ${listTitleNoun(selectedType?.name)}`}
         subtitle={
           selectedType
             ? `${selectedType.name} төрлийн ${noun.many}`

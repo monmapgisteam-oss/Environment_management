@@ -1,4 +1,5 @@
 import type { Attachment } from "@/lib/reports/attachments";
+import { toast } from "@/lib/toast";
 
 // One upload slot per row: the scoring criteria, or a category's required
 // supporting materials.
@@ -25,10 +26,10 @@ type Props = {
   onExistingChange?: (rowId: string, files: Attachment[]) => void;
 };
 
-const accept =
-  "image/*,.pdf,.doc,.docx,.odt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+// Senders attach PDF only (the upload API refuses anything else).
+const accept = "application/pdf,.pdf";
 
-const allowedPattern = /\.(jpe?g|png|webp|gif|bmp|heic|heif|pdf|docx?|odt)$/i;
+const allowedPattern = /\.pdf$/i;
 
 const sampleLinkClass =
   "mt-1.5 inline-flex items-center gap-1.5 text-xs font-semibold text-color-primary hover:underline";
@@ -59,7 +60,7 @@ function SampleIcon() {
 }
 
 function validFiles(files: File[]) {
-  return files.filter((file) => file.type.startsWith("image/") || allowedPattern.test(file.name));
+  return files.filter((file) => allowedPattern.test(file.name));
 }
 
 export default function EvidenceUploadCard({
@@ -131,7 +132,9 @@ export default function EvidenceUploadCard({
                   accept={accept}
                   className="hidden"
                   onChange={(event) => {
-                    const nextFiles = validFiles(Array.from(event.target.files || []));
+                    const picked = Array.from(event.target.files || []);
+                    const nextFiles = validFiles(picked);
+                    if (nextFiles.length < picked.length) toast("Зөвхөн PDF файл хавсаргана уу.", "error");
                     onFilesChange(row.id, [...pickedFiles, ...nextFiles]);
                     event.currentTarget.value = "";
                   }}

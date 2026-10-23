@@ -107,7 +107,7 @@ export default function SubmitReportForm({ register }: { register: string }) {
                 {form.criteria.length > 0 && (
                   <EvidenceUploadCard
                     title="Үнэлгээний шалгуурын нотлох файл"
-                    description="Шалгуур бүрийн баруун талд зураг, PDF эсвэл Word файл хавсаргана уу. Журмын батлагдсан загварыг шалгуур бүрийн доор үзнэ үү."
+                    description="Шалгуур бүрийн баруун талд PDF файл хавсаргана уу (зургийг PDF болгож хавсаргана). Журмын батлагдсан загварыг шалгуур бүрийн доор үзнэ үү."
                     headerLink={scoringSheetSample(form.formData.reportCategory) ?? undefined}
                     idPrefix="criterion"
                     rows={form.criteria.map((criterion) => ({

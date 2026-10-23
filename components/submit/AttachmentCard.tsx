@@ -5,7 +5,8 @@ interface AttachmentCardProps {
   onFileChange?: (files: File[]) => void;
 }
 
-const allowedAttachmentPattern = /\.(jpe?g|png|webp|gif|bmp|heic|heif|pdf|docx?|odt)$/i;
+// Senders attach PDF only (the upload API refuses anything else).
+const allowedAttachmentPattern = /\.pdf$/i;
 
 export default function AttachmentCard({
   attachedFiles = [],
@@ -16,12 +17,12 @@ export default function AttachmentCard({
 
   const setAttachmentFiles = (files: File[]) => {
     const attachmentFiles = files.filter(
-      (file) => file.type.startsWith("image/") || allowedAttachmentPattern.test(file.name),
+      (file) => allowedAttachmentPattern.test(file.name),
     );
     setError(
       attachmentFiles.length === files.length
         ? ""
-        : "Зураг, PDF, DOC, DOCX файл оруулна уу.",
+        : "Зөвхөн PDF файл оруулна уу.",
     );
     if (onFileChange) onFileChange(attachmentFiles);
   };
@@ -78,7 +79,7 @@ export default function AttachmentCard({
       </div>
 
       <p className="text-[13px] text-color-text-muted mt-2 mb-5">
-        Тайлантай холбоотой зураг, PDF эсвэл Word файл хавсаргана уу.
+        Тайлантай холбоотой бусад баримтыг PDF файлаар хавсаргана уу.
       </p>
 
       {/* Upload Zone */}
@@ -96,7 +97,7 @@ export default function AttachmentCard({
           multiple
           onChange={handleFileInputChange}
           className="hidden"
-          accept="image/*,.pdf,.doc,.docx,.odt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          accept="application/pdf,.pdf"
         />
         <label htmlFor="fileInput" className="cursor-pointer block">
           <div className="flex justify-center mb-3">
@@ -124,10 +125,10 @@ export default function AttachmentCard({
             <span className="text-color-text-muted">эсвэл чирж оруулна уу</span>
           </p>
           <p className="text-xs text-color-text-muted mt-1.5">
-            JPG, PNG, WEBP, PDF, DOC, DOCX
+            Зөвхөн PDF
           </p>
           <p className="text-xs text-color-text-muted mt-0.5">
-            Хамгийн их хэмжээ: зураг 10MB, баримт 25MB
+            Хамгийн их хэмжээ: 25MB
           </p>
         </label>
       </div>

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { uploadAttachment } from '@/lib/db/storage';
 import { getCurrentUser } from '@/lib/auth';
+import { isPdfName } from '@/lib/reports/attachments';
 
 // Files live in Convex storage; upload ownership records in the upload table.
 export async function POST(request: Request) {
@@ -15,6 +16,14 @@ export async function POST(request: Request) {
     }
 
     const purpose = formData.get('purpose');
+    // Senders attach PDF only. The name, the type and the first bytes must all
+    // say PDF, so a renamed file of another kind is refused.
+    if (current.role === 'sender') {
+      const header = await file.slice(0, 5).text();
+      if (!isPdfName(file.name) || (file.type && file.type !== 'application/pdf') || header !== '%PDF-') {
+        return NextResponse.json({ error: 'Зөвхөн PDF файл хавсаргана уу.' }, { status: 400 });
+      }
+    }
     if (file.size > 25 * 1024 * 1024) {
       return NextResponse.json({ error: 'File must be 25MB or smaller' }, { status: 400 });
     }

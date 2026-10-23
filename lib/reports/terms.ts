@@ -12,6 +12,12 @@ export type ReportNoun = {
 export const REPORT_NOUN: ReportNoun = { one: 'тайлан', many: 'тайлангууд', of: 'Тайлангийн' };
 export const PLAN_NOUN: ReportNoun = { one: 'БОМТ', many: 'БОМТ-ууд', of: 'БОМТ-ний' };
 
+// Title of an incoming-list page, matching its menu item: plans and the
+// unfiltered list are "БОМТ-ууд"; the performance-report list says so.
+export function listTitleNoun(reportTypeName: string | null | undefined) {
+  return reportTypeName?.includes('Биелэлт') ? 'биелэлтийн тайлангууд' : PLAN_NOUN.many;
+}
+
 export function nounForReportType(reportTypeName: string | null | undefined): ReportNoun {
   return reportTypeName?.includes('Жилийн') ? PLAN_NOUN : REPORT_NOUN;
 }

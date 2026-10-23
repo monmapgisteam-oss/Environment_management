@@ -2,6 +2,13 @@
 // supporting material (lib/reports/materials.ts). Other files are general.
 export type Attachment = { url: string; name: string; criterionId?: string; materialId?: string };
 
+// Senders attach PDF files only.
+export const PDF_ACCEPT = 'application/pdf,.pdf';
+
+export function isPdfName(name: string): boolean {
+  return /\.pdf$/i.test(name);
+}
+
 export function isImageAttachment(file: Attachment): boolean {
   return /\.(jpe?g|png|webp|gif|bmp|heic|heif)$/i.test(file.name || file.url);
 }

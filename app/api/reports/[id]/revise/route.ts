@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import dataStore from '@/lib/db';
 import { canAccessReport, getApiUser, unauthorized } from '@/lib/auth';
 import { deleteUploads, droppedReferences, isUploadReference } from '@/lib/db/storage';
-import { parseAttachments, type Attachment } from '@/lib/reports/attachments';
+import { isPdfName, parseAttachments, type Attachment } from '@/lib/reports/attachments';
 import { applySectionFixes, filesOfSection, parseRevisionItems } from '@/lib/reports/revisions';
 import { notifyReportResubmitted } from '@/lib/reports/resubmitNotifications';
 
@@ -48,6 +48,9 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
     const added = fixes.flatMap((fix) => fix.added);
     if (added.some((file) => !isUploadReference(file.url))) {
       return NextResponse.json({ error: 'Файл буруу байна.' }, { status: 400 });
+    }
+    if (added.some((file) => !isPdfName(file.name))) {
+      return NextResponse.json({ error: 'Зөвхөн PDF файл хавсаргана уу.' }, { status: 400 });
     }
     const uploadIds = added.map((file) => file.url.slice(file.url.indexOf(':') + 1));
     if (uploadIds.length) {

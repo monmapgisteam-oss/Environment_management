@@ -18,9 +18,9 @@ type Props = {
 
 type Draft = { removed: string[]; added: File[] };
 
-const accept =
-  'image/*,.pdf,.doc,.docx,.odt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-const allowedPattern = /\.(jpe?g|png|webp|gif|bmp|heic|heif|pdf|docx?|odt)$/i;
+// Senders attach PDF only (the upload API refuses anything else).
+const accept = 'application/pdf,.pdf';
+const allowedPattern = /\.pdf$/i;
 
 async function uploadFile(file: File) {
   const body = new FormData();
@@ -55,7 +55,7 @@ export default function RevisionForm({ reportId, reason, items }: Props) {
   const addFiles = (item: FlaggedSection, list: FileList | null) => {
     const picked = Array.from(list ?? []);
     const valid = picked.filter((file) => allowedPattern.test(file.name));
-    if (valid.length < picked.length) toast('Зөвхөн зураг, PDF эсвэл Word файл хавсаргана.', 'error');
+    if (valid.length < picked.length) toast('Зөвхөн PDF файл хавсаргана уу.', 'error');
     if (valid.length)
       update(item.key, (draft) => ({
         removed: draft.added.length === 0 ? item.files.map((file) => file.url) : draft.removed,

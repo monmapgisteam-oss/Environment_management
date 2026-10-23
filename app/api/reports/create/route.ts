@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import dataStore from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
 import { serializeDocumentAttachments, serializeReportAttachments } from '@/lib/reports/attachments';
+import { attachmentError } from '@/lib/reports/attachmentOwnership';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
 import { REPORT_CATEGORIES } from '@/lib/constants';
 import { withNextReportNumber } from '@/lib/reports/reportNumber';
@@ -21,6 +22,9 @@ export async function POST(request: Request) {
     if ((data.title || '').trim() === GENERAL_EVALUATION_CONCLUSION_TITLE) {
       return NextResponse.json({ error: 'Ерөнхий үнэлгээний дүгнэлт илгээх хэсэг хаагдсан.' }, { status: 400 });
     }
+    const fileError = await attachmentError(data.fileUrl, currentUser);
+    if (fileError) return NextResponse.json({ error: fileError }, { status: 400 });
+
     // The sender's own company is the project implementer; the form does not ask for it.
     const senderCompany = currentUser.company;
     if (!senderCompany) {

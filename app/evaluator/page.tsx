@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import PageHeader from '@/components/layout/PageHeader';
-import { nounForReportType } from '@/lib/reports/terms';
+import { listTitleNoun, nounForReportType } from '@/lib/reports/terms';
 import KpiStrip from '@/components/ui/KpiStrip';
 import Panel, { PanelEmpty } from '@/components/ui/Panel';
 import EmptyState from '@/components/ui/EmptyState';
@@ -110,7 +110,7 @@ export default async function EvaluatorDashboard(props: { searchParams: Promise<
   return (
     <main className="flex-1 min-w-0 space-y-6 px-6 py-7 lg:px-8">
       <PageHeader
-        title={`Надад оноогдсон ${noun.many}`}
+        title={`Надад оноогдсон ${listTitleNoun(activeTypeName)}`}
         eyebrow={user.name}
         subtitle={activeTypeName ? `${activeTypeName} төрлийн ${noun.many}` : 'Хянах менежерээс танд оноосон тайлангууд'}
       />

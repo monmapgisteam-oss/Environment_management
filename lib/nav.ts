@@ -76,7 +76,7 @@ export function reviewerNav(reportTypes: NavReportType[]): NavItem[] {
 export function staffNav(reportTypes: NavReportType[]): NavItem[] {
   return [
     {
-      label: 'Надад оноогдсон тайлангууд',
+      label: 'Надад оноогдсон БОМТ-ууд',
       href: '/evaluator',
       match: ['/evaluator/evaluate/', '/report/'],
       children: reportTypeChildren(reportTypes, '/evaluator'),
