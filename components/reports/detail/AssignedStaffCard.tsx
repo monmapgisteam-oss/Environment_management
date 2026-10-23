@@ -1,43 +1,63 @@
+import { HiOutlineUserGroup } from 'react-icons/hi';
+import AssignButton from '@/components/evaluation/AssignButton';
+import type { AssignTarget } from '@/components/evaluation/AssignDialog';
 import type { AssignedStaffMember } from './types';
 
 type Props = {
   staff: AssignedStaffMember[];
+  // Set while the report can still be distributed; shows the assign button.
+  assignReport?: AssignTarget;
 };
 
-// Manager view of which staff the report was distributed to and who has scored it.
-export default function AssignedStaffCard({ staff }: Props) {
+// Manager view of which staff the report was distributed to and who has scored
+// it. Sits in the narrow side column, so members are listed one per row.
+export default function AssignedStaffCard({ staff, assignReport }: Props) {
+  const scored = staff.filter((member) => member.submitted).length;
+
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 p-6">
-      <div className="flex items-center gap-2 mb-4">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0F766E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-          <circle cx="9" cy="7" r="4" />
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-        </svg>
-        <h2 className="text-base font-semibold text-slate-900">
-          Оноогдсон гишүүд <span className="font-normal text-slate-400">({staff.length})</span>
+    <div className="border border-slate-200 bg-white p-5">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+          <HiOutlineUserGroup size={17} className="text-teal-700" />
+          Оноогдсон гишүүд
         </h2>
+        {staff.length > 0 && (
+          <span className="text-xs text-slate-500">
+            <span className="font-semibold text-slate-900">{scored}</span> / {staff.length} үнэлсэн
+          </span>
+        )}
       </div>
       {staff.length === 0 ? (
-        <p className="text-sm text-slate-500">Энэ тайлан одоогоор гишүүдэд оноогдоогүй байна.</p>
+        <p className="mt-4 text-sm text-slate-500">Энэ тайлан одоогоор гишүүдэд оноогдоогүй байна.</p>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <ul className="mt-4 divide-y divide-slate-100 border-t border-slate-100">
           {staff.map((member, index) => (
-            <div key={index} className="flex items-center gap-3 rounded-xl border border-slate-200 p-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-color-primary text-sm font-bold text-white">
+            <li key={index} className="flex items-center gap-3 py-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-teal-50 text-sm font-bold text-teal-700 ring-1 ring-teal-100">
                 {member.name.charAt(0)}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-slate-800 truncate">{member.name}-т оноогдсон</p>
-                <p className="text-xs text-slate-500 truncate">{member.position || 'Үнэлэгч'}</p>
-              </div>
-              <span className={`shrink-0 px-2.5 py-1 text-xs font-medium ${member.submitted ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-medium text-slate-900">{member.name}</span>
+                <span className="block truncate text-xs text-slate-500">{member.position || 'Үнэлэгч'}</span>
+              </span>
+              <span
+                className={`shrink-0 px-2 py-0.5 text-[11px] font-semibold ${
+                  member.submitted ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
+                }`}
+              >
                 {member.submitted ? 'Үнэлсэн' : 'Хүлээгдэж буй'}
               </span>
-            </div>
+            </li>
           ))}
-        </div>
+        </ul>
+      )}
+      {assignReport && (
+        <AssignButton
+          report={assignReport}
+          className="mt-4 flex h-10 w-full items-center justify-center border border-teal-600 bg-white px-4 text-sm font-semibold text-teal-700 transition hover:bg-teal-50"
+        >
+          {staff.length > 0 ? 'Дахин оноох' : 'Гишүүдэд оноох'}
+        </AssignButton>
       )}
     </div>
   );

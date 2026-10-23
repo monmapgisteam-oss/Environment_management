@@ -59,7 +59,7 @@ export function reviewerNav(reportTypes: NavReportType[]): NavItem[] {
   return [
     { label: 'Хяналтын самбар', href: '/reviewer' },
     {
-      label: 'Ирсэн тайлангууд',
+      label: 'Ирсэн БОМТ-ууд',
       href: '/reviewer/reports',
       match: ['/report/'],
       children: reportTypeChildren(reportTypes, '/reviewer/reports'),

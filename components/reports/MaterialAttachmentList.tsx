@@ -1,6 +1,6 @@
 import AttachmentRow from '@/components/reports/AttachmentRow';
 import type { Attachment } from '@/lib/reports/attachments';
-import { groupMaterialAttachments, materialsFor, materialsTitle } from '@/lib/reports/materials';
+import { groupMaterialAttachments, leftoverMaterialGroups, materialsFor, materialsTitle } from '@/lib/reports/materials';
 
 // Documents the sender attached, listed in the regulation's order: every
 // required item is shown, with its files underneath or a "not attached" note.
@@ -14,10 +14,11 @@ export default function MaterialAttachmentList({
   reportCategory: string | null;
 }) {
   const groups = groupMaterialAttachments(attachments, reportType, reportCategory);
-  if (groups.length === 0) return null;
-  const filesById = new Map(groups.map(({ material, files }) => [material.id, files]));
-  const materials = materialsFor(reportType, reportCategory);
-  const attachedCount = groups.length;
+  const leftover = leftoverMaterialGroups(attachments, reportType, reportCategory);
+  if (groups.length === 0 && leftover.length === 0) return null;
+  const filesById = new Map([...groups, ...leftover].map(({ material, files }) => [material.id, files]));
+  const materials = [...materialsFor(reportType, reportCategory), ...leftover.map((group) => group.material)];
+  const attachedCount = groups.length + leftover.length;
 
   return (
     <section className="border border-slate-200 bg-white">

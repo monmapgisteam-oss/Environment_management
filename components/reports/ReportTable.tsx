@@ -4,8 +4,11 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { HiSearch } from 'react-icons/hi';
 import StatusBadge from '@/components/ui/StatusBadge';
+import AssignButton from '@/components/evaluation/AssignButton';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
-import { formatDate, formatScore } from '@/lib/utils';
+import { formatScore, formatShortDate } from '@/lib/utils';
+import RowActions, { type RowMenuItem } from '@/components/reports/RowActions';
+import { REPORT_NOUN, type ReportNoun } from '@/lib/reports/terms';
 
 type Report = {
   id: string;
@@ -25,6 +28,10 @@ type Props = {
   reports: Report[];
   role?: 'sender' | 'reviewer' | 'staff';
   showStatusFilter?: boolean;
+  // Wording for the rows; a list of plans says БОМТ instead of тайлан.
+  noun?: ReportNoun;
+  // What will appear here and how, shown when the list is empty.
+  emptyHint?: string;
 };
 
 const allStatusOptions = [
@@ -35,24 +42,19 @@ const allStatusOptions = [
 ];
 
 const inputClass =
-  'h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-slate-700 transition focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-100';
+  'h-11 w-full border border-slate-200 bg-white px-3.5 text-sm text-slate-700 transition focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-100';
 
-export default function ReportTable({ reports, role = 'sender', showStatusFilter = true }: Props) {
+export default function ReportTable({ reports, role = 'sender', showStatusFilter = true, noun = REPORT_NOUN, emptyHint }: Props) {
   const visibleReports = useMemo(
     () => reports.filter((report) => report.title !== GENERAL_EVALUATION_CONCLUSION_TITLE),
     [reports],
   );
-  // Draft values bound to the inputs — these change as the user types/selects
-  // but do NOT filter the table until "Шүүх" is pressed.
+  // Filters apply as the user types or picks.
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
-  // Applied values — the table is filtered by these, updated only on "Шүүх".
-  const [appliedSearch, setAppliedSearch] = useState('');
-  const [appliedStatus, setAppliedStatus] = useState('');
-  const [appliedType, setAppliedType] = useState('');
   const [page, setPage] = useState(1);
-  const pageSize = 6;
+  const pageSize = 10;
 
   const statusOptions = useMemo(() => {
     if (role === 'sender') {
@@ -71,7 +73,7 @@ export default function ReportTable({ reports, role = 'sender', showStatusFilter
   };
 
   const sourceLabel = (source?: Report['source']) =>
-    source === 'survey123' ? 'Survey системээс тайлан ирлээ' : null;
+    source === 'survey123' ? `Survey системээс ${noun.one} ирлээ` : null;
 
   const reportTypeLabel = (report: Report) =>
     report.title === GENERAL_EVALUATION_CONCLUSION_TITLE
@@ -87,64 +89,98 @@ export default function ReportTable({ reports, role = 'sender', showStatusFilter
     return visibleReports.filter((report) => {
       const matchesSearch = [report.reportNumber, report.title, report.senderCompany?.name]
         .filter(Boolean)
-        .some((value) => value?.toLowerCase().includes(appliedSearch.toLowerCase()));
-      const matchesStatus = appliedStatus ? report.status === appliedStatus : true;
-      const matchesType = appliedType ? reportTypeLabel(report) === appliedType : true;
+        .some((value) => value?.toLowerCase().includes(search.trim().toLowerCase()));
+      const matchesStatus = statusFilter ? report.status === statusFilter : true;
+      const matchesType = typeFilter ? reportTypeLabel(report) === typeFilter : true;
       return matchesSearch && matchesStatus && matchesType;
     });
-  }, [visibleReports, appliedSearch, appliedStatus, appliedType]);
+  }, [visibleReports, search, statusFilter, typeFilter]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   const pageItems = filtered.slice((page - 1) * pageSize, page * pageSize);
-
-  const handleSearch = () => {
-    setAppliedSearch(search);
-    setAppliedStatus(statusFilter);
-    setAppliedType(typeFilter);
-    setPage(1);
-  };
 
   const handleReset = () => {
     setSearch('');
     setStatusFilter('');
     setTypeFilter('');
-    setAppliedSearch('');
-    setAppliedStatus('');
-    setAppliedType('');
     setPage(1);
   };
 
-  // On roles that can show a second stacked action ("Гишүүдэд оноох" / "Үнэлэх"),
-  // pin the action column to a fixed width so every button is identical across
-  // rows. On the sender table there is only one action, so let it size tightly.
-  const actionColClass = role === 'sender' ? 'inline-flex' : 'flex w-[140px]';
+  // Each row has one main action and the rest in a "more" menu, so the table
+  // fits without scrolling sideways.
+  // Only a report nobody is assigned to yet gets "Оноох" as its main action;
+  // reassigning stays on the report page.
+  const needsAssignment = (report: Report) => role === 'reviewer' && report.status === 'submitted';
+  const detailHref = (report: Report) => report.detailHref || `/report/${report.id}?role=${role ?? 'sender'}`;
+  const primaryAction = (report: Report) => {
+    const buttonClass =
+      'inline-flex h-9 items-center justify-center whitespace-nowrap bg-color-primary px-3.5 text-xs font-semibold text-white transition hover:bg-color-primary-dark';
+    if (needsAssignment(report)) {
+      return (
+        <AssignButton report={{ id: report.id, reportNumber: report.reportNumber, title: report.title }} className={buttonClass}>
+          Оноох
+        </AssignButton>
+      );
+    }
+    if (role === 'staff' && report.status === 'in_review') {
+      return (
+        <Link href={`/evaluator/evaluate/${report.id}`} className={buttonClass}>
+          Үнэлэх
+        </Link>
+      );
+    }
+    return (
+      <Link
+        href={detailHref(report)}
+        className="inline-flex h-9 items-center justify-center whitespace-nowrap border border-teal-200 bg-white px-3.5 text-xs font-semibold text-teal-700 transition hover:bg-teal-50"
+      >
+        Дэлгэрэнгүй
+      </Link>
+    );
+  };
+  const menuItems = (report: Report): RowMenuItem[] => {
+    if (role === 'sender') return [];
+    const primaryIsDetail = !(needsAssignment(report) || (role === 'staff' && report.status === 'in_review'));
+    return [
+      ...(primaryIsDetail ? [] : [{ label: 'Дэлгэрэнгүй', href: detailHref(report) }]),
+      { label: `${noun.of} нүүр хуудас`, href: `/report/${report.id}/cover?role=${role === 'staff' ? 'staff' : 'reviewer'}` },
+    ];
+  };
+  const hasFilters = !!(search || statusFilter || typeFilter);
 
   return (
-    <div className="space-y-6">
-      {/* Filter card */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft sm:p-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
-          {/* Search */}
+    <div className="space-y-4">
+      {/* Filters apply while typing */}
+      <div className="border border-slate-200 bg-white p-4 shadow-soft">
+        <div className="flex flex-col gap-3 md:flex-row md:items-end">
           <div className="flex-1">
-            <label className="mb-1.5 block text-xs font-medium text-slate-500">Хайлт</label>
+            <label htmlFor="report-table-search" className="mb-1.5 block text-xs font-medium text-slate-500">Хайлт</label>
             <div className="relative">
               <HiSearch className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
               <input
+                id="report-table-search"
+                type="search"
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
-                placeholder="Тайлангийн дугаар, төслийн нэр, байгууллага"
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+                placeholder={`${noun.of} дугаар, төслийн нэр, байгууллага`}
                 className={`${inputClass} pl-10`}
               />
             </div>
           </div>
 
           {showStatusFilter && (
-            <div className="w-full lg:w-44">
-              <label className="mb-1.5 block text-xs font-medium text-slate-500">Төлөв</label>
+            <div className="w-full md:w-44">
+              <label htmlFor="report-table-status" className="mb-1.5 block text-xs font-medium text-slate-500">Төлөв</label>
               <select
+                id="report-table-status"
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setPage(1);
+                }}
                 className={inputClass}
               >
                 {statusOptions.map((status) => (
@@ -154,132 +190,151 @@ export default function ReportTable({ reports, role = 'sender', showStatusFilter
             </div>
           )}
 
-          <div className="w-full lg:w-48">
-            <label className="mb-1.5 block text-xs font-medium text-slate-500">Тайлангийн төрөл</label>
-            <select
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              className={inputClass}
-            >
-              <option value="">Бүгд</option>
-              {types.map((type) => (
-                <option key={type} value={type}>{type}</option>
-              ))}
-            </select>
-          </div>
+          {types.length > 1 && (
+            <div className="w-full md:w-48">
+              <label htmlFor="report-table-type" className="mb-1.5 block text-xs font-medium text-slate-500">Төрөл</label>
+              <select
+                id="report-table-type"
+                value={typeFilter}
+                onChange={(e) => {
+                  setTypeFilter(e.target.value);
+                  setPage(1);
+                }}
+                className={inputClass}
+              >
+                <option value="">Бүгд</option>
+                {types.map((type) => (
+                  <option key={type} value={type}>{type}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
-          <div className="flex items-center gap-2.5">
-            <button
-              type="button"
-              onClick={handleSearch}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#0F766E] px-5 text-sm font-semibold text-white transition hover:bg-[#115E59]"
-            >
-              <HiSearch size={16} />
-              Шүүх
-            </button>
+          {hasFilters && (
             <button
               type="button"
               onClick={handleReset}
-              className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+              className="inline-flex h-11 items-center justify-center border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
             >
               Цэвэрлэх
             </button>
-          </div>
+          )}
         </div>
       </div>
 
-      {/* Table card */}
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft">
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm text-slate-700">
-            <thead>
-              <tr className="border-b border-slate-200 bg-teal-50/60 text-left text-[11px] font-bold uppercase tracking-[0.08em] text-slate-500">
-                <th className="px-4 py-3.5">№</th>
-                <th className="px-4 py-3.5">Тайлангийн дугаар</th>
-                <th className="px-4 py-3.5">Тайлангийн төрөл</th>
-                <th className="px-4 py-3.5">Төслийн нэр</th>
-                <th className="px-4 py-3.5">Байгууллага</th>
-                <th className="px-4 py-3.5">Илгээсэн огноо</th>
-                <th className="px-4 py-3.5">Төлөв</th>
-                <th className="px-4 py-3.5">Эцсийн оноо</th>
-                <th className="px-4 py-3.5 text-right">Үйлдэл</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {pageItems.length === 0 ? (
-                <tr>
-                  <td colSpan={9} className="px-4 py-12 text-center text-slate-400">
-                    Тайлан олдсонгүй.
-                  </td>
+      <div className="border border-slate-200 bg-white shadow-soft">
+        {pageItems.length === 0 ? (
+          <div className="px-4 py-12 text-center">
+            <p className="text-sm font-medium text-slate-600">
+              {hasFilters ? `Хайлтад тохирох ${noun.one} олдсонгүй.` : `Одоогоор ${noun.one} алга.`}
+            </p>
+            {hasFilters ? (
+              <button type="button" onClick={handleReset} className="mt-2 text-sm font-semibold text-teal-700 hover:underline">
+                Шүүлтүүрийг цэвэрлэх
+              </button>
+            ) : (
+              emptyHint && <p className="mx-auto mt-1 max-w-md text-sm text-slate-500">{emptyHint}</p>
+            )}
+          </div>
+        ) : (
+          <>
+            {/* Desktop: table */}
+            <table className="hidden w-full text-sm text-slate-700 md:table">
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50 text-left text-[11px] font-bold uppercase tracking-[0.06em] text-slate-500">
+                  <th className="px-4 py-3">Дугаар</th>
+                  <th className="px-4 py-3">Төсөл, байгууллага</th>
+                  <th className="hidden px-4 py-3 xl:table-cell">Төрөл</th>
+                  <th className="px-4 py-3">Огноо</th>
+                  <th className="px-4 py-3">Төлөв</th>
+                  <th className="px-4 py-3 text-right">Оноо</th>
+                  <th className="px-4 py-3"><span className="sr-only">Үйлдэл</span></th>
                 </tr>
-              ) : (
-                pageItems.map((report, index) => (
-                  <tr key={`${report.id}-${(page - 1) * pageSize + index}`} className="transition-colors hover:bg-teal-50/40">
-                    <td className="px-4 py-4 text-slate-400">{(page - 1) * pageSize + index + 1}</td>
-                    <td className="px-4 py-4 font-semibold text-slate-900">
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <span>{report.reportNumber}</span>
-                        {sourceLabel(report.source) && (
-                          <span className="bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700">
-                            {sourceLabel(report.source)}
-                          </span>
-                        )}
-                      </div>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {pageItems.map((report, index) => (
+                  <tr key={`${report.id}-${index}`} className="transition-colors hover:bg-teal-50/40">
+                    <td className="whitespace-nowrap px-4 py-3.5">
+                      <Link href={detailHref(report)} className="font-mono text-[13px] font-semibold text-slate-900 hover:text-teal-700">
+                        {report.reportNumber}
+                      </Link>
+                      {sourceLabel(report.source) && (
+                        <span className="mt-1 block w-fit bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">Survey</span>
+                      )}
                     </td>
-                    <td className="px-4 py-4 text-slate-600">{reportTypeLabel(report)}</td>
-                    <td className="px-4 py-4 text-slate-600">{report.title}</td>
-                    <td className="px-4 py-4 text-slate-600">{report.senderCompany?.name || '-'}</td>
-                    <td className="px-4 py-4 whitespace-nowrap text-slate-600">{formatDate(report.submittedAt)}</td>
-                    <td className="px-4 py-4"><StatusBadge status={displayStatus(report.status)} /></td>
-                    <td className="px-4 py-4 font-semibold text-slate-900">{formatScore(report.finalScore)}</td>
-                    <td className="px-4 py-4">
-                      <div className="flex justify-end">
-                        <div className={`${actionColClass} flex-col items-stretch gap-1.5`}>
-                          <Link href={report.detailHref || `/report/${report.id}?role=${role ?? 'sender'}`} className="flex items-center justify-center rounded-lg border border-teal-200 bg-white px-3 py-2 text-xs font-semibold text-teal-700 transition hover:bg-teal-50 whitespace-nowrap">Дэлгэрэнгүй</Link>
-                          {role !== 'sender' && (
-                            <Link href={`/report/${report.id}/cover?role=${role === 'staff' ? 'staff' : 'reviewer'}`} className="flex items-center justify-center rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 whitespace-nowrap">Тайлангийн нүүр</Link>
-                          )}
-                          {role === 'reviewer' && report.status !== 'completed' && report.status !== 'approved' && (
-                            <Link href={`/reviewer/assign?report=${report.id}`} className="flex items-center justify-center rounded-lg bg-color-primary px-3 py-2 text-xs font-semibold text-white hover:bg-color-primary-dark transition whitespace-nowrap">Гишүүдэд оноох</Link>
-                          )}
-                          {role === 'staff' && report.status === 'in_review' && (
-                            <Link href={`/evaluator/evaluate/${report.id}`} className="flex items-center justify-center rounded-lg bg-color-primary px-3 py-2 text-xs font-semibold text-white hover:bg-color-primary-dark transition whitespace-nowrap">Үнэлэх</Link>
-                          )}
-                        </div>
+                    <td className="px-4 py-3.5">
+                      <p className="font-medium text-slate-900">{report.title}</p>
+                      <p className="text-xs text-slate-500">
+                        {report.senderCompany?.name || '-'}
+                        <span className="xl:hidden"> · {reportTypeLabel(report)}</span>
+                      </p>
+                    </td>
+                    <td className="hidden px-4 py-3.5 text-slate-600 xl:table-cell">{reportTypeLabel(report)}</td>
+                    <td className="whitespace-nowrap px-4 py-3.5 text-slate-600">{formatShortDate(report.submittedAt)}</td>
+                    <td className="whitespace-nowrap px-4 py-3.5"><StatusBadge status={displayStatus(report.status)} /></td>
+                    <td className="px-4 py-3.5 text-right font-semibold text-slate-900">{formatScore(report.finalScore)}</td>
+                    <td className="px-4 py-3.5">
+                      <div className="flex items-center justify-end gap-2">
+                        {primaryAction(report)}
+                        <RowActions items={menuItems(report)} label={report.reportNumber} />
                       </div>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                ))}
+              </tbody>
+            </table>
+
+            {/* Phone: cards */}
+            <ul className="divide-y divide-slate-100 md:hidden">
+              {pageItems.map((report, index) => (
+                <li key={`${report.id}-${index}`} className="px-4 py-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <Link href={detailHref(report)} className="font-mono text-[13px] font-semibold text-slate-900">
+                      {report.reportNumber}
+                    </Link>
+                    <StatusBadge status={displayStatus(report.status)} />
+                  </div>
+                  <p className="mt-1.5 font-medium text-slate-900">{report.title}</p>
+                  <p className="text-xs text-slate-500">
+                    {report.senderCompany?.name || '-'} · {reportTypeLabel(report)} · {formatShortDate(report.submittedAt)}
+                    {report.finalScore != null && <> · Оноо {formatScore(report.finalScore)}</>}
+                  </p>
+                  <div className="mt-3 flex items-center gap-2">
+                    {primaryAction(report)}
+                    <RowActions items={menuItems(report)} label={report.reportNumber} />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
 
         {/* Pagination */}
-        <div className="flex flex-col gap-3 border-t border-slate-200 px-4 py-3.5 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
-          <p>Нийт <span className="font-semibold text-slate-700">{filtered.length}</span> тайлан</p>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              disabled={page === 1}
-              onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
-              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Өмнөх
-            </button>
-            <div className="flex items-center gap-1.5">
-              <span className="inline-flex h-8 min-w-[2rem] items-center justify-center rounded-lg bg-[#0F766E] px-2 text-sm font-semibold text-white">{page}</span>
-              <span className="text-slate-400">/ {pageCount}</span>
+        <div className="flex items-center justify-between gap-3 border-t border-slate-200 px-4 py-3 text-sm text-slate-500">
+          <p>Нийт <span className="font-semibold text-slate-700">{filtered.length}</span> {noun.one}</p>
+          {pageCount > 1 && (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={page === 1}
+                onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+                className="border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Өмнөх
+              </button>
+              <span className="text-slate-600">
+                <span className="font-semibold text-slate-900">{page}</span> / {pageCount}
+              </span>
+              <button
+                type="button"
+                disabled={page === pageCount}
+                onClick={() => setPage((prev) => Math.min(prev + 1, pageCount))}
+                className="border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Дараах
+              </button>
             </div>
-            <button
-              type="button"
-              disabled={page === pageCount}
-              onClick={() => setPage((prev) => Math.min(prev + 1, pageCount))}
-              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Дараах
-            </button>
-          </div>
+          )}
         </div>
       </div>
     </div>

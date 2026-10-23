@@ -9,7 +9,7 @@ type SavedAttachmentListProps = {
 
 // Files already stored on the report being edited; each can be dropped before resubmitting.
 export default function SavedAttachmentList({ attachments, onRemove, className }: SavedAttachmentListProps) {
-  const cardClass = "border border-slate-200 rounded-2xl p-4";
+  const cardClass = "border border-slate-200 p-4";
   return (
     <div className={className ? `${className} ${cardClass}` : cardClass}>
       <p className="text-sm font-semibold text-color-text-main mb-2">
@@ -19,7 +19,7 @@ export default function SavedAttachmentList({ attachments, onRemove, className }
         {attachments.map((file, index) => (
           <div
             key={`${file.name}-${index}`}
-            className="flex items-center gap-2 p-2 rounded-lg bg-slate-50 border border-slate-200"
+            className="flex items-center gap-2 p-2 bg-slate-50 border border-slate-200"
           >
             <span className="text-sm text-color-text-main flex-1 min-w-0 truncate">
               {file.name}

@@ -1,5 +1,4 @@
 import StatusBadge from '@/components/ui/StatusBadge';
-import LocationMap from '@/components/map/LocationMapClient';
 import { formatDate } from '@/lib/utils';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
 import type { ReportDetail } from './types';
@@ -21,7 +20,7 @@ export default function ReportInfoSection({ report, isConclusion, isSenderView }
   if (isSenderView && report.status === 'return_requested') displayStatus = 'in_review';
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 p-6">
+    <div className="bg-white border border-slate-200 p-6">
       <div className="flex items-center justify-between mb-5">
         <div>
           {isSurveySource && (
@@ -32,24 +31,52 @@ export default function ReportInfoSection({ report, isConclusion, isSenderView }
           <p className="text-xs text-slate-500 mb-0.5">
             {isConclusion ? 'Дүгнэлтийн дугаар' : 'Тайлангийн дугаар'}
           </p>
-          <h1 className="text-xl font-bold text-slate-900">{report.reportNumber}</h1>
+          <h1 className="text-xl font-bold text-slate-900">
+            {isConclusion ? report.conclusionNumber || report.reportNumber : report.reportNumber}
+          </h1>
         </div>
         <StatusBadge status={displayStatus} />
       </div>
 
       <div className="grid grid-cols-2 gap-x-8 gap-y-4 text-sm">
         <div>
-          <p className="text-slate-500 text-xs">{isConclusion ? 'Дүгнэлтийн нэр' : 'Төслийн нэр'}</p>
-          <p className="font-medium text-slate-800 mt-0.5">{report.title}</p>
+          <p className="text-slate-500 text-xs">Төслийн нэр</p>
+          <p className="font-medium text-slate-800 mt-0.5">{isConclusion ? report.projectName || report.title : report.title}</p>
         </div>
         <div>
-          <p className="text-slate-500 text-xs">{isConclusion ? 'Дүгнэлтийн төрөл' : 'Тайлангийн төрөл'}</p>
+          <p className="text-slate-500 text-xs">{isConclusion ? 'Дүгнэлтийн төрөл' : 'Төрөл'}</p>
           <p className="font-medium text-slate-800 mt-0.5">
-            {isConclusion
-              ? GENERAL_EVALUATION_CONCLUSION_TITLE
-              : [report.reportType.name, report.reportCategory].filter(Boolean).join(' · ')}
+            {isConclusion ? report.description || GENERAL_EVALUATION_CONCLUSION_TITLE : report.reportType.name}
           </p>
         </div>
+        {!isConclusion && report.reportCategory && (
+          <div>
+            <p className="text-slate-500 text-xs">Төслийн ангилал</p>
+            <p className="font-medium text-slate-800 mt-0.5">{report.reportCategory}</p>
+          </div>
+        )}
+        {isConclusion && (
+          <>
+            <div>
+              <p className="text-slate-500 text-xs">Дүгнэлт гаргасан он</p>
+              <p className="font-medium text-slate-800 mt-0.5">{report.year}</p>
+            </div>
+            <div>
+              <p className="text-slate-500 text-xs">Төслийн ангилал</p>
+              <p className="font-medium text-slate-800 mt-0.5">{report.reportCategory || '-'}</p>
+            </div>
+            <div>
+              <p className="text-slate-500 text-xs">Төсөл хэрэгжих байршил</p>
+              <p className="font-medium text-slate-800 mt-0.5">
+                {report.location ? [report.location.province, report.location.district].filter(Boolean).join(', ') : '-'}
+              </p>
+            </div>
+            <div>
+              <p className="text-slate-500 text-xs">Төсөл хэрэгжүүлэгчийн нэр</p>
+              <p className="font-medium text-slate-800 mt-0.5">{report.implementerName || report.senderCompany?.name}</p>
+            </div>
+          </>
+        )}
         <div>
           <p className="text-slate-500 text-xs">Илгээсэн байгууллага</p>
           <p className="font-medium text-slate-800 mt-0.5">{report.senderCompany?.name}</p>
@@ -96,33 +123,12 @@ export default function ReportInfoSection({ report, isConclusion, isSenderView }
         )}
       </div>
 
-      {report.description && (
+      {!isConclusion && report.description && (
         <div className="mt-5 pt-5 border-t border-slate-100 text-sm">
           <p className="text-slate-500 text-xs">
             {!isConclusion && isPlanOrPerformanceReport ? 'Ногоон байгууламжийн талаарх мэдээлэл' : 'Тайлбар'}
           </p>
           <p className="font-medium text-slate-800 mt-0.5 whitespace-pre-wrap">{report.description}</p>
-        </div>
-      )}
-
-      {!isConclusion && report.location && (report.location.addressDetail || (report.location.latitude != null && report.location.longitude != null)) && (
-        <div className="mt-5 pt-5 border-t border-slate-100 grid grid-cols-3 gap-4 text-sm">
-          {report.location.addressDetail && (
-            <div className="col-span-3">
-              <p className="text-slate-500 text-xs">Дэлгэрэнгүй хаяг</p>
-              <p className="font-medium text-slate-800 mt-0.5">{report.location.addressDetail}</p>
-            </div>
-          )}
-          {report.location.latitude != null && report.location.longitude != null && (
-            <div className="col-span-3">
-              <p className="text-slate-500 text-xs mb-2">
-                Байршил ({report.location.latitude.toFixed(6)}, {report.location.longitude.toFixed(6)})
-              </p>
-              <div className="rounded-xl overflow-hidden border border-slate-200" style={{ height: 320 }}>
-                <LocationMap lat={report.location.latitude} lng={report.location.longitude} />
-              </div>
-            </div>
-          )}
         </div>
       )}
     </div>

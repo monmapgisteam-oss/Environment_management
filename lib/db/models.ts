@@ -18,6 +18,10 @@ export type User = {
   phone: string | null;
   position: string | null;
   signaturePinHash: string | null;
+  // false once an admin deactivates the account; null for older accounts (active).
+  isActive: boolean | null;
+  // Set when an admin creates the account or resets its password.
+  mustChangePassword: boolean | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -34,10 +38,12 @@ export type ReportType = {
 export type Report = {
   id: string;
   reportNumber: string;
+  conclusionNumber: string | null;
   reportTypeId: string;
   reportCategory: string | null;
   senderCompanyId: string;
   title: string;
+  projectName: string | null;
   description: string | null;
   fileUrl: string | null;
   implementerName: string | null;
@@ -50,6 +56,8 @@ export type Report = {
   finalScore: number | null;
   returnReason: string | null;
   returnRequestedBy: string | null;
+  // JSON list of flagged upload sections (lib/reports/revisions.ts).
+  revisionItems: string | null;
   year: number;
   submittedAt: Date | null;
   arcgisGlobalId: string | null;
@@ -79,6 +87,8 @@ export type EvaluationCriterion = {
   id: string;
   name: string;
   category: string | null;
+  // Which scoring sheet: 'plan' (Жилийн төлөвлөгөө); null or 'performance' for Биелэлтийн тайлан.
+  sheet: 'plan' | 'performance' | null;
   maxScore: number;
   sortOrder: number;
   isActive: boolean;
@@ -121,6 +131,8 @@ export type EvaluationScore = {
   evaluationId: string;
   criterionId: string;
   score: number;
+  // Үндэслэл, тайлбар: why the evaluator gave this score.
+  note: string | null;
 };
 
 export type Notification = {

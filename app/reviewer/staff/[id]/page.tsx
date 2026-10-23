@@ -36,12 +36,12 @@ export default async function StaffProfilePage(props: Props) {
   return (
     <main className="flex-1 min-w-0 space-y-6 px-6 py-7 lg:px-8">
       {!member ? (
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 text-center text-sm text-slate-500">
+        <div className="bg-white border border-slate-200 p-6 text-center text-sm text-slate-500">
           Гишүүн олдсонгүй.
         </div>
       ) : (
         <>
-          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+          <div className="overflow-hidden border border-slate-200 bg-white">
             <div className="grid gap-0 lg:grid-cols-[1fr_320px]">
               <div className="p-6">
                 <div className="flex items-center gap-4">
@@ -84,7 +84,7 @@ export default async function StaffProfilePage(props: Props) {
                   <img
                     src={staffQrUrl}
                     alt="Хувийн мэдээлэл агуулсан QR код"
-                    className="h-[220px] w-[220px] rounded-xl border border-slate-200 bg-white p-3 shadow-sm"
+                    className="h-[220px] w-[220px] border border-slate-200 bg-white p-3 shadow-sm"
                   />
                   <p className="text-sm leading-6 text-slate-500">
                     QR код нь нэр, албан тушаал, ажлын газар, утасны дугаарыг агуулна.
@@ -94,7 +94,7 @@ export default async function StaffProfilePage(props: Props) {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-200 p-6">
+          <div className="bg-white border border-slate-200 p-6">
             <h2 className="text-base font-semibold text-slate-900 mb-4">
               Оноогдсон тайлангууд <span className="text-slate-400 font-normal">({member.evaluatorAssignments.length})</span>
             </h2>
@@ -131,7 +131,7 @@ export default async function StaffProfilePage(props: Props) {
       )}
 
       <div className="flex justify-end">
-        <Link href="/reviewer/assign" className="h-10 px-5 rounded-xl border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 transition inline-flex items-center">
+        <Link href="/reviewer/assign" className="h-10 px-5 border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 transition inline-flex items-center">
           Буцах
         </Link>
       </div>

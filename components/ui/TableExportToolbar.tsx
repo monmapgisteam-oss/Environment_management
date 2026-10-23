@@ -229,7 +229,7 @@ export default function TableExportToolbar({ headers, rows, fileName = 'table' }
         <button
           type="button"
           onClick={handleCopy}
-          className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-white px-3.5 text-sm font-semibold text-emerald-800 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-100"
+          className="inline-flex h-9 items-center justify-center gap-2 border border-emerald-200 bg-white px-3.5 text-sm font-semibold text-emerald-800 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-100"
         >
           <HiClipboardCopy size={17} />
           Хуулах
@@ -237,7 +237,7 @@ export default function TableExportToolbar({ headers, rows, fileName = 'table' }
         <button
           type="button"
           onClick={downloadExcel}
-          className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-white px-3.5 text-sm font-semibold text-emerald-800 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-100"
+          className="inline-flex h-9 items-center justify-center gap-2 border border-emerald-200 bg-white px-3.5 text-sm font-semibold text-emerald-800 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-100"
         >
           <HiTable size={17} />
           Excel
@@ -245,7 +245,7 @@ export default function TableExportToolbar({ headers, rows, fileName = 'table' }
         <button
           type="button"
           onClick={downloadPdf}
-          className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-white px-3.5 text-sm font-semibold text-emerald-800 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-100"
+          className="inline-flex h-9 items-center justify-center gap-2 border border-emerald-200 bg-white px-3.5 text-sm font-semibold text-emerald-800 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-100"
         >
           <HiDocumentText size={17} />
           PDF
@@ -253,7 +253,7 @@ export default function TableExportToolbar({ headers, rows, fileName = 'table' }
         <button
           type="button"
           onClick={() => window.print()}
-          className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-white px-3.5 text-sm font-semibold text-emerald-800 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-100"
+          className="inline-flex h-9 items-center justify-center gap-2 border border-emerald-200 bg-white px-3.5 text-sm font-semibold text-emerald-800 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-100"
         >
           <HiPrinter size={17} />
           Хэвлэх

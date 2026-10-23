@@ -74,3 +74,7 @@ export async function updateSurveyRecord(
 ): Promise<SurveyEditResult | null> {
   return convex().mutation(api.survey.updateByGlobalId, { secret: serverSecret(), layerId, globalid: globalId, attributes });
 }
+
+export async function removeSurveyRecord(layerId: number, globalId: string): Promise<boolean> {
+  return convex().mutation(api.survey.removeByGlobalId, { secret: serverSecret(), layerId, globalid: globalId });
+}

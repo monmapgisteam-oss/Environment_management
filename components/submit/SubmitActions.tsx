@@ -20,12 +20,12 @@ export default function SubmitActions({
 }: SubmitActionsProps) {
   return (
     // Sticks to the bottom of the screen so the buttons stay in reach on long steps.
-    <div className="sticky bottom-0 z-20 -mx-6 -mb-6 mt-8 flex flex-wrap justify-end gap-3 rounded-b-3xl border-t border-slate-200 bg-white/95 px-6 py-4 backdrop-blur sm:-mx-8 sm:-mb-8 sm:px-8">
+    <div className="sticky bottom-0 z-20 -mx-6 -mb-6 mt-8 flex items-center justify-end gap-2 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur sm:-mx-8 sm:-mb-8 sm:gap-3 sm:px-8 sm:py-4">
       {onBack && (
         <button
           type="button"
           onClick={onBack}
-          className="mr-auto h-11 px-6 rounded-xl border border-slate-200 bg-white text-color-text-main text-sm font-semibold hover:bg-slate-50 transition"
+          className="mr-auto h-11 shrink-0 px-4 border border-slate-200 bg-white text-color-text-main text-sm font-semibold hover:bg-slate-50 transition sm:px-6"
         >
           Өмнөх
         </button>
@@ -35,7 +35,8 @@ export default function SubmitActions({
           type="button"
           onClick={onSaveDraft}
           disabled={savingDraft}
-          className="h-11 px-6 rounded-xl border border-slate-200 bg-white text-color-text-main text-sm font-semibold hover:bg-slate-50 transition inline-flex items-center gap-2 disabled:opacity-50"
+          className="h-11 shrink-0 px-3 border border-slate-200 bg-white text-color-text-main text-sm font-semibold hover:bg-slate-50 transition inline-flex items-center gap-2 disabled:opacity-50 sm:px-6"
+          aria-label="Ноорог хадгалах"
         >
           {savingDraft ? (
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-color-primary border-t-transparent" />
@@ -55,13 +56,14 @@ export default function SubmitActions({
               <polyline points="7 3 7 8 15 8" />
             </svg>
           )}
-          {savingDraft ? "Хадгалж байна..." : "Ноорог хадгалах"}
+          <span className="hidden sm:inline">{savingDraft ? "Хадгалж байна..." : "Ноорог хадгалах"}</span>
+          <span className="sm:hidden">Ноорог</span>
         </button>
       )}
       {!isLastStep ? (
         <button
           type="submit"
-          className="h-11 px-7 rounded-xl bg-color-primary text-white text-sm font-semibold hover:bg-color-primary-dark transition"
+          className="h-11 flex-1 px-7 bg-color-primary text-white text-sm font-semibold hover:bg-color-primary-dark transition sm:flex-none"
         >
           Дараах
         </button>
@@ -69,8 +71,7 @@ export default function SubmitActions({
         <button
           type="submit"
           disabled={submitting}
-          className="h-11 px-7 rounded-xl bg-color-primary text-white text-sm font-semibold hover:bg-color-primary-dark transition inline-flex items-center gap-2 disabled:opacity-50"
-          style={{ boxShadow: "0 4px 12px rgba(37,99,235,0.3)" }}
+          className="h-11 flex-1 px-5 bg-color-primary text-white text-sm font-semibold hover:bg-color-primary-dark transition inline-flex items-center justify-center gap-2 disabled:opacity-50 sm:flex-none sm:px-7"
         >
           {submitting ? (
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />

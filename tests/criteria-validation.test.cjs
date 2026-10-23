@@ -19,3 +19,10 @@ test('a partial edit validates only the fields it carries', () => {
   assert.deepEqual(parseCriterionFields({}, { partial: true }), { fields: {} });
   assert.ok('error' in parseCriterionFields({ name: '   ' }, { partial: true }));
 });
+
+test('plans and performance reports are scored on separate sheets', () => {
+  const { sheetForReportType } = require('../lib/reports/criteria.ts');
+  assert.equal(sheetForReportType('Жилийн төлөвлөгөө'), 'plan');
+  assert.equal(sheetForReportType('Биелэлтийн тайлан'), 'performance');
+  assert.equal(sheetForReportType(null), 'performance');
+});

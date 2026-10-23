@@ -73,3 +73,31 @@ export async function fetchAttachment(reference: string) {
   if (!response.ok) throw new Error('Attachment download failed.');
   return response;
 }
+
+// Permanently removes uploaded files that a report no longer uses (a file the
+// sender replaced or removed while fixing it). Only "convex-upload:" references
+// are touched; anything else is left alone. A failure is logged, not thrown,
+// since the report itself is already saved.
+export async function deleteUploads(references: string[]) {
+  const ids = references.map((reference) => REFERENCE.exec(reference)?.[1]).filter((id): id is string => !!id);
+  if (ids.length === 0) return;
+  try {
+    const uploads = await dataStore.upload.findMany({ where: { id: { in: ids } } });
+    for (const upload of uploads) {
+      if (upload.storageId) {
+        await convex()
+          .mutation(api.files.remove, { secret: serverSecret(), storageId: upload.storageId as Id<'_storage'> })
+          .catch((error) => console.error('[storage] file removal failed:', error));
+      }
+    }
+    await dataStore.upload.deleteMany({ where: { id: { in: uploads.map((upload) => upload.id) } } });
+  } catch (error) {
+    console.error('[storage] deleteUploads failed:', error);
+  }
+}
+
+// Stored references in `before` that are gone from `after`.
+export function droppedReferences(before: { url: string }[], after: { url: string }[]) {
+  const kept = new Set(after.map((file) => file.url));
+  return [...new Set(before.map((file) => file.url))].filter((url) => !kept.has(url));
+}

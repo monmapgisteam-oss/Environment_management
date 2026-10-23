@@ -5,7 +5,8 @@ import { syncEvaluationToSurvey } from '@/lib/survey/sync';
 import { computeDocumentHash, generateSignatureId, hashPin, verifyPin } from '@/lib/auth/signature';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
 import { uniqueAssignmentsByEvaluator } from '@/lib/reports/assignments';
-import { fetchCriteriaFor } from '@/lib/reports/criteria';
+import { fetchCriteriaForReport } from '@/lib/reports/criteria';
+import { createNotifications, createUndoToken } from '@/lib/reports/undo';
 
 async function findOpenAssignment(reportId: string, evaluatorUserId?: string) {
   const assignments = await dataStore.reportAssignment.findMany({
@@ -44,7 +45,7 @@ async function nextSignatureId(signedAt: Date) {
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    const { reportId, scores, comment, signature } = data;
+    const { reportId, scores, notes, comment, signature } = data;
 
     if (!reportId) {
       return NextResponse.json({ error: 'reportId is required' }, { status: 400 });
@@ -52,7 +53,7 @@ export async function POST(request: Request) {
 
     const targetReport = await dataStore.report.findUnique({
       where: { id: reportId },
-      select: { title: true, reportCategory: true },
+      select: { id: true, title: true, reportCategory: true, status: true, finalScore: true, reportType: { select: { name: true } } },
     });
     if (!targetReport || targetReport.title === GENERAL_EVALUATION_CONCLUSION_TITLE) {
       return NextResponse.json({ error: 'Ерөнхий үнэлгээний дүгнэлт нь үнэлэх тайлан биш.' }, { status: 400 });
@@ -63,11 +64,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Тоон гарын үсгээ зөвхөн тоогоор оруулна уу.' }, { status: 400 });
     }
 
+    // Үндэслэл, тайлбар written for each criterion.
+    const noteFor = (criterionId: string) => {
+      const value = notes && typeof notes === 'object' ? (notes as Record<string, unknown>)[criterionId] : null;
+      return typeof value === 'string' ? value.trim().slice(0, 2000) : '';
+    };
     const scoreEntries = Object.entries(scores || {})
       .filter(([, value]) => value !== '' && value !== null && value !== undefined)
       .map(([criterionId, score]) => ({
         criterionId,
         score: parseInt(score as string) || 0,
+        note: noteFor(criterionId),
       }))
       .sort((a, b) => a.criterionId.localeCompare(b.criterionId));
 
@@ -84,6 +91,7 @@ export async function POST(request: Request) {
     // A staff member scores their own assignment; a manager falls back to any
     // unevaluated assignment (creating one if needed).
     let assignment;
+    let assignmentCreated = false;
     if (current.role === 'evaluator') {
       const alreadySigned = await dataStore.reportAssignment.findFirst({
         where: {
@@ -117,6 +125,7 @@ export async function POST(request: Request) {
           },
           include: { evaluation: true },
         });
+        assignmentCreated = true;
       }
     }
 
@@ -128,7 +137,8 @@ export async function POST(request: Request) {
 
     // Every criterion on the report category's sheet must be scored, within its
     // maximum, before a signature can be applied.
-    const criteria = await fetchCriteriaFor(targetReport.reportCategory);
+    // The plan or performance sheet of this report.
+    const criteria = await fetchCriteriaForReport(targetReport);
     const maxScoreById = new Map(criteria.map((c) => [c.id, c.maxScore]));
     const scoredIds = new Set(scoreEntries.map((s) => s.criterionId));
     const complete = maxScoreById.size > 0 && [...maxScoreById.keys()].every((id) => scoredIds.has(id));
@@ -141,6 +151,9 @@ export async function POST(request: Request) {
     });
     if (outOfRange) {
       return NextResponse.json({ error: 'Оноо шалгуурын авбал зохих онооноос хэтэрсэн байна.' }, { status: 400 });
+    }
+    if (scoreEntries.some((s) => !s.note)) {
+      return NextResponse.json({ error: 'Шалгуур бүрийн үндэслэл, тайлбарыг бичнэ үү.' }, { status: 400 });
     }
 
     // Verify the numeric signature against the signer's own registered PIN
@@ -171,6 +184,10 @@ export async function POST(request: Request) {
       signedAt: signedAt.toISOString(),
     });
 
+    const assignmentBefore = { status: assignment.status, submittedAt: assignment.submittedAt };
+    // Undo removes the evaluation, so it is offered only when this request
+    // creates it (not for an older unsigned evaluation being re-scored).
+    const evaluationExisted = Boolean(assignment.evaluation);
     await dataStore.reportAssignment.update({
       where: { id: assignment.id },
       data: { status: 'submitted', submittedAt: signedAt },
@@ -234,20 +251,19 @@ export async function POST(request: Request) {
     });
 
     // Notify the sender and every review manager only when the whole evaluation is complete.
+    let notificationIds: string[] = [];
     if (allDone) {
       const senderUsers = updatedReport.senderCompany.users;
       const managers = await dataStore.user.findMany({ where: { role: 'review_manager' } });
       const recipients = [...senderUsers, ...managers];
-      if (recipients.length > 0) {
-        await dataStore.notification.createMany({
-          data: recipients.map((u) => ({
-            userId: u.id,
-            reportId,
-            title: 'Үнэлгээ дууссан',
-            message: `${updatedReport.reportNumber} тайлангийн үнэлгээ дууссан. Эцсийн оноо: ${avgScore.toFixed(1)}`,
-          })),
-        });
-      }
+      notificationIds = await createNotifications(
+        recipients.map((u) => ({
+          userId: u.id,
+          reportId,
+          title: 'Үнэлгээ дууссан',
+          message: `${updatedReport.reportNumber} тайлангийн үнэлгээ дууссан. Эцсийн оноо: ${avgScore.toFixed(1)}`,
+        })),
+      );
     }
 
     // Mirror this evaluator's scores into the survey records of the private
@@ -259,6 +275,31 @@ export async function POST(request: Request) {
       evaluatorName: current.name || 'Үнэлгээ',
     });
 
+    // The survey sync may write to the report too, so read it back last.
+    const finalReport = await dataStore.report.findUnique({ where: { id: reportId }, select: { updatedAt: true } });
+    const undoToken =
+      evaluationExisted || !finalReport
+        ? null
+        : createUndoToken(
+            {
+              kind: 'evaluation',
+              reportId,
+              evaluationId,
+              assignmentId: assignment.id,
+              assignmentCreated,
+              pinEnrolled: !current.signaturePinHash,
+              notificationIds,
+              prev: {
+                assignmentStatus: assignmentBefore.status,
+                assignmentSubmittedAt: assignmentBefore.submittedAt ? new Date(assignmentBefore.submittedAt).getTime() : null,
+                reportStatus: targetReport.status,
+                finalScore: targetReport.finalScore,
+              },
+            },
+            current.id,
+            finalReport.updatedAt,
+          );
+
     // Safe response only — never the raw numeric signature/PIN.
     return NextResponse.json(
       {
@@ -267,6 +308,7 @@ export async function POST(request: Request) {
         signatureStatus: 'VERIFIED',
         signedAt: signedAt.toISOString(),
         signatureId,
+        undoToken,
       },
       { status: 201 },
     );

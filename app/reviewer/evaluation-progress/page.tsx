@@ -26,6 +26,7 @@ export default async function EvaluationProgressPage() {
       <PageHeader title="Үнэлгээний явц" subtitle="Хянагдаж байгаа болон үнэлгээ дууссан тайлангуудын жагсаалт." />
 
       <ReportTable
+        emptyHint="Гишүүдэд оноосон тайлангийн үнэлгээний явц энд харагдана. Тайланг «Ирсэн БОМТ-ууд» хэсгээс гишүүдэд оноогоорой."
         role="reviewer"
         reports={reports.map((report) => ({
           id: report.id,

@@ -4,10 +4,12 @@ type Props = {
   isReviewer: boolean;
   isStaff: boolean;
   canFix: boolean;
+  // Page that fixes only the flagged sections; without it the full form opens.
+  revisePath?: string;
 };
 
 // Back link to the viewer's list, plus a "fix" link when the sender must revise the report.
-export default function ReportActions({ reportId, isConclusion, isReviewer, isStaff, canFix }: Props) {
+export default function ReportActions({ reportId, isConclusion, isReviewer, isStaff, canFix, revisePath }: Props) {
   const backHref = isConclusion
     ? isReviewer
       ? '/reviewer/conclusions'
@@ -23,7 +25,7 @@ export default function ReportActions({ reportId, isConclusion, isReviewer, isSt
   return (
     <div className="flex flex-col gap-2">
       {canFix && (
-        <a href={`/sender/submit?edit=${reportId}`} className="inline-flex h-10 items-center justify-center bg-amber-500 px-5 text-sm font-semibold text-white transition hover:bg-amber-600">
+        <a href={revisePath ?? `/sender/submit?edit=${reportId}`} className="inline-flex h-10 items-center justify-center bg-amber-500 px-5 text-sm font-semibold text-white transition hover:bg-amber-600">
           Засаад дахин илгээх
         </a>
       )}

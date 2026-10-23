@@ -104,3 +104,16 @@ export const updateByGlobalId = mutation({
     return { objectId: row.objectid, globalId: row.globalid };
   },
 });
+
+// Removes a record that has no attachments, e.g. an evaluator's score row when
+// the evaluation is undone.
+export const removeByGlobalId = mutation({
+  args: { secret: v.string(), layerId: v.number(), globalid: v.string() },
+  handler: async (ctx, { secret, layerId, globalid }) => {
+    assertServer(secret);
+    const row = await ctx.db.query('surveyRecord').withIndex('by_layer_globalid', (q) => q.eq('layerId', layerId).eq('globalid', globalid)).first();
+    if (!row) return false;
+    await ctx.db.delete(row._id);
+    return true;
+  },
+});

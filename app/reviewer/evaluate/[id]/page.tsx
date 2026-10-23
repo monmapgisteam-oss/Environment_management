@@ -1,5 +1,5 @@
 import dataStore from '@/lib/db';
-import { fetchCriteriaFor } from '@/lib/reports/criteria';
+import { fetchCriteriaForReport } from '@/lib/reports/criteria';
 import EvaluationTable from '@/components/evaluation/EvaluationTable';
 import AttachmentList from '@/components/reports/AttachmentList';
 import MaterialAttachmentList from '@/components/reports/MaterialAttachmentList';
@@ -8,7 +8,7 @@ import { parseAttachments } from '@/lib/reports/attachments';
 import { signAttachments } from '@/lib/db/storage';
 import { attachEffectiveSenderCompanies } from '@/lib/reports/companies';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
-import { splitScoringAttachments } from '@/lib/reports/scoringAttachments';
+import { scoringAttachmentsFor } from '@/lib/reports/scoringAttachments';
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -40,7 +40,7 @@ export default async function ReviewerEvaluatePage(props: Props) {
   if (!report) {
     return <div className="p-8 text-center text-slate-500">Тайлан олдсонгүй.</div>;
   }
-  const criteria = await fetchCriteriaFor(report.reportCategory);
+  const criteria = await fetchCriteriaForReport(report);
 
   const signedAttachments = await signAttachments(parseAttachments(report.fileUrl));
   const tableCriteria = criteria.map((c) => ({
@@ -48,8 +48,9 @@ export default async function ReviewerEvaluatePage(props: Props) {
     name: c.name,
     maxScore: c.maxScore,
     sortOrder: c.sortOrder,
+    sheet: c.sheet,
   }));
-  const { criterionAttachments, reportAttachments } = splitScoringAttachments(signedAttachments, tableCriteria);
+  const { criterionAttachments, reportAttachments } = scoringAttachmentsFor(signedAttachments, tableCriteria);
   const locationMap =
     report.location?.latitude != null && report.location?.longitude != null
       ? { lat: report.location.latitude, lng: report.location.longitude }
@@ -58,7 +59,7 @@ export default async function ReviewerEvaluatePage(props: Props) {
   return (
     <main className="flex-1 min-w-0 space-y-6 px-6 py-7 lg:px-8">
       {/* Report Info */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6">
+      <div className="bg-white border border-slate-200 p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
             <p className="text-xs text-slate-500">Тайлангийн дугаар</p>
@@ -82,7 +83,7 @@ export default async function ReviewerEvaluatePage(props: Props) {
       </div>
 
       {locationMap && (
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+        <div className="overflow-hidden border border-slate-200 bg-white">
           <div className="border-b border-slate-100 px-6 py-4">
             <h2 className="text-base font-semibold text-slate-900">Газрын зураг дээрх байршил</h2>
             <p className="mt-1 text-sm text-slate-500">
@@ -109,6 +110,7 @@ export default async function ReviewerEvaluatePage(props: Props) {
             return acc;
           }, {}) || null
         }
+        savedNotes={Object.fromEntries((report.evaluations?.[0]?.scores || []).map((s) => [s.criterionId, s.note || '']))}
         savedComment={report.evaluations?.[0]?.comment || null}
         locked={report.evaluations?.[0]?.status === 'SIGNED'}
         signatureStatus={report.evaluations?.[0]?.signatureStatus || null}

@@ -98,3 +98,11 @@ test('a report number range holds only that year\'s RPT numbers', async () => {
   const rows = await read(store, 'report', 'findMany', { where: { reportNumber: { gte: 'RPT-2026-', lt: 'RPT-2026.' } }, orderBy: { reportNumber: 'asc' } });
   assert.deepEqual(rows.map((r) => r.reportNumber), ['RPT-2026-0001', 'RPT-2026-0012']);
 });
+
+test('a parent is deleted only once it has no dependents', async () => {
+  const { store, company } = await seed();
+  await assert.rejects(write(store, 'company', 'deleteMany', { where: { id: company.id } }, uuid), /dependent records/);
+  await write(store, 'user', 'deleteMany', { where: { companyId: company.id } }, uuid);
+  assert.deepEqual(await write(store, 'company', 'deleteMany', { where: { id: company.id } }, uuid), { count: 1 });
+  assert.equal(await read(store, 'company', 'count', {}), 0);
+});

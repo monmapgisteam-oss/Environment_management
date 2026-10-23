@@ -66,7 +66,7 @@ export default function SupportButton({ className }: { className: string }) {
           onClick={close}
         >
           <div
-            className="w-full max-w-md rounded-2xl bg-white p-6 text-slate-900 shadow-xl"
+            className="w-full max-w-md bg-white p-6 text-slate-900 shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between">
@@ -78,7 +78,7 @@ export default function SupportButton({ className }: { className: string }) {
               </div>
               <button
                 onClick={close}
-                className="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+                className="p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
                 aria-label="Хаах"
               >
                 <HiX size={18} />
@@ -86,7 +86,7 @@ export default function SupportButton({ className }: { className: string }) {
             </div>
 
             {sent ? (
-              <div className="mt-5 rounded-xl bg-emerald-50 p-4 text-center text-sm font-medium text-emerald-700">
+              <div className="mt-5 bg-emerald-50 p-4 text-center text-sm font-medium text-emerald-700">
                 Таны зурвас системийн админд амжилттай илгээгдлээ.
               </div>
             ) : (
@@ -96,7 +96,7 @@ export default function SupportButton({ className }: { className: string }) {
                   onChange={(e) => setMessage(e.target.value)}
                   rows={5}
                   placeholder="Асуудал, санал хүсэлтээ энд бичнэ үү..."
-                  className="mt-4 w-full resize-none rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-700 transition focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-100"
+                  className="mt-4 w-full resize-none border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-700 transition focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-100"
                 />
                 {error && <p className="mt-2 text-sm font-medium text-red-500">{error}</p>}
               </>
@@ -106,7 +106,7 @@ export default function SupportButton({ className }: { className: string }) {
               {sent ? (
                 <button
                   onClick={close}
-                  className="flex-1 rounded-xl bg-[#0F766E] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#115E59]"
+                  className="flex-1 bg-[#0F766E] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#115E59]"
                 >
                   Хаах
                 </button>
@@ -115,14 +115,14 @@ export default function SupportButton({ className }: { className: string }) {
                   <button
                     onClick={send}
                     disabled={sending || !message.trim()}
-                    className="flex-1 rounded-xl bg-[#0F766E] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#115E59] disabled:opacity-50"
+                    className="flex-1 bg-[#0F766E] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#115E59] disabled:opacity-50"
                   >
                     {sending ? "Илгээж байна..." : "Илгээх"}
                   </button>
                   <button
                     onClick={close}
                     disabled={sending}
-                    className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                    className="flex-1 border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
                   >
                     Цуцлах
                   </button>

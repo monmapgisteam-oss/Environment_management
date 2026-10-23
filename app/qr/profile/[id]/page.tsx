@@ -57,7 +57,7 @@ export default async function QrProfilePage(props: Props) {
           </div>
 
           <div className="-mt-11 px-6 pb-6">
-            <div className="flex h-24 w-24 items-center justify-center rounded-3xl border-4 border-white bg-slate-900 text-4xl font-bold text-white shadow-lg">
+            <div className="flex h-24 w-24 items-center justify-center border-4 border-white bg-slate-900 text-4xl font-bold text-white shadow-lg">
               {initial}
             </div>
 
@@ -67,7 +67,7 @@ export default async function QrProfilePage(props: Props) {
             </div>
 
             <div className="mt-6 space-y-3">
-              <div className="flex gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div className="flex gap-3 border border-slate-200 bg-slate-50 p-4">
                 <HiBriefcase className="mt-0.5 shrink-0 text-[#0F766E]" size={20} />
                 <div className="min-w-0">
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Албан тушаал</p>
@@ -75,7 +75,7 @@ export default async function QrProfilePage(props: Props) {
                 </div>
               </div>
 
-              <div className="flex gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div className="flex gap-3 border border-slate-200 bg-slate-50 p-4">
                 <HiOfficeBuilding className="mt-0.5 shrink-0 text-[#0F766E]" size={20} />
                 <div className="min-w-0">
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Ажлын газар</p>
@@ -83,7 +83,7 @@ export default async function QrProfilePage(props: Props) {
                 </div>
               </div>
 
-              <div className="flex gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div className="flex gap-3 border border-slate-200 bg-slate-50 p-4">
                 <HiPhone className="mt-0.5 shrink-0 text-[#0F766E]" size={20} />
                 <div className="min-w-0">
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Утасны дугаар</p>

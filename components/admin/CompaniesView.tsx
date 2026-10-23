@@ -59,7 +59,7 @@ const TYPE_BADGE: Record<string, string> = {
 };
 
 const inputClass =
-  'h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-slate-700 transition focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-100';
+  'h-11 w-full border border-slate-200 bg-white px-3.5 text-sm text-slate-700 transition focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-100';
 
 function formatLocation(loc: CompanySurvey['location']) {
   return loc?.addressDetail || '—';
@@ -86,7 +86,7 @@ export default function CompaniesView({ companies }: { companies: CompanyRow[] }
     <div className="space-y-6">
       {/* Summary */}
       <section className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-5 shadow-soft">
+        <div className="border border-emerald-100 bg-emerald-50/70 p-5 shadow-soft">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
               <HiOfficeBuilding size={20} />
@@ -95,7 +95,7 @@ export default function CompaniesView({ companies }: { companies: CompanyRow[] }
           </div>
           <p className="mt-3 text-3xl font-bold tracking-tight text-emerald-600">{companies.length}</p>
         </div>
-        <div className="rounded-2xl border border-blue-100 bg-blue-50/70 p-5 shadow-soft">
+        <div className="border border-blue-100 bg-blue-50/70 p-5 shadow-soft">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600">
               <HiLocationMarker size={20} />
@@ -104,7 +104,7 @@ export default function CompaniesView({ companies }: { companies: CompanyRow[] }
           </div>
           <p className="mt-3 text-3xl font-bold tracking-tight text-blue-600">{filled.length}</p>
         </div>
-        <div className="rounded-2xl border border-violet-100 bg-violet-50/70 p-5 shadow-soft">
+        <div className="border border-violet-100 bg-violet-50/70 p-5 shadow-soft">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-violet-100 text-violet-600">
               <HiIdentification size={20} />
@@ -118,7 +118,7 @@ export default function CompaniesView({ companies }: { companies: CompanyRow[] }
       </section>
 
       {/* Filter */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft sm:p-5">
+      <div className="border border-slate-200 bg-white p-4 shadow-soft sm:p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
           <div className="flex-1">
             <label className="mb-1.5 block text-xs font-medium text-slate-500">Хайлт</label>
@@ -137,7 +137,7 @@ export default function CompaniesView({ companies }: { companies: CompanyRow[] }
             <button
               type="button"
               onClick={() => setApplied(search)}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#0F766E] px-5 text-sm font-semibold text-white transition hover:bg-[#115E59]"
+              className="inline-flex h-11 items-center justify-center gap-2 bg-[#0F766E] px-5 text-sm font-semibold text-white transition hover:bg-[#115E59]"
             >
               <HiSearch size={16} />
               Шүүх
@@ -145,7 +145,7 @@ export default function CompaniesView({ companies }: { companies: CompanyRow[] }
             <button
               type="button"
               onClick={() => { setSearch(''); setApplied(''); }}
-              className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+              className="inline-flex h-11 items-center justify-center border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
             >
               Цэвэрлэх
             </button>
@@ -155,17 +155,17 @@ export default function CompaniesView({ companies }: { companies: CompanyRow[] }
 
       {/* Company cards */}
       {visible.length === 0 ? (
-        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-16 text-center text-slate-400 shadow-soft">
+        <div className="border border-slate-200 bg-white px-4 py-16 text-center text-slate-400 shadow-soft">
           Байгууллага олдсонгүй.
         </div>
       ) : (
         <div className="space-y-5">
           {visible.map((company) => (
-            <div key={company.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft">
+            <div key={company.id} className="overflow-hidden border border-slate-200 bg-white shadow-soft">
               {/* Company header */}
               <div className="flex flex-col gap-4 border-b border-slate-100 bg-slate-50/60 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex items-start gap-3.5">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center bg-emerald-100 text-emerald-600">
                     <HiOfficeBuilding size={24} />
                   </div>
                   <div className="min-w-0">
@@ -248,7 +248,7 @@ export default function CompaniesView({ companies }: { companies: CompanyRow[] }
                             <div className="flex justify-end">
                               <Link
                                 href={`/report/${s.id}?role=reviewer`}
-                                className="flex items-center justify-center rounded-lg border border-teal-200 bg-white px-3 py-2 text-xs font-semibold text-teal-700 transition hover:bg-teal-50 whitespace-nowrap"
+                                className="flex items-center justify-center border border-teal-200 bg-white px-3 py-2 text-xs font-semibold text-teal-700 transition hover:bg-teal-50 whitespace-nowrap"
                               >
                                 Дэлгэрэнгүй
                               </Link>

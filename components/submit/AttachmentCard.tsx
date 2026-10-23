@@ -52,10 +52,10 @@ export default function AttachmentCard({
   };
 
   return (
-    <div className="border border-slate-200 rounded-2xl p-6 h-fit">
+    <div className="border border-slate-200 p-6 h-fit">
       {/* Header */}
       <div className="flex items-center gap-2.5 mb-1">
-        <div className="w-7 h-7 rounded-lg bg-teal-50 flex items-center justify-center">
+        <div className="w-7 h-7 bg-teal-50 flex items-center justify-center">
           <svg
             width="15"
             height="15"
@@ -87,7 +87,7 @@ export default function AttachmentCard({
         onDragLeave={handleDragLeave}
         onDragOver={(e) => e.preventDefault()}
         onDrop={handleDrop}
-        className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition
+        className={`border-2 border-dashed p-6 text-center cursor-pointer transition
           ${isDragging ? "border-color-primary bg-teal-50" : "border-slate-200 bg-slate-50 hover:border-color-primary"}`}
       >
         <input
@@ -134,7 +134,7 @@ export default function AttachmentCard({
       {error && <p className="mt-2 text-xs font-medium text-red-500">{error}</p>}
 
       {/* Attached files */}
-      <div className="mt-5 border border-slate-200 rounded-xl p-4">
+      <div className="mt-5 border border-slate-200 p-4">
         <div className="flex items-center gap-2 mb-1.5">
           <svg
             width="14"
@@ -162,7 +162,7 @@ export default function AttachmentCard({
             {attachedFiles.map((file, index) => (
               <div
                 key={index}
-                className="flex items-center gap-2 p-2 rounded-lg bg-slate-50 border border-slate-200"
+                className="flex items-center gap-2 p-2 bg-slate-50 border border-slate-200"
               >
                 <svg
                   width="16"

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import type { ViewerRole } from '@/lib/auth/session';
 
@@ -21,6 +21,8 @@ type Props = {
   userName: string;
   companyName: string;
   role: ViewerRole;
+  // Menu button for phones (MobileNav), shown before the logo.
+  mobileNav?: ReactNode;
 };
 
 // Where the logo/home link points for each role.
@@ -40,7 +42,7 @@ function reportHrefFor(role: ViewerRole, reportId: string) {
   return `/report/${reportId}?role=reviewer`;
 }
 
-export default function Header({ userName, companyName, role }: Props) {
+export default function Header({ userName, companyName, role, mobileNav }: Props) {
   const [open, setOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -80,15 +82,16 @@ export default function Header({ userName, companyName, role }: Props) {
   return (
     <header className="app-chrome sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
       <div className="flex items-center justify-between px-4 sm:px-6 h-16">
-        {/* Left - brand (shown on mobile where the sidebar is hidden) */}
-        <Link href={HOME_HREF[role]} className="flex items-center gap-2.5 md:hidden">
-          <img src="/logo.svg" alt="" width={32} height={32} className="h-8 w-8 shrink-0" />
-          <span className="max-w-[180px] text-[10px] font-bold leading-tight tracking-wide text-color-text-main uppercase">Байгаль орчны менежментийн төлөвлөгөөний систем</span>
-        </Link>
-        {/* Full system name on desktop; the sidebar shows only the short name. */}
-        <p className="hidden min-w-0 truncate pr-4 text-[15px] font-semibold text-slate-800 md:block">
-          Байгаль орчны менежментийн төлөвлөгөөний систем
-        </p>
+        {/* Left - logo and system name, one bar across the whole page */}
+        <div className="flex min-w-0 items-center">
+          {mobileNav}
+          <Link href={HOME_HREF[role]} className="flex min-w-0 items-center gap-3 pr-4">
+            <img src="/logo.svg" alt="" width={40} height={40} className="h-10 w-10 shrink-0" />
+            <span className="min-w-0 truncate text-[13px] font-semibold leading-tight text-slate-800 sm:text-[15px]">
+              Байгаль орчны менежментийн төлөвлөгөөний систем
+            </span>
+          </Link>
+        </div>
 
         {/* Right */}
         <div className="flex items-center gap-1 sm:gap-2">
@@ -109,7 +112,9 @@ export default function Header({ userName, companyName, role }: Props) {
                   setUnreadCount(0);
                 }
               }}
-              className="relative flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white shadow-sm transition hover:bg-slate-50"
+              className="relative flex h-11 w-11 items-center justify-center border border-slate-200 bg-white shadow-sm transition hover:bg-slate-50"
+              aria-label={unreadCount > 0 ? `Мэдэгдэл, ${unreadCount} уншаагүй` : 'Мэдэгдэл'}
+              aria-expanded={notifOpen}
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
@@ -123,7 +128,7 @@ export default function Header({ userName, companyName, role }: Props) {
             </button>
 
             {notifOpen && (
-              <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl border border-slate-200 shadow-lg z-50">
+              <div className="absolute right-0 mt-2 w-80 bg-white border border-slate-200 shadow-lg z-50">
                 <div className="px-4 py-3 border-b border-slate-100">
                   <p className="text-sm font-semibold text-slate-900">Мэдэгдэл</p>
                 </div>
@@ -167,9 +172,11 @@ export default function Header({ userName, companyName, role }: Props) {
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setOpen(!open)}
-              className="flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-2 py-1.5 shadow-sm transition hover:bg-slate-50"
+              aria-label="Хэрэглэгчийн цэс"
+              aria-expanded={open}
+              className="flex items-center gap-2.5 border border-slate-200 bg-white px-2 py-1.5 shadow-sm transition hover:bg-slate-50"
             >
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-400">
+              <div className="flex h-9 w-9 items-center justify-center bg-slate-100 text-slate-400">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                   <circle cx="12" cy="7" r="4" />
@@ -185,7 +192,7 @@ export default function Header({ userName, companyName, role }: Props) {
             </button>
 
             {open && (
-              <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl border border-slate-200 shadow-lg py-1 z-50">
+              <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 shadow-lg py-1 z-50">
                 <Link
                   href="/profile"
                   onClick={() => setOpen(false)}

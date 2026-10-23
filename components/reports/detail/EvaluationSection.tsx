@@ -33,9 +33,11 @@ export default function EvaluationSection({ report, evaluations, scoresVisible, 
         <EvaluationScoresCard report={report} evaluations={evaluations} {...cardProps} />
       )}
 
-      {/* No evaluation yet, or (sender) not yet released by the manager */}
-      {(evaluations.length === 0 || !scoresVisible) && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 text-center">
+      {/* No evaluation yet, or (sender) not yet released by the manager. A
+          report sent back for fixing says nothing here; the notice on top
+          already tells the sender what to do. */}
+      {(evaluations.length === 0 || !scoresVisible) && report.status !== 'needs_revision' && (
+        <div className="bg-white border border-slate-200 p-6 text-center">
           <p className="text-sm text-slate-500">
             {evaluations.length === 0
               ? 'Үнэлгээ одоогоор өгөгдөөгүй байна.'
@@ -46,7 +48,7 @@ export default function EvaluationSection({ report, evaluations, scoresVisible, 
 
       {/* Final Score */}
       {displayFinalScore !== null && scoresVisible && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 flex items-center justify-between">
+        <div className="bg-white border border-slate-200 p-6 flex items-center justify-between">
           <p className="text-sm font-medium text-slate-600">Эцсийн дундаж оноо</p>
           <p className="text-3xl font-bold text-color-primary">{formatScore(displayFinalScore)}</p>
         </div>

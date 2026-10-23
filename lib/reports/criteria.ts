@@ -11,11 +11,40 @@ export function criteriaCategory(reportCategory: string | null | undefined) {
   return reportCategory && REPORT_CATEGORIES.includes(reportCategory) ? reportCategory : DEFAULT_REPORT_CATEGORY;
 }
 
-export async function fetchCriteriaFor(reportCategory: string | null | undefined) {
+// Plans (Жилийн төлөвлөгөө) and performance reports are scored on separate
+// sheets. Older criteria have no sheet and belong to the performance sheet.
+export type CriteriaSheet = 'plan' | 'performance';
+
+export function sheetForReportType(reportTypeName: string | null | undefined): CriteriaSheet {
+  return reportTypeName?.includes('Жилийн') ? 'plan' : 'performance';
+}
+
+function sheetWhere(sheet: CriteriaSheet) {
+  return sheet === 'plan' ? { sheet: 'plan' as const } : { OR: [{ sheet: null }, { sheet: 'performance' as const }] };
+}
+
+export async function fetchCriteriaFor(reportCategory: string | null | undefined, sheet: CriteriaSheet = 'performance') {
   return dataStore.evaluationCriterion.findMany({
-    where: { isActive: true, category: criteriaCategory(reportCategory) },
+    where: { isActive: true, category: criteriaCategory(reportCategory), ...sheetWhere(sheet) },
     orderBy: { sortOrder: 'asc' },
   });
+}
+
+// The sheet a report is scored on. A report that already has scores on other
+// criteria (scored before plans had their own sheet) keeps those criteria, so
+// its evaluations stay complete and new scores match them.
+export async function fetchCriteriaForReport(
+  report: { id: string; reportCategory: string | null; reportType: { name: string } | null },
+) {
+  const criteria = await fetchCriteriaFor(report.reportCategory, sheetForReportType(report.reportType?.name));
+  const scores = await dataStore.evaluationScore.findMany({
+    where: { evaluation: { reportId: report.id } },
+    select: { criterionId: true },
+  });
+  const scoredIds = [...new Set(scores.map((score) => score.criterionId))];
+  const known = new Set(criteria.map((criterion) => criterion.id));
+  if (scoredIds.length === 0 || scoredIds.every((id) => known.has(id))) return criteria;
+  return dataStore.evaluationCriterion.findMany({ where: { id: { in: scoredIds } }, orderBy: { sortOrder: 'asc' } });
 }
 
 // Validates admin edits of a criterion. With `partial`, missing fields are
@@ -33,7 +62,7 @@ export function parseCriterionFields(
   }
   if (data.category !== undefined || !partial) {
     if (typeof data.category !== 'string' || !REPORT_CATEGORIES.includes(data.category)) {
-      return { error: 'Тайлангийн төрөл буруу байна' };
+      return { error: 'Төслийн ангилал буруу байна' };
     }
     fields.category = data.category;
   }

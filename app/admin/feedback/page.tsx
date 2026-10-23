@@ -36,7 +36,7 @@ export default async function AdminFeedbackPage() {
       ) : (
         <div className="space-y-3">
           {feedback.map((f) => (
-            <div key={f.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft">
+            <div key={f.id} className="border border-slate-200 bg-white p-5 shadow-soft">
               <div className="flex items-start justify-between gap-4">
                 <p className="text-sm text-slate-800 whitespace-pre-wrap">{f.message}</p>
                 <span className="shrink-0 whitespace-nowrap text-xs text-slate-400">{formatDate(f.createdAt.toISOString())}</span>

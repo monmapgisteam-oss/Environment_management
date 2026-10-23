@@ -3,19 +3,22 @@
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { HiArrowDown, HiArrowUp, HiCheck, HiPencil, HiPlus, HiTrash, HiX } from 'react-icons/hi';
+import { confirmDialog } from '@/lib/confirm';
 import { toast } from '@/lib/toast';
 
 export type AdminCriterion = {
   id: string;
   name: string;
   category: string | null;
+  sheet: 'plan' | 'performance' | null;
   maxScore: number;
   sortOrder: number;
   isActive: boolean;
   scoreCount: number;
 };
 
-type Sheet = { category: string; criteria: AdminCriterion[] };
+// One scoring sheet: a report category's plan or performance sheet.
+type Sheet = { key: string; category: string; sheet: 'plan' | 'performance'; title: string; criteria: AdminCriterion[] };
 
 const TARGET_TOTAL = 100;
 
@@ -87,15 +90,21 @@ export default function CriteriaManager({ sheets }: { sheets: Sheet[] }) {
   const toggleActive = (c: AdminCriterion) =>
     run(c.id, () => send(`/api/criteria/${c.id}`, 'PATCH', { isActive: !c.isActive }));
 
-  const remove = (c: AdminCriterion) => {
-    if (!window.confirm(`"${c.name}" шалгуурыг устгах уу?`)) return;
+  const remove = async (c: AdminCriterion) => {
+    const ok = await confirmDialog({
+      title: 'Шалгуур устгах',
+      message: `"${c.name}" шалгуурыг устгах уу?`,
+      confirmLabel: 'Устгах',
+      danger: true,
+    });
+    if (!ok) return;
     return run(c.id, () => send(`/api/criteria/${c.id}`, 'DELETE'), 'Шалгуур устгагдлаа.');
   };
 
-  const add = (event: FormEvent, category: string) => {
+  const add = (event: FormEvent, target: Sheet) => {
     event.preventDefault();
-    return run(`add:${category}`, async () => {
-      await send('/api/criteria', 'POST', { category, name: newRow.name, maxScore: Number(newRow.maxScore) });
+    return run(`add:${target.key}`, async () => {
+      await send('/api/criteria', 'POST', { category: target.category, sheet: target.sheet, name: newRow.name, maxScore: Number(newRow.maxScore) });
       setNewRow({ name: '', maxScore: '' });
       setAdding(null);
     });
@@ -110,9 +119,18 @@ export default function CriteriaManager({ sheets }: { sheets: Sheet[] }) {
         const total = active.reduce((sum, c) => sum + c.maxScore, 0);
         const totalOk = total === TARGET_TOTAL;
         return (
-          <section key={sheet.category} className="space-y-3">
+          <section key={sheet.key} className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className="text-base font-semibold text-slate-900">{sheet.category}</h2>
+              <h2 className="text-base font-semibold text-slate-900">
+                {sheet.category}
+                <span
+                  className={`ml-2 inline-flex px-2 py-0.5 align-middle text-xs font-semibold ${
+                    sheet.sheet === 'plan' ? 'badge-blue' : 'badge-green'
+                  }`}
+                >
+                  {sheet.title}
+                </span>
+              </h2>
               <span className={`text-xs font-medium ${totalOk ? 'text-slate-500' : 'text-rose-600'}`}>
                 {totalOk ? `Нийт ${TARGET_TOTAL} оноо` : `Нийт ${total} оноо — ${TARGET_TOTAL} байх ёстой`}
               </span>
@@ -222,13 +240,13 @@ export default function CriteriaManager({ sheets }: { sheets: Sheet[] }) {
                       </tr>
                     );
                   })}
-                  {adding === sheet.category ? (
+                  {adding === sheet.key ? (
                     <tr className="border-b border-slate-100 bg-teal-50/40">
                       <td className="px-4 py-2.5 text-slate-400">+</td>
                       <td className="px-4 py-2.5">
                         <input
                           autoFocus
-                          form={`add-${sheet.category}`}
+                          form={`add-${sheet.key}`}
                           required
                           placeholder="Шалгуурын нэр"
                           value={newRow.name}
@@ -238,7 +256,7 @@ export default function CriteriaManager({ sheets }: { sheets: Sheet[] }) {
                       </td>
                       <td className="px-4 py-2.5 text-center">
                         <input
-                          form={`add-${sheet.category}`}
+                          form={`add-${sheet.key}`}
                           required
                           type="number"
                           min={1}
@@ -251,8 +269,8 @@ export default function CriteriaManager({ sheets }: { sheets: Sheet[] }) {
                       </td>
                       <td />
                       <td className="px-4 py-2.5">
-                        <form id={`add-${sheet.category}`} onSubmit={(e) => add(e, sheet.category)} className="flex justify-end gap-1.5">
-                          <button type="submit" disabled={busyId === `add:${sheet.category}`} className={iconButton} title="Нэмэх">
+                        <form id={`add-${sheet.key}`} onSubmit={(e) => add(e, sheet)} className="flex justify-end gap-1.5">
+                          <button type="submit" disabled={busyId === `add:${sheet.key}`} className={iconButton} title="Нэмэх">
                             <HiCheck size={16} />
                           </button>
                           <button type="button" onClick={() => setAdding(null)} className={iconButton} title="Болих">
@@ -268,11 +286,11 @@ export default function CriteriaManager({ sheets }: { sheets: Sheet[] }) {
                     <td className={`px-4 py-3 text-center font-bold ${totalOk ? 'text-slate-900' : 'text-rose-600'}`}>{total}</td>
                     <td />
                     <td className="px-4 py-3 text-right">
-                      {adding !== sheet.category && (
+                      {adding !== sheet.key && (
                         <button
                           type="button"
                           onClick={() => {
-                            setAdding(sheet.category);
+                            setAdding(sheet.key);
                             setNewRow({ name: '', maxScore: '' });
                           }}
                           className="inline-flex h-8 items-center gap-1.5 bg-color-primary px-3 text-xs font-semibold text-white hover:bg-color-primary-dark"

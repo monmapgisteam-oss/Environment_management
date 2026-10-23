@@ -84,19 +84,19 @@ export default function ReportTypesManager({ reportTypes }: { reportTypes: Repor
 
   return (
     <div className="space-y-5">
-      <form onSubmit={addType} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft sm:p-5">
+      <form onSubmit={addType} className="border border-slate-200 bg-white p-4 shadow-soft sm:p-5">
         <label className="mb-1.5 block text-xs font-medium text-slate-500">Шинэ тайлангийн төрөл</label>
         <div className="flex flex-col gap-3 sm:flex-row">
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Жишээ: Улирлын тайлан"
-            className="h-11 w-full flex-1 rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-slate-700 transition focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-100"
+            className="h-11 w-full flex-1 border border-slate-200 bg-white px-3.5 text-sm text-slate-700 transition focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-100"
           />
           <button
             type="submit"
             disabled={saving || !name.trim()}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#0F766E] px-6 text-sm font-semibold text-white transition hover:bg-[#115E59] disabled:opacity-60"
+            className="inline-flex h-11 items-center justify-center gap-2 bg-[#0F766E] px-6 text-sm font-semibold text-white transition hover:bg-[#115E59] disabled:opacity-60"
           >
             <HiPlus size={16} />
             {saving ? 'Нэмж байна...' : 'Нэмэх'}
@@ -105,7 +105,7 @@ export default function ReportTypesManager({ reportTypes }: { reportTypes: Repor
         {error && <p className="mt-3 text-sm font-medium text-red-500">{error}</p>}
       </form>
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft">
+      <div className="overflow-hidden border border-slate-200 bg-white shadow-soft">
         <table className="w-full text-sm border-collapse">
           <thead>
             <tr className="border-b-2 border-slate-200 bg-slate-50">
@@ -125,7 +125,7 @@ export default function ReportTypesManager({ reportTypes }: { reportTypes: Repor
                       onChange={(e) => setEditingName(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && saveRename(rt)}
                       autoFocus
-                      className="h-9 w-full max-w-xs rounded-lg border border-teal-300 px-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-100"
+                      className="h-9 w-full max-w-xs border border-teal-300 px-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-100"
                     />
                   ) : (
                     rt.name
@@ -144,13 +144,13 @@ export default function ReportTypesManager({ reportTypes }: { reportTypes: Repor
                         <button
                           onClick={() => saveRename(rt)}
                           disabled={busyId === rt.id}
-                          className="rounded-lg border border-teal-200 bg-white px-3 py-1.5 text-xs font-semibold text-teal-700 hover:bg-teal-50 disabled:opacity-60"
+                          className="border border-teal-200 bg-white px-3 py-1.5 text-xs font-semibold text-teal-700 hover:bg-teal-50 disabled:opacity-60"
                         >
                           Хадгалах
                         </button>
                         <button
                           onClick={() => setEditingId(null)}
-                          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                          className="border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50"
                         >
                           Цуцлах
                         </button>
@@ -159,14 +159,14 @@ export default function ReportTypesManager({ reportTypes }: { reportTypes: Repor
                       <>
                         <button
                           onClick={() => startRename(rt)}
-                          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                          className="border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50"
                         >
                           Нэр солих
                         </button>
                         <button
                           onClick={() => toggleActive(rt)}
                           disabled={busyId === rt.id}
-                          className={`rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-60 ${
+                          className={` border px-3 py-1.5 text-xs font-semibold disabled:opacity-60 ${
                             rt.isActive
                               ? 'border-red-200 bg-white text-red-600 hover:bg-red-50'
                               : 'border-emerald-200 bg-white text-emerald-600 hover:bg-emerald-50'

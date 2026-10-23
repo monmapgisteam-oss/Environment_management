@@ -1,9 +1,9 @@
 import type { Attachment } from '@/lib/reports/attachments';
 
-// Documents a report must attach, per report type and category. A plan uses
-// Журмын 5 дугаар хавсралтын А хэсэг (plus the attachments the mining checklist
-// in Журмын 6 дугаар хавсралт asks for); a performance report uses
-// "Тайлангийн хавсралтууд" from Журмын 3 дугаар хавсралтын Б хэсэг.
+// Documents a report must attach, per report type and category. A plan attaches
+// each table of Журмын 3 дугаар хавсралтын А хэсэг; a performance report uses
+// "Тайлангийн хавсралтууд" from Журмын 3 дугаар хавсралтын Б хэсэг. Both start
+// with the project introduction.
 // Uploaded files carry the item's `id` as `materialId`. Ids are shared between
 // categories where the regulation asks for the same thing.
 
@@ -135,55 +135,66 @@ export const REPORT_MATERIALS: Record<string, ReportMaterial[]> = {
   ],
 };
 
-// Журмын 5 дугаар хавсралтын А хэсэг: documents needed to accept a plan.
-// Item 6 asks for the plan itself (3 printed copies and an electronic copy).
-const PLAN_COMPANY_CERTIFICATE: ReportMaterial = { id: 'plan-company-certificate', label: 'Аж ахуйн нэгжийн гэрчилгээ' };
-const PLAN_LICENSE_COPY: ReportMaterial = {
-  id: 'plan-license-copy',
-  label: 'Тусгай зөвшөөрлийн хуулбар',
-  note: 'Хуулиар тусгай зөвшөөрөл шаардлагатай үйл ажиллагааны хувьд',
-};
-const PLAN_CHECKLIST: ReportMaterial = {
-  id: 'plan-checklist',
-  label: 'Байгаль орчны менежментийн төлөвлөгөөний хяналтын хуудас',
-  note: 'аж ахуйн нэгж бөглөх',
-};
-const PLAN_NO_OPERATION_STATEMENT: ReportMaterial = {
-  id: 'plan-no-operation-statement',
-  label: 'Энэ журмын 2.6-д заасан нөхцөл байдлын улмаас өмнөх онд ашиглалт хийгээгүй, үйл ажиллагаа явуулаагүй тухай тодорхойлолт',
-  note: 'хамаарах тохиолдолд',
-};
-const PLAN_DOCUMENT: ReportMaterial = {
-  id: 'plan-document',
-  label: 'Тухайн жилийн байгаль орчны менежментийн төлөвлөгөө',
-  note: 'цахим хэлбэрээр; хэвлэмэл хэлбэрээр 3 хувь ирүүлнэ',
-};
-
-const PLAN_COMMON_BEFORE: ReportMaterial[] = [PLAN_COMPANY_CERTIFICATE, PLAN_LICENSE_COPY, PLAN_CHECKLIST, PLAN_NO_OPERATION_STATEMENT];
+// Журмын 3 дугаар хавсралтын А хэсэг: the plan of each category is made of
+// these tables. The id after "plan-" names the table's template file in
+// public/samples/<category folder>/ (lib/reports/samples.ts).
+const PLAN_NEGATIVE_IMPACT: ReportMaterial = { id: 'plan-negative-impact', label: 'Сөрөг нөлөөллийг бууруулах арга хэмжээний төлөвлөгөө' };
+const PLAN_HERITAGE: ReportMaterial = { id: 'plan-heritage', label: 'Түүх, соёлын өвийг хамгаалах арга хэмжээний төлөвлөгөө' };
+const PLAN_RISK: ReportMaterial = { id: 'plan-risk', label: 'Осол, эрсдэлийн менежментийн төлөвлөгөө' };
+const PLAN_WASTE: ReportMaterial = { id: 'plan-waste', label: 'Хог, хаягдлын менежментийн төлөвлөгөө' };
+const PLAN_MONITORING: ReportMaterial = { id: 'plan-monitoring', label: 'Орчны хяналт шинжилгээний хөтөлбөр' };
+const PLAN_MANAGEMENT: ReportMaterial = { id: 'plan-management', label: 'Удирдлага зохион байгуулалтын төлөвлөгөө' };
+const PLAN_REPORTING: ReportMaterial = { id: 'plan-reporting', label: 'Нөлөөллийн бүсийн оршин суугчдад тайлагнах төлөвлөгөө' };
 
 export const PLAN_MATERIALS: Record<string, ReportMaterial[]> = {
   'Уул уурхай, газрын тос': [
-    ...PLAN_COMMON_BEFORE,
+    PLAN_NEGATIVE_IMPACT,
     {
-      id: 'plan-mining-work-plan',
-      label: 'Тухайн жилийн уулын ажлын төлөвлөгөөний баталгаажсан нүүр, байгаль орчинтой холбоотой маягтууд',
-      note: 'маягт 1.1, 2.1, 6.2, 7.1, 10 ...',
+      id: 'plan-rehabilitation',
+      label: 'Нөхөн сэргээлтийн төлөвлөгөө /техникийн нөхөн сэргээлт, биологийн нөхөн сэргээлт, татан буулгах, хаалтад бэлтгэх/',
     },
-    // Журмын 6 дугаар хавсралт, 2.1.9 and 2.1.11.
-    {
-      id: 'plan-mining-work-plan-forms',
-      label: 'Батлагдсан уулын ажлын төлөвлөгөөний 1.1, 1.5, 1.7, 1.9, 1.10, 1.11 дэх маягт',
-    },
-    {
-      id: 'plan-protected-area-reference',
-      label: 'ТХГН, гол, мөрний урсац бүрэлдэх эх, усны сан бүхий газрын хамгаалалтын бүс, ойн сан бүхий газрын хилийн заагтай давхцсан эсэхийг тодорхойлсон лавлагаа',
-    },
-    PLAN_DOCUMENT,
+    { id: 'plan-biodiversity', label: 'Биологийн олон янз байдлыг дүйцүүлэн хамгаалах арга хэмжээний төлөвлөгөө' },
+    { id: 'plan-resettlement', label: 'Нүүлгэн шилжүүлэх, нөхөн олговор олгох арга хэмжээний төлөвлөгөө' },
+    PLAN_HERITAGE,
+    PLAN_RISK,
+    PLAN_WASTE,
+    PLAN_MONITORING,
+    PLAN_MANAGEMENT,
+    PLAN_REPORTING,
   ],
-  'Дэд бүтэц, барилга, ШТС': [...PLAN_COMMON_BEFORE, PLAN_DOCUMENT],
-  'Аялал жуулчлал, үйлчилгээ': [...PLAN_COMMON_BEFORE, PLAN_DOCUMENT],
-  Үйлдвэрлэл: [...PLAN_COMMON_BEFORE, PLAN_DOCUMENT],
+  'Дэд бүтэц, барилга, ШТС': [
+    PLAN_NEGATIVE_IMPACT,
+    { id: 'plan-landscaping', label: 'Орчны тохижилт, нөхөн сэргээлтийн төлөвлөгөө' },
+    PLAN_HERITAGE,
+    PLAN_RISK,
+    PLAN_WASTE,
+    PLAN_MONITORING,
+    PLAN_MANAGEMENT,
+    PLAN_REPORTING,
+  ],
+  'Аялал жуулчлал, үйлчилгээ': [
+    PLAN_NEGATIVE_IMPACT,
+    { id: 'plan-landscaping', label: 'Орчны тохижилт, цэцэрлэгжүүлэлтийн төлөвлөгөө' },
+    PLAN_HERITAGE,
+    PLAN_WASTE,
+    PLAN_MONITORING,
+    PLAN_MANAGEMENT,
+    PLAN_REPORTING,
+  ],
+  Үйлдвэрлэл: [
+    PLAN_NEGATIVE_IMPACT,
+    { id: 'plan-landscaping', label: 'Орчны тохижилт, цэцэрлэгжүүлэлтийн төлөвлөгөө' },
+    PLAN_HERITAGE,
+    PLAN_RISK,
+    PLAN_WASTE,
+    PLAN_MONITORING,
+    PLAN_MANAGEMENT,
+    PLAN_REPORTING,
+  ],
 };
+
+// Every plan and performance report starts with a short introduction of the project.
+export const PROJECT_INTRO: ReportMaterial = { id: 'project-intro', label: 'Төслийн товч танилцуулга' };
 
 const PLAN_REPORT_TYPE = 'Жилийн төлөвлөгөө';
 
@@ -193,12 +204,28 @@ export function materialsFor(
 ): ReportMaterial[] {
   if (!reportCategory) return [];
   const lists = reportType === PLAN_REPORT_TYPE ? PLAN_MATERIALS : REPORT_MATERIALS;
-  return lists[reportCategory] || [];
+  const materials = lists[reportCategory];
+  return materials ? [PROJECT_INTRO, ...materials] : [];
 }
 
 // Heading for the material list of a report type.
 export function materialsTitle(reportType: string | null | undefined) {
   return reportType === PLAN_REPORT_TYPE ? 'Бичиг баримтын бүрдэл' : 'Тайлангийн хавсралтууд';
+}
+
+// Files saved under a document row the list no longer has (an older version
+// of the plan list), so they stay visible on the report.
+export function leftoverMaterialGroups(
+  attachments: Attachment[],
+  reportType: string | null | undefined,
+  reportCategory: string | null | undefined,
+) {
+  const known = new Set(materialsFor(reportType, reportCategory).map((material) => material.id));
+  const ids = [...new Set(attachments.map((file) => file.materialId).filter((id): id is string => !!id && !known.has(id)))];
+  return ids.map((id, index) => ({
+    material: { id, label: `Өмнөх хавсралт ${index + 1}` } as ReportMaterial,
+    files: attachments.filter((file) => file.materialId === id),
+  }));
 }
 
 // Files of each material of the report's category that has any, in list order.

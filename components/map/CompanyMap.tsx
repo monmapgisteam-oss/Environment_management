@@ -286,14 +286,14 @@ export default function CompanyMap({ points, detailRole = 'reviewer' }: CompanyM
       <button
         type="button"
         onClick={() => setPanelOpen((v) => !v)}
-        className="absolute left-2 top-2 z-[600] flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white shadow-lg sm:hidden"
+        className="absolute left-2 top-2 z-[600] flex h-9 w-9 items-center justify-center border border-slate-200 bg-white shadow-lg sm:hidden"
         aria-label="Хайлт, шүүлтүүр"
       >
         {panelOpen ? <HiX size={18} className="text-slate-600" /> : <HiSearch size={18} className="text-slate-600" />}
       </button>
 
       <div
-        className={`absolute left-2 top-14 sm:top-2 z-[500] ${panelOpen ? 'flex' : 'hidden'} sm:flex w-[220px] max-w-[78vw] max-h-[calc(100%-8rem)] sm:max-h-[calc(100%-5.5rem)] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white/97 shadow-lg backdrop-blur`}
+        className={`absolute left-2 top-14 sm:top-2 z-[500] ${panelOpen ? 'flex' : 'hidden'} sm:flex w-[220px] max-w-[78vw] max-h-[calc(100%-8rem)] sm:max-h-[calc(100%-5.5rem)] flex-col overflow-hidden border border-slate-200 bg-white/97 shadow-lg backdrop-blur`}
       >
         <div className="space-y-2 border-b border-slate-100 p-2.5">
           <div className="relative">
@@ -302,11 +302,11 @@ export default function CompanyMap({ points, detailRole = 'reviewer' }: CompanyM
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="РД, нэр, мэдээлэл хайх..."
-              className="h-8 w-full rounded-lg border border-slate-200 bg-white pl-7 pr-2.5 text-[11.5px] text-slate-700 placeholder:text-slate-400 transition focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-100"
+              className="h-8 w-full border border-slate-200 bg-white pl-7 pr-2.5 text-[11.5px] text-slate-700 placeholder:text-slate-400 transition focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-100"
             />
           </div>
 
-          <div className="grid grid-cols-3 gap-1 rounded-lg bg-slate-100 p-1">
+          <div className="grid grid-cols-3 gap-1 bg-slate-100 p-1">
             {[
               { key: 'all', label: 'All', count: sourceCounts.all },
               { key: 'report', label: 'Reports', count: sourceCounts.report },
@@ -316,7 +316,7 @@ export default function CompanyMap({ points, detailRole = 'reviewer' }: CompanyM
                 key={item.key}
                 type="button"
                 onClick={() => setSourceFilter(item.key as 'all' | 'report' | 'survey')}
-                className={`min-w-0 rounded-md px-1.5 py-1 text-[10px] font-semibold transition ${
+                className={`min-w-0 px-1.5 py-1 text-[10px] font-semibold transition ${
                   sourceFilter === item.key
                     ? 'bg-white text-slate-900 shadow-sm'
                     : 'text-slate-500 hover:text-slate-700'
@@ -331,7 +331,7 @@ export default function CompanyMap({ points, detailRole = 'reviewer' }: CompanyM
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[11.5px] text-slate-700 transition focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-100"
+            className="h-8 w-full border border-slate-200 bg-white px-2.5 text-[11.5px] text-slate-700 transition focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-100"
           >
             <option value="">Бүх төлөв</option>
             {statusOptions.map((s) => (
@@ -366,10 +366,10 @@ export default function CompanyMap({ points, detailRole = 'reviewer' }: CompanyM
                         key={pointMapKey(p, index)}
                         type="button"
                         onClick={() => flyToPoint(p, index)}
-                        className="flex w-full items-start gap-2 rounded-lg px-1.5 py-1.5 text-left transition hover:bg-slate-50"
+                        className="flex w-full items-start gap-2 px-1.5 py-1.5 text-left transition hover:bg-slate-50"
                       >
                         <span
-                          className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-white"
+                          className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center text-white"
                           style={{ backgroundColor: color }}
                         >
                           <HiOfficeBuilding size={11} />
@@ -390,7 +390,7 @@ export default function CompanyMap({ points, detailRole = 'reviewer' }: CompanyM
         </div>
       </div>
 
-      <aside className="absolute right-2 top-2 z-[500] hidden w-[260px] max-h-[calc(100%-5.5rem)] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white/97 shadow-lg backdrop-blur lg:flex">
+      <aside className="absolute right-2 top-2 z-[500] hidden w-[260px] max-h-[calc(100%-5.5rem)] flex-col overflow-hidden border border-slate-200 bg-white/97 shadow-lg backdrop-blur lg:flex">
         <div className="border-b border-slate-100 px-3 py-2.5">
           <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Статистик</p>
           <h3 className="mt-0.5 text-sm font-semibold text-slate-900">Байршлаар тайлангийн тоо</h3>
@@ -398,7 +398,7 @@ export default function CompanyMap({ points, detailRole = 'reviewer' }: CompanyM
 
         <div className="min-h-0 flex-1 overflow-y-auto p-3">
           {stats.provinceRows.length === 0 ? (
-            <p className="rounded-lg bg-slate-50 px-3 py-4 text-center text-[11px] text-slate-400">
+            <p className="bg-slate-50 px-3 py-4 text-center text-[11px] text-slate-400">
               Тайлангийн мэдээлэл алга.
             </p>
           ) : (
@@ -410,7 +410,7 @@ export default function CompanyMap({ points, detailRole = 'reviewer' }: CompanyM
                 </div>
                 <div className="space-y-1.5">
                   {stats.provinceRows.slice(0, 12).map((row) => (
-                    <div key={row.province} className="rounded-lg border border-slate-100 bg-white px-2.5 py-2">
+                    <div key={row.province} className="border border-slate-100 bg-white px-2.5 py-2">
                       <div className="flex items-center justify-between gap-3">
                         <span className="min-w-0 truncate text-[11.5px] font-semibold text-slate-700">{row.province}</span>
                         <span className="shrink-0 bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">
@@ -436,7 +436,7 @@ export default function CompanyMap({ points, detailRole = 'reviewer' }: CompanyM
                   {stats.districtRows.slice(0, 24).map((row) => (
                     <div
                       key={`${row.province}-${row.district}`}
-                      className="rounded-lg border border-slate-100 bg-white px-2.5 py-2"
+                      className="border border-slate-100 bg-white px-2.5 py-2"
                     >
                       <div className="flex items-center justify-between gap-3">
                         <span className="min-w-0 truncate text-[11.5px] font-semibold text-slate-700">{row.district}</span>
@@ -459,7 +459,7 @@ export default function CompanyMap({ points, detailRole = 'reviewer' }: CompanyM
         </div>
       </aside>
 
-      <div className="absolute left-2 bottom-2 z-[500] rounded-lg border border-slate-200 bg-white/97 px-2.5 py-2 shadow-lg backdrop-blur">
+      <div className="absolute left-2 bottom-2 z-[500] border border-slate-200 bg-white/97 px-2.5 py-2 shadow-lg backdrop-blur">
         <p className="mb-1 text-[9.5px] font-semibold uppercase tracking-wide text-slate-400">Тэмдэглэгээ</p>
         <div className="flex flex-col gap-0.5">
           {(Object.keys(SCORE_COLORS) as ScoreBucket[]).map((bucket) => (

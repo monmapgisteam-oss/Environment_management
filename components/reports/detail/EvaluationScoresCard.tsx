@@ -30,7 +30,7 @@ export default function EvaluationScoresCard({
     .join(', ');
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 p-6">
+    <div className="bg-white border border-slate-200 p-6">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
         <h2 className="text-base font-semibold text-slate-900">Үнэлгээний дүн</h2>
         {isReviewer && allEvaluatorsDone && (
@@ -103,8 +103,13 @@ export default function EvaluationScoresCard({
                 {evaluations.map((ev, i) => {
                   const score = ev.scores.find((s) => s.criterionId === criterion.id);
                   return (
-                    <td key={i} className="py-3 px-4 text-center font-medium text-color-primary">
-                      {score ? score.score : '-'}
+                    <td key={i} className="py-3 px-4 text-center align-top">
+                      <span className="font-medium text-color-primary">{score ? score.score : '-'}</span>
+                      {score?.note && (
+                        <p className="mt-1 max-w-[220px] whitespace-pre-wrap text-left text-xs text-slate-500" title="Үндэслэл, тайлбар">
+                          {score.note}
+                        </p>
+                      )}
                     </td>
                   );
                 })}
@@ -133,7 +138,7 @@ export default function EvaluationScoresCard({
         <div className="mt-5 space-y-2">
           <h3 className="text-sm font-semibold text-slate-700">Сэтгэгдлүүд</h3>
           {evaluations.filter((ev) => ev.comment).map((ev, i) => (
-            <div key={i} className="rounded-xl bg-slate-50 border border-slate-100 p-3">
+            <div key={i} className="bg-slate-50 border border-slate-100 p-3">
               <p className="text-xs font-semibold text-slate-600 mb-0.5">{ev.evaluatorName}</p>
               <p className="text-sm text-slate-700">{ev.comment}</p>
             </div>

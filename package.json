@@ -15,7 +15,8 @@
     "fix:signatures": "node --env-file=.env.local scripts/scrub-evaluation-signatures.mjs",
     "fix:locations": "node --env-file=.env.local --require ./scripts/register-typescript.cjs scripts/backfill-locations.cjs",
     "seed:report-types": "node --env-file=.env.local scripts/seed-report-types.mjs",
-    "seed:evaluators": "node --env-file=.env.local scripts/seed-evaluators.mjs"
+    "seed:evaluators": "node --env-file=.env.local scripts/seed-evaluators.mjs",
+    "seed:plan-criteria": "node --env-file=.env.local scripts/seed-plan-criteria.mjs"
   },
   "dependencies": {
     "@types/leaflet": "^1.9.21",

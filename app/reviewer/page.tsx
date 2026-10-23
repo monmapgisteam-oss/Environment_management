@@ -3,12 +3,13 @@ import PageHeader from '@/components/layout/PageHeader';
 import KpiStrip from '@/components/ui/KpiStrip';
 import Panel, { PanelEmpty } from '@/components/ui/Panel';
 import StatusBadge from '@/components/ui/StatusBadge';
+import AssignButton from '@/components/evaluation/AssignButton';
 import dataStore from '@/lib/db';
-import ReportTable from '@/components/reports/ReportTable';
 import { attachEffectiveSenderCompanies } from '@/lib/reports/companies';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
 import { uniqueAssignmentsByEvaluator } from '@/lib/reports/assignments';
 import { formatDate } from '@/lib/utils';
+import { ACTIVE_USER_WHERE } from '@/lib/auth/accounts';
 import { HiOutlineUserGroup } from 'react-icons/hi';
 
 async function fetchReviewerReports() {
@@ -29,7 +30,7 @@ async function fetchReviewerReports() {
 // Every evaluator with how many of their assignments still wait for a score.
 async function fetchStaffWorkload() {
   const staff = await dataStore.user.findMany({
-    where: { role: 'evaluator' },
+    where: { role: 'evaluator', ...ACTIVE_USER_WHERE },
     select: { id: true, name: true, evaluatorAssignments: { select: { reportId: true, status: true } } },
     orderBy: { name: 'asc' },
   });
@@ -51,6 +52,10 @@ export default async function ReviewerDashboard() {
     (r) => !r.signedScanUrl && r.assignments.length > 0 && uniqueAssignmentsByEvaluator(r.assignments).every((a) => a.status === 'submitted'),
   );
   const busiest = Math.max(1, ...staff.map((s) => s.open));
+  // Members with reports waiting for their score, busiest first; the rest are
+  // listed in one line so the panel stays short.
+  const busy = staff.filter((member) => member.open > 0).sort((a, b) => b.open - a.open);
+  const idle = staff.filter((member) => member.open === 0);
 
   return (
     <main className="flex-1 min-w-0 space-y-6 px-6 py-7 lg:px-8">
@@ -78,8 +83,9 @@ export default async function ReviewerDashboard() {
         ]}
       />
 
+      {/* Both columns stretch to the taller one; the last panel of each fills the rest. */}
       <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="space-y-6">
+        <div className="flex flex-col gap-6">
           <Panel title="Оноох шаардлагатай" count={unassigned.length} link={{ label: 'Оноох хуудас', href: '/reviewer/assign' }}>
             {unassigned.length === 0 ? (
               <PanelEmpty>Оноогоогүй тайлан алга.</PanelEmpty>
@@ -96,9 +102,12 @@ export default async function ReviewerDashboard() {
                         {report.senderCompany?.name} · {report.reportType.name} · {formatDate(report.submittedAt)}
                       </span>
                     </span>
-                    <Link href="/reviewer/assign" className="inline-flex h-8 items-center bg-color-primary px-3 text-xs font-semibold text-white hover:bg-color-primary-dark">
+                    <AssignButton
+                      report={{ id: report.id, reportNumber: report.reportNumber, title: report.title }}
+                      className="inline-flex h-8 items-center bg-color-primary px-3 text-xs font-semibold text-white hover:bg-color-primary-dark"
+                    >
                       Оноох
-                    </Link>
+                    </AssignButton>
                   </li>
                 ))}
               </ul>
@@ -128,34 +137,8 @@ export default async function ReviewerDashboard() {
               </ul>
             )}
           </Panel>
-        </div>
 
-        <div className="space-y-6">
-          <Panel title="Гишүүдийн ачаалал" subtitle="Үнэлгээ хүлээгдэж буй тайлангийн тоо" link={{ label: 'Явц', href: '/reviewer/evaluation-progress' }}>
-            {staff.length === 0 ? (
-              <PanelEmpty>Бүртгэлтэй гишүүн алга.</PanelEmpty>
-            ) : (
-              <ul className="divide-y divide-slate-100">
-                {staff.map((member) => (
-                  <li key={member.id} className="px-5 py-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <Link href={`/reviewer/staff/${member.id}`} className="truncate text-sm font-medium text-slate-800 hover:text-teal-700">
-                        {member.name}
-                      </Link>
-                      <span className="shrink-0 text-xs text-slate-500">
-                        <span className="font-semibold text-slate-900">{member.open}</span> / {member.total}
-                      </span>
-                    </div>
-                    <div className="mt-1.5 h-1.5 bg-slate-100">
-                      <div className={`h-full ${member.open === 0 ? 'bg-slate-200' : 'bg-teal-600'}`} style={{ width: `${(member.open / busiest) * 100}%` }} />
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Panel>
-
-          <Panel title="Гарын үсэг хүлээж буй" count={awaitingScan.length} subtitle="Бүх гишүүн үнэлсэн, хуулга илгээгээгүй">
+          <Panel title="Гарын үсэг хүлээж буй" count={awaitingScan.length} subtitle="Бүх гишүүн үнэлсэн, хуулга илгээгээгүй" className="flex-1">
             {awaitingScan.length === 0 ? (
               <PanelEmpty>Хүлээгдэж буй тайлан алга.</PanelEmpty>
             ) : (
@@ -173,25 +156,45 @@ export default async function ReviewerDashboard() {
             )}
           </Panel>
         </div>
+
+        <div className="flex flex-col">
+          <Panel title="Гишүүдийн ачаалал" subtitle="Үнэлгээ хүлээгдэж буй тайлангийн тоо" link={{ label: 'Явц', href: '/reviewer/evaluation-progress' }} className="flex-1">
+            {staff.length === 0 ? (
+              <PanelEmpty>Бүртгэлтэй гишүүн алга.</PanelEmpty>
+            ) : (
+              <>
+                {busy.length === 0 ? (
+                  <PanelEmpty>Үнэлгээ хүлээгдэж буй тайлан алга.</PanelEmpty>
+                ) : (
+                  <ul className="divide-y divide-slate-100">
+                    {busy.map((member) => (
+                      <li key={member.id} className="px-5 py-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <Link href={`/reviewer/staff/${member.id}`} className="truncate text-sm font-medium text-slate-800 hover:text-teal-700">
+                            {member.name}
+                          </Link>
+                          <span className="shrink-0 text-xs text-slate-500">
+                            <span className="font-semibold text-slate-900">{member.open}</span> хүлээгдэж буй
+                          </span>
+                        </div>
+                        <div className="mt-1.5 h-1.5 bg-slate-100">
+                          <div className="h-full bg-teal-600" style={{ width: `${(member.open / busiest) * 100}%` }} />
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {idle.length > 0 && (
+                  <p className="border-t border-slate-100 px-5 py-3 text-xs text-slate-500">
+                    {idle.length} гишүүнд одоогоор ажил алга: {idle.map((member) => member.name).join(', ')}
+                  </p>
+                )}
+              </>
+            )}
+          </Panel>
+        </div>
       </section>
 
-      <section className="space-y-3">
-        <h2 className="text-base font-semibold text-slate-900">Бүх тайлан</h2>
-        <ReportTable
-          role="reviewer"
-          reports={reports.map((report) => ({
-            id: report.id,
-            reportNumber: report.reportNumber,
-            reportType: report.reportType,
-            title: report.title,
-            submittedAt: report.submittedAt?.toISOString() || null,
-            status: report.status,
-            finalScore: report.finalScore,
-            senderCompany: report.senderCompany,
-            location: report.location,
-          }))}
-        />
-      </section>
     </main>
   );
 }

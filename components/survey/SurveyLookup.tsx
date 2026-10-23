@@ -119,7 +119,7 @@ export default function SurveyLookup({ role = 'reviewer' }: { role?: 'reviewer' 
 
   return (
     <div className="space-y-5">
-      <form onSubmit={search} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft sm:p-5">
+      <form onSubmit={search} className="border border-slate-200 bg-white p-4 shadow-soft sm:p-5">
         <label className="mb-1.5 block text-xs font-medium text-slate-500">Байгууллагын РД</label>
         <div className="flex flex-col gap-3 sm:flex-row">
           <div className="relative flex-1">
@@ -128,13 +128,13 @@ export default function SurveyLookup({ role = 'reviewer' }: { role?: 'reviewer' 
               value={register}
               onChange={(e) => setRegister(e.target.value)}
               placeholder="Регистрийн дугаар оруулна уу..."
-              className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-3.5 text-sm text-slate-700 transition focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-100"
+              className="h-11 w-full border border-slate-200 bg-white pl-10 pr-3.5 text-sm text-slate-700 transition focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-100"
             />
           </div>
           <button
             type="submit"
             disabled={loading}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#0F766E] px-6 text-sm font-semibold text-white transition hover:bg-[#115E59] disabled:opacity-60"
+            className="inline-flex h-11 items-center justify-center gap-2 bg-[#0F766E] px-6 text-sm font-semibold text-white transition hover:bg-[#115E59] disabled:opacity-60"
           >
             <HiSearch size={16} />
             {loading ? 'Хайж байна...' : 'Хайх'}
@@ -143,7 +143,7 @@ export default function SurveyLookup({ role = 'reviewer' }: { role?: 'reviewer' 
         {error && <p className="mt-3 text-sm font-medium text-red-500">{error}</p>}
       </form>
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft">
+      <div className="overflow-hidden border border-slate-200 bg-white shadow-soft">
         <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 text-sm text-slate-500">
           <span>Нийт: <span className="font-semibold text-slate-700">{rows.length}</span></span>
         </div>
@@ -191,7 +191,7 @@ export default function SurveyLookup({ role = 'reviewer' }: { role?: 'reviewer' 
                               type="button"
                               onClick={() => openScores(row)}
                               disabled={matchLoading === row.objectId}
-                              className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-teal-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-teal-700 transition hover:bg-teal-50 disabled:opacity-60 whitespace-nowrap"
+                              className="inline-flex shrink-0 items-center gap-1 border border-teal-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-teal-700 transition hover:bg-teal-50 disabled:opacity-60 whitespace-nowrap"
                             >
                               {matchLoading === row.objectId ? 'Хайж байна...' : 'Дэлгэрэнгүй'}
                               <HiChevronDown
@@ -215,7 +215,7 @@ export default function SurveyLookup({ role = 'reviewer' }: { role?: 'reviewer' 
                                 <a
                                   key={m.id}
                                   href={`/report/${m.id}/scores?role=${role}`}
-                                  className="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm hover:border-teal-300 hover:bg-teal-50/40"
+                                  className="flex items-center justify-between border border-slate-200 bg-white px-3 py-2 text-sm hover:border-teal-300 hover:bg-teal-50/40"
                                 >
                                   <span className="font-medium text-slate-800">{m.reportNumber} — {m.title}</span>
                                   <span className="text-xs text-slate-500">{m.reportType.name}</span>

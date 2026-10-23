@@ -248,3 +248,30 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   background: #F0FDFA !important;
   color: #0F766E !important;
 }
+
+/* Time left to undo, on toasts that carry an action (components/ui/Toaster.tsx). */
+@keyframes toast-countdown {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+.toast-countdown {
+  animation-name: toast-countdown;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+/* Phone menu slides in from the left (components/layout/MobileNav.tsx). */
+@keyframes mobile-nav-in {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+.mobile-nav-panel { animation: mobile-nav-in 180ms ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .mobile-nav-panel { animation: none; }
+}
+
+/* Clear keyboard focus everywhere (mouse clicks do not show it). */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid #0F766E;
+  outline-offset: 2px;
+}

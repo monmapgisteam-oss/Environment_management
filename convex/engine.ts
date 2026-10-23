@@ -333,9 +333,16 @@ export async function write(store: Store, model: string, op: string, args: Args 
       return { count: records.length };
     }
     case 'deleteMany': {
-      // Only leaf records are deleted by the app; refuse accidental parent deletion.
-      if (Object.values(schemaOf(model).relations).some((relation) => relation.local === 'id')) throw new Error('Delete dependent records explicitly before deleting parents.');
+      // A record is deleted only once nothing points at it any more; dependents
+      // are deleted explicitly first, never cascaded.
       const rows = await findRows(store, model, { where: args.where });
+      const children = Object.values(schemaOf(model).relations).filter((relation) => relation.local === 'id');
+      for (const { row } of rows) {
+        for (const relation of children) {
+          const dependents = await findRows(store, relation.model, { where: { [relation.foreign]: row.id }, take: 1 });
+          if (dependents.length > 0) throw new Error('Delete dependent records explicitly before deleting parents.');
+        }
+      }
       for (const { docId } of rows) await store.remove(model, docId);
       return { count: rows.length };
     }

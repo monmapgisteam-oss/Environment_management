@@ -30,15 +30,15 @@ export default async function ProfilePage() {
           </div>
           <Link
             href={homeHref}
-            className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+            className="inline-flex h-10 items-center justify-center border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
           >
             Буцах
           </Link>
         </div>
 
-        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft">
+        <section className="overflow-hidden border border-slate-200 bg-white shadow-soft">
           <div className="flex flex-col gap-4 border-b border-slate-100 px-6 py-5 sm:flex-row sm:items-center">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-400">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center bg-slate-100 text-slate-400">
               <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                 <circle cx="12" cy="7" r="4" />
@@ -77,7 +77,7 @@ export default async function ProfilePage() {
                   <img
                     src={qrUrl}
                     alt="Хувийн мэдээлэл агуулсан QR код"
-                    className="h-[220px] w-[220px] rounded-xl border border-slate-200 bg-white p-3 shadow-sm"
+                    className="h-[220px] w-[220px] border border-slate-200 bg-white p-3 shadow-sm"
                   />
                   <p className="text-sm leading-6 text-slate-500">
                     QR код нь нэр, албан тушаал, ажлын газар, утасны дугаарыг агуулна.

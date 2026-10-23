@@ -11,7 +11,7 @@ type Props = {
 export default function SurveyReportDetail({ survey }: Props) {
   return (
     <main className="flex-1 min-w-0 p-6 space-y-5">
-      <div className="rounded-2xl border border-slate-200 bg-white p-6">
+      <div className="border border-slate-200 bg-white p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-xs font-medium uppercase tracking-wide text-amber-600">Survey системээс тайлан ирлээ</p>
@@ -41,14 +41,14 @@ export default function SurveyReportDetail({ survey }: Props) {
       </div>
 
       {survey.description && (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6">
+        <div className="border border-slate-200 bg-white p-6">
           <h2 className="text-base font-semibold text-slate-900">Тайлбар</h2>
           <p className="mt-2 whitespace-pre-wrap text-sm font-medium text-slate-800">{survey.description}</p>
         </div>
       )}
 
       {survey.photos.length > 0 && (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6">
+        <div className="border border-slate-200 bg-white p-6">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-base font-semibold text-slate-900">Хавсаргасан зураг</h2>
             <span className="bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-500">
@@ -62,7 +62,7 @@ export default function SurveyReportDetail({ survey }: Props) {
                 href={photo.src}
                 target="_blank"
                 rel="noreferrer"
-                className="group overflow-hidden rounded-xl border border-slate-200 bg-slate-50"
+                className="group overflow-hidden border border-slate-200 bg-slate-50"
               >
                 <img
                   src={photo.src}
@@ -77,7 +77,7 @@ export default function SurveyReportDetail({ survey }: Props) {
       )}
 
       {survey.lat != null && survey.lng != null && (
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+        <div className="overflow-hidden border border-slate-200 bg-white">
           <div className="border-b border-slate-100 px-6 py-4">
             <h2 className="text-base font-semibold text-slate-900">Газрын зураг дээрх байршил</h2>
           </div>

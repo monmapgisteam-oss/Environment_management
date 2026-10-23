@@ -5,6 +5,7 @@ import ReportTable from '@/components/reports/ReportTable';
 import { fetchSurveyReports } from '@/lib/survey/reports';
 import { attachEffectiveSenderCompanies } from '@/lib/reports/companies';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
+import { nounForReportType, REPORT_NOUN } from '@/lib/reports/terms';
 
 async function fetchReportTypes() {
   return dataStore.reportType.findMany({
@@ -54,6 +55,7 @@ export default async function ReviewerReportsPage(props: { searchParams: Promise
       : fetchSurveyReports({ reportTypeName: selectedSurveyType }),
   ]);
 
+  const noun = selectedType ? nounForReportType(selectedType.name) : REPORT_NOUN;
   const existingReportNumbers = new Set(reports.map((report) => report.reportNumber));
   const tableReports = [
     ...reports.map((report) => ({
@@ -88,15 +90,15 @@ export default async function ReviewerReportsPage(props: { searchParams: Promise
   return (
     <main className="flex-1 min-w-0 space-y-6 px-6 py-7 lg:px-8">
       <PageHeader
-        title="Ирсэн тайлангууд"
+        title={`Ирсэн ${noun.many}`}
         subtitle={
-          searchParams.type
-            ? reportTypes.find((rt) => rt.slug === searchParams.type)?.name + ' төрлийн тайлангууд'
+          selectedType
+            ? `${selectedType.name} төрлийн ${noun.many}`
             : 'Бүх ирсэн тайлангуудын жагсаалт.'
         }
       />
 
-      <ReportTable role="reviewer" reports={tableReports} />
+      <ReportTable role="reviewer" reports={tableReports} noun={noun} />
     </main>
   );
 }

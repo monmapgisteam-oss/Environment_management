@@ -15,7 +15,7 @@ export default async function SenderGeographyPage() {
       <PageHeader title="Газарзүйн мэдээлэл" subtitle="Миний илгээсэн тайлангуудын байршил." />
 
       <div
-        className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft"
+        className="overflow-hidden border border-slate-200 bg-white shadow-soft"
         style={{ height: 'calc(100vh - 200px)', minHeight: 480 }}
       >
         <CompanyMapSection points={points} detailRole="sender" />

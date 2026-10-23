@@ -44,7 +44,7 @@ export default function SignatureBadge({ status, signedAt, signatureId, signerNa
       </button>
 
       {open && canSeeDetail && (
-        <div className="absolute left-1/2 top-full z-50 mt-1.5 w-60 -translate-x-1/2 rounded-xl border border-slate-200 bg-white p-3 text-left text-xs shadow-lg">
+        <div className="absolute left-1/2 top-full z-50 mt-1.5 w-60 -translate-x-1/2 border border-slate-200 bg-white p-3 text-left text-xs shadow-lg">
           <p className="text-slate-500">
             Гарын үсэг зурсан: <span className="font-medium text-slate-800">{signerName}</span>
           </p>

@@ -66,6 +66,7 @@ export default async function SenderReportsPage() {
       <PageHeader title="Миний тайлангууд" />
 
       <ReportTable
+        emptyHint="Илгээсэн тайлан, төлөвлөгөө энд харагдана. Зүүн цэсний «Жилийн төлөвлөгөө» эсвэл «Биелэлтийн тайлан»-аас илгээнэ үү."
         role="sender"
         reports={tableReports}
       />

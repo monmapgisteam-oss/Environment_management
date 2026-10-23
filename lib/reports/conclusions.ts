@@ -1,44 +1,15 @@
 import type { Attachment } from '@/lib/reports/attachments';
+import { REPORT_CATEGORIES } from '@/lib/constants';
+import { DISTRICTS } from '@/lib/map/mongolia';
 
 export const GENERAL_EVALUATION_CONCLUSION_TITLE = 'Ерөнхий үнэлгээний дүгнэлт';
 
-export const CONCLUSION_PROJECT_CATEGORIES = [
-  'Үйлчилгээний салбарын төсөл',
-  'Уул уурхайн төсөл',
-  'Бусад төсөл',
-  'Дэд бүтцийн хөгжлийн төсөл',
-  'Биологийн төрөл зүйлийн төсөл',
-  'Тусгай хамгаалалттай газар нутагт явуулах үйл ажиллагаа',
-  'Химийн хортой болон цацраг идэвхт бодис, аюултай хаягдлын төсөл',
-  'Хөнгөн хүнсний үйлдвэрийн төсөл',
-  'Хувиргасан амьд организмтай холбоотой үйлдвэрлэл, үйлчилгээ эрхлэх',
-  'Хүнд үйлдвэрийн төсөл',
-  'Хөдөө аж ахуйн төсөл',
-];
+// Conclusions use the same four project categories as plans and reports.
+export const CONCLUSION_PROJECT_CATEGORIES = REPORT_CATEGORIES;
 
-export const CONCLUSION_PROVINCES = [
-  'Архангай',
-  'Баян-Өлгий',
-  'Баянхонгор',
-  'Булган',
-  'Говь-Алтай',
-  'Говьсүмбэр',
-  'Дархан-Уул',
-  'Дорноговь',
-  'Дорнод',
-  'Дундговь',
-  'Завхан',
-  'Орхон',
-  'Өвөрхангай',
-  'Өмнөговь',
-  'Сүхбаатар',
-  'Сэлэнгэ',
-  'Төв',
-  'Увс',
-  'Ховд',
-  'Хөвсгөл',
-  'Хэнтий',
-];
+// Projects are in the capital, so the location is one of its nine districts.
+export const CONCLUSION_DISTRICTS = DISTRICTS['Улаанбаатар'];
+export const CONCLUSION_PROVINCE = 'Улаанбаатар';
 
 export const CONCLUSION_TYPES = [
   'БОНБНҮ хийлгэх шаардлагатай',
@@ -51,20 +22,22 @@ export type ConclusionSearchParams = {
   number?: string;
   category?: string;
   project?: string;
-  province?: string;
+  district?: string;
   implementer?: string;
   kind?: string;
 };
 
 export type ConclusionRow = {
   id: string;
-  reportNumber: string;
+  // The sender's own conclusion number and year; older rows fall back to the
+  // system report number and submission year.
+  conclusionNumber: string;
+  year: string;
   submittedAt: Date | null;
-  reportTypeName: string;
-  title: string;
+  category: string;
+  projectName: string;
   senderCompanyName: string;
   implementerName: string | null;
-  province: string | null;
   district: string | null;
   conclusionType: string;
   status: string;
@@ -76,15 +49,14 @@ const includes = (value: string | null | undefined, query: string | null | undef
 
 export function filterConclusions(rows: ConclusionRow[], search: ConclusionSearchParams) {
   return rows.filter((row) => {
-    const submittedYear = row.submittedAt ? String(row.submittedAt.getFullYear()) : '';
     const effectiveImplementer = row.implementerName || row.senderCompanyName;
 
     return (
-      includes(submittedYear, search.year) &&
-      includes(row.reportNumber, search.number) &&
-      includes(row.reportTypeName, search.category) &&
-      includes(row.title, search.project) &&
-      includes(row.province, search.province) &&
+      includes(row.year, search.year) &&
+      includes(row.conclusionNumber, search.number) &&
+      includes(row.category, search.category) &&
+      includes(row.projectName, search.project) &&
+      includes(row.district, search.district) &&
       includes(effectiveImplementer, search.implementer) &&
       includes(row.conclusionType, search.kind)
     );

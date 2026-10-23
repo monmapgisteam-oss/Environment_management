@@ -115,6 +115,14 @@
         "nullable": true,
         "length": 4096
       },
+      "isActive": {
+        "type": "boolean",
+        "nullable": true
+      },
+      "mustChangePassword": {
+        "type": "boolean",
+        "nullable": true
+      },
       "createdAt": {
         "type": "date",
         "nullable": false,
@@ -227,6 +235,11 @@
         "unique": true,
         "length": 128
       },
+      "conclusionNumber": {
+        "type": "string",
+        "nullable": true,
+        "length": 4096
+      },
       "reportTypeId": {
         "type": "string",
         "nullable": false,
@@ -251,6 +264,11 @@
       "title": {
         "type": "string",
         "nullable": false,
+        "length": 4096
+      },
+      "projectName": {
+        "type": "string",
+        "nullable": true,
         "length": 4096
       },
       "description": {
@@ -319,6 +337,11 @@
         "type": "string",
         "nullable": true,
         "length": 4096
+      },
+      "revisionItems": {
+        "type": "string",
+        "nullable": true,
+        "length": 1000000
       },
       "year": {
         "type": "integer",
@@ -508,6 +531,15 @@
           "Дэд бүтэц, барилга, ШТС",
           "Аялал жуулчлал, үйлчилгээ",
           "Үйлдвэрлэл"
+        ],
+        "length": 4096
+      },
+      "sheet": {
+        "type": "string",
+        "nullable": true,
+        "values": [
+          "plan",
+          "performance"
         ],
         "length": 4096
       },
@@ -759,6 +791,11 @@
       "score": {
         "type": "integer",
         "nullable": false
+      },
+      "note": {
+        "type": "string",
+        "nullable": true,
+        "length": 4096
       }
     },
     "relations": {

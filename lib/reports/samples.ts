@@ -103,45 +103,39 @@ export function sampleForCriterion(category: string | null | undefined, criterio
   };
 }
 
-// Templates for the documents of an annual plan, by material id
-// (lib/reports/materials.ts): cover page and content for the plan itself, the
-// checklist of Журмын 6. Other documents (certificates, licences) have none.
-const PLAN_CONTENT_FILES: Record<string, string> = {
-  'Уул уурхай, газрын тос': 'plan-content-mining',
-  'Аялал жуулчлал, үйлчилгээ': 'plan-content-tourism',
-  Үйлдвэрлэл: 'plan-content-industry',
-  'Дэд бүтэц, барилга, ШТС': 'plan-content-infrastructure',
-};
-
-function planFile(file: string, label: string, page: number, download: string): SampleLink {
-  return { href: `/samples/plan/${file}.pdf`, label, page, download };
-}
-
+// Template of a plan table, by material id (lib/reports/materials.ts): a plan
+// row "plan-<file>" is the same table of Журмын 3 дугаар хавсралтын А хэсэг
+// that the criterion samples above are cut from.
 export function samplesForMaterial(
   reportType: string | null | undefined,
   category: string | null | undefined,
-  materialId: string,
+  material: { id: string; label: string },
 ): SampleLink[] {
-  if (reportType !== 'Жилийн төлөвлөгөө' || !category) return [];
-  if (materialId === 'plan-checklist') {
-    return [planFile('checklist', 'Хяналтын хуудасны загвар (Журмын 6-р хавсралт)', 15, 'Загвар - Хяналтын хуудас.pdf')];
-  }
-  if (materialId === 'plan-document') {
-    const isMining = category === 'Уул уурхай, газрын тос';
-    const content = PLAN_CONTENT_FILES[category];
-    return [
-      planFile(
-        isMining ? 'cover-mining' : 'cover-general',
-        'Нүүр хуудасны загвар (Журмын 1-р хавсралт)',
-        1,
-        `Загвар - Төлөвлөгөөний нүүр хуудас (${category}).pdf`,
-      ),
-      ...(content
-        ? [planFile(content, 'Төлөвлөгөөний агуулга, хүснэгтүүд (Журмын 3-р хавсралт)', 3, `Загвар - Төлөвлөгөөний агуулга (${category}).pdf`)]
-        : []),
-    ];
-  }
-  return [];
+  if (reportType !== 'Жилийн төлөвлөгөө' || !category || !material.id.startsWith('plan-')) return [];
+  const file = material.id.slice('plan-'.length);
+  const match = SUBJECT_PAGES[category]?.find(([, subjectFile]) => subjectFile === file);
+  if (!match) return [];
+  const page = match[2];
+  return [
+    {
+      href: `/samples/${CATEGORY_FOLDERS[category]}/${file}.pdf`,
+      label: `Загвар хүснэгт татах (Журмын 3-р хавсралт, ${page}-р хуудас)`,
+      page,
+      download: downloadName(category, material.label),
+    },
+  ];
+}
+
+// The approved cover page of the plan (Журмын 1 дүгээр хавсралт).
+export function planCoverSample(category: string | null | undefined): SampleLink | null {
+  if (!category || !CATEGORY_FOLDERS[category]) return null;
+  const isMining = category === 'Уул уурхай, газрын тос';
+  return {
+    href: `/samples/plan/${isMining ? 'cover-mining' : 'cover-general'}.pdf`,
+    label: 'Төлөвлөгөөний нүүр хуудасны загвар (Журмын 1-р хавсралт)',
+    page: 1,
+    download: `Загвар - Төлөвлөгөөний нүүр хуудас (${category}).pdf`,
+  };
 }
 
 export function scoringSheetSample(category: string | null | undefined): SampleLink | null {

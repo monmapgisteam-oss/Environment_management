@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import PageHeader from '@/components/layout/PageHeader';
+import { nounForReportType } from '@/lib/reports/terms';
 import KpiStrip from '@/components/ui/KpiStrip';
 import Panel, { PanelEmpty } from '@/components/ui/Panel';
 import EmptyState from '@/components/ui/EmptyState';
@@ -90,6 +91,7 @@ export default async function EvaluatorDashboard(props: { searchParams: Promise<
   const activeTypeName = searchParams.type
     ? reportTypes.find((rt) => rt.slug === searchParams.type)?.name
     : null;
+  const noun = nounForReportType(activeTypeName);
 
   const queue = reports.filter((r) => r.assignmentStatus !== 'submitted' && r.status !== 'needs_revision');
   const scored = reports.filter((r) => r.assignmentStatus === 'submitted').length;
@@ -108,9 +110,9 @@ export default async function EvaluatorDashboard(props: { searchParams: Promise<
   return (
     <main className="flex-1 min-w-0 space-y-6 px-6 py-7 lg:px-8">
       <PageHeader
-        title="Надад оноогдсон тайлангууд"
+        title={`Надад оноогдсон ${noun.many}`}
         eyebrow={user.name}
-        subtitle={activeTypeName ? `${activeTypeName} төрлийн тайлангууд` : 'Хянах менежерээс танд оноосон тайлангууд'}
+        subtitle={activeTypeName ? `${activeTypeName} төрлийн ${noun.many}` : 'Хянах менежерээс танд оноосон тайлангууд'}
       />
 
       <KpiStrip
@@ -122,9 +124,9 @@ export default async function EvaluatorDashboard(props: { searchParams: Promise<
           ]}
         />
 
-      <Panel title="Үнэлгээ хүлээж буй" count={queue.length} subtitle="Хугацааны дарааллаар" link={{ label: 'Үнэлсэн тайлангууд', href: '/evaluator/evaluated' }}>
+      <Panel title="Үнэлгээ хүлээж буй" count={queue.length} subtitle="Хугацааны дарааллаар" link={{ label: `Үнэлсэн ${noun.many}`, href: '/evaluator/evaluated' }}>
           {queue.length === 0 ? (
-            <PanelEmpty>Үнэлэх тайлан алга. Шинэ тайлан оноогдоход мэдэгдэл ирнэ.</PanelEmpty>
+            <PanelEmpty>Үнэлэх {noun.one} алга. Шинэ {noun.one} оноогдоход мэдэгдэл ирнэ.</PanelEmpty>
           ) : (
             <ul className="divide-y divide-slate-100">
               {[...queue]
@@ -153,14 +155,14 @@ export default async function EvaluatorDashboard(props: { searchParams: Promise<
         </Panel>
 
       <section className="space-y-3">
-        <h2 className="text-base font-semibold text-slate-900">Бүх оноогдсон тайлан</h2>
+        <h2 className="text-base font-semibold text-slate-900">Бүх оноогдсон {noun.one}</h2>
         {reports.length === 0 ? (
           <EmptyState
-            title={activeTypeName ? `${activeTypeName} төрлийн оноогдсон тайлан алга байна.` : 'Танд оноогдсон тайлан одоогоор алга байна.'}
-            hint="Хянах менежер тайлан оноосны дараа энд харагдана."
+            title={activeTypeName ? `${activeTypeName} төрлийн оноогдсон ${noun.one} алга байна.` : 'Танд оноогдсон тайлан одоогоор алга байна.'}
+            hint={`Хянах менежер ${noun.one} оноосны дараа энд харагдана.`}
           />
         ) : (
-          <ReportTable reports={tableRows} role="staff" showStatusFilter={false} />
+          <ReportTable reports={tableRows} role="staff" showStatusFilter={false} noun={noun} />
         )}
       </section>
     </main>

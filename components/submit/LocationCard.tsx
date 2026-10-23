@@ -143,7 +143,7 @@ export default function LocationCard({ onLocationChange, initialLocation, regist
   };
 
   return (
-    <div className="border border-slate-200 rounded-2xl p-6">
+    <div className="border border-slate-200 p-6">
       <div className="flex items-center gap-2.5 mb-1">
         <svg
           width="18"
@@ -181,7 +181,7 @@ export default function LocationCard({ onLocationChange, initialLocation, regist
       )}
 
       <div
-        className="rounded-2xl overflow-hidden border border-slate-200"
+        className="overflow-hidden border border-slate-200"
         style={{ height: 380 }}
       >
         <MapPicker
@@ -193,7 +193,7 @@ export default function LocationCard({ onLocationChange, initialLocation, regist
       </div>
 
       {coords && (
-        <div className="mt-4 p-3 rounded-xl bg-slate-50 border border-slate-200">
+        <div className="mt-4 p-3 bg-slate-50 border border-slate-200">
           <p className="text-xs text-color-text-muted mb-1">Байршил</p>
           <p className="text-sm font-medium text-color-text-main">
             {coords.lat.toFixed(6)}, {coords.lng.toFixed(6)}

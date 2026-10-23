@@ -12,8 +12,9 @@ import SavedAttachmentList from "@/components/submit/SavedAttachmentList";
 import SubmitActions from "@/components/submit/SubmitActions";
 import SubmitStepper from "@/components/submit/SubmitStepper";
 import { useReportSubmission } from "@/components/submit/useReportSubmission";
-import { materialsTitle } from "@/lib/reports/materials";
-import { sampleForCriterion, samplesForMaterial, scoringSheetSample } from "@/lib/reports/samples";
+import { PROJECT_INTRO, materialsTitle, type ReportMaterial } from "@/lib/reports/materials";
+import { planCoverSample, sampleForCriterion, samplesForMaterial, scoringSheetSample } from "@/lib/reports/samples";
+import { nounForReportType } from "@/lib/reports/terms";
 
 // `register` is the sender company's РД. The server stores that company as the
 // project implementer, so the form does not ask for it.
@@ -40,15 +41,17 @@ export default function SubmitReportForm({ register }: { register: string }) {
   );
 
   const materialsLabel = materialsTitle(form.formData.reportType);
-  const materialUploads = (
+  const materialCard = (
+    materials: ReportMaterial[],
+    props: { title: string; idPrefix: string; headerLink?: { href: string; label: string } },
+  ) => (
     <EvidenceUploadCard
-      title={materialsLabel}
-      idPrefix="material"
-      rows={form.materials.map((material) => ({
+      {...props}
+      rows={materials.map((material) => ({
         id: material.id,
         label: material.label,
         detail: material.note,
-        samples: samplesForMaterial(form.formData.reportType, form.formData.reportCategory, material.id),
+        samples: samplesForMaterial(form.formData.reportType, form.formData.reportCategory, material),
       }))}
       filesByRow={form.materialFiles}
       existingByRow={form.existingMaterialAttachments}
@@ -56,6 +59,20 @@ export default function SubmitReportForm({ register }: { register: string }) {
       onExistingChange={form.handleExistingMaterialFilesChange}
     />
   );
+  // Performance reports ask for the project introduction first, above the
+  // criterion evidence; plans keep it as the first row of their documents.
+  const hasProjectIntro = form.materials.some((material) => material.id === PROJECT_INTRO.id);
+  const projectIntroUpload = materialCard([PROJECT_INTRO], { title: PROJECT_INTRO.label, idPrefix: "intro" });
+  const materialUploads = form.isPerformanceReport
+    ? materialCard(
+        form.materials.filter((material) => material.id !== PROJECT_INTRO.id),
+        { title: materialsLabel, idPrefix: "material" },
+      )
+    : materialCard(form.materials, {
+        title: materialsLabel,
+        idPrefix: "material",
+        headerLink: planCoverSample(form.formData.reportCategory) ?? undefined,
+      });
 
   const steps: { title: string; content: ReactNode }[] = [
     {
@@ -78,14 +95,15 @@ export default function SubmitReportForm({ register }: { register: string }) {
       ),
     },
     // Performance reports: criterion evidence with general files under it,
-    // then the materials of the chosen "Тайлангийн төрөл". Plans: the
-    // documents of that "Тайлангийн төрөл" with general files under them.
+    // then the materials of the chosen "Төслийн ангилал". Plans: the
+    // documents of that "Төслийн ангилал" with general files under them.
     ...(form.isPerformanceReport
       ? [
           {
             title: "Үнэлгээний шалгуурын нотлох файл",
             content: (
               <>
+                {hasProjectIntro && projectIntroUpload}
                 {form.criteria.length > 0 && (
                   <EvidenceUploadCard
                     title="Үнэлгээний шалгуурын нотлох файл"
@@ -176,6 +194,7 @@ export default function SubmitReportForm({ register }: { register: string }) {
       <div className="mx-auto w-full max-w-5xl">
         {form.submitted ? (
           <SubmitSuccessCard
+            noun={nounForReportType(form.formData.reportType)}
             isEdit={form.isEdit}
             isGeneralEvaluation={form.isGeneralEvaluation}
             reportNumber={form.submittedNumber}
@@ -184,7 +203,7 @@ export default function SubmitReportForm({ register }: { register: string }) {
           />
         ) : (
           <div
-            className="bg-white rounded-3xl"
+            className="bg-white"
             style={{ boxShadow: "0 4px 30px rgba(15, 63, 158, 0.07)" }}
           >
             {/* Card Header */}
@@ -214,7 +233,7 @@ export default function SubmitReportForm({ register }: { register: string }) {
                 </div>
               ) : (
                 <>
-                  <div className="mb-8 rounded-2xl bg-slate-50 px-2 py-5">
+                  <div className="mb-8 bg-slate-50 px-2 py-5">
                     <SubmitStepper steps={stepTitles} currentStep={activeStep} onStepClick={goToStep} />
                   </div>
                   {/* Every step stays mounted so the map and picked files keep their state. */}

@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import dataStore from '@/lib/db';
-import ReportTable from '@/components/reports/ReportTable';
 import StatusBadge from '@/components/ui/StatusBadge';
 import PageHeader from '@/components/layout/PageHeader';
 import { getCurrentUser } from '@/lib/auth';
@@ -11,9 +10,6 @@ import {
   HiOutlineArrowRight,
   HiOutlineCalendar,
   HiOutlineCheck,
-  HiOutlineDocumentDuplicate,
-  HiOutlineFolder,
-  HiOutlineMap,
   HiOutlineTrendingUp,
 } from 'react-icons/hi';
 
@@ -79,12 +75,11 @@ export default async function SenderDashboard() {
     { label: 'Үнэлгээ дууссан', value: doneCount, note: averageScore ? `Дундаж оноо ${averageScore}` : 'Дүн гараагүй', accent: 'bg-sky-500' },
   ];
 
-  const recent = reports.slice(0, 5);
-  const shortcuts = [
-    { label: 'Ноорог', note: drafts.length ? `${drafts.length} хадгалсан` : 'Хоосон', href: '/sender/drafts', icon: <HiOutlineDocumentDuplicate size={18} /> },
-    { label: 'Миний тайлангууд', note: `${totalCount} тайлан`, href: '/sender/reports', icon: <HiOutlineFolder size={18} /> },
-    { label: 'Газарзүйн мэдээлэл', note: 'Байршлууд', href: '/sender/geography', icon: <HiOutlineMap size={18} /> },
-  ];
+  const recent = reports.slice(0, 6);
+  // The report to fix first, so the banner can open it directly.
+  const toFix = reports.find((r) => r.status === 'needs_revision');
+  // Saved drafts, if any, are mentioned under the latest reports.
+  const draftCount = drafts.length;
 
   return (
     <main className="flex-1 min-w-0 space-y-6 px-6 py-7 lg:px-8">
@@ -108,8 +103,11 @@ export default async function SenderDashboard() {
           <p className="text-sm text-rose-900">
             <span className="font-semibold">{revisionCount} тайлан</span> засвар шаардаж байна. Засаад дахин илгээнэ үү.
           </p>
-          <Link href="/sender/reports" className="inline-flex items-center gap-1.5 text-sm font-semibold text-rose-700 hover:text-rose-800">
-            Тайлангууд руу очих <HiOutlineArrowRight size={15} />
+          <Link
+            href={revisionCount === 1 && toFix ? `/report/${toFix.id}?role=sender` : '/sender/reports'}
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-rose-700 hover:text-rose-800"
+          >
+            {revisionCount === 1 ? `${toFix?.reportNumber} засах` : 'Засах тайлангууд'} <HiOutlineArrowRight size={15} />
           </Link>
         </div>
       )}
@@ -172,6 +170,14 @@ export default async function SenderDashboard() {
               })}
             </ul>
           )}
+          {draftCount > 0 && (
+            <Link href="/sender/drafts" className="flex items-center justify-between border-t border-slate-200 px-6 py-3 text-sm text-slate-600 hover:bg-slate-50">
+              <span>
+                Хадгалсан ноорог: <span className="font-semibold text-slate-900">{draftCount}</span>
+              </span>
+              <HiOutlineArrowRight size={14} className="text-teal-700" />
+            </Link>
+          )}
         </div>
 
         <div className="space-y-6">
@@ -213,39 +219,9 @@ export default async function SenderDashboard() {
               ))}
             </ul>
           </div>
-
-          {/* Shortcuts */}
-          <div className="grid grid-cols-3 divide-x divide-slate-200 border border-slate-200 bg-white shadow-soft">
-            {shortcuts.map((shortcut) => (
-              <Link key={shortcut.href} href={shortcut.href} className="group flex flex-col items-center gap-2 px-3 py-4 text-center transition hover:bg-slate-50">
-                <span className="flex h-9 w-9 items-center justify-center bg-slate-100 text-slate-500 transition group-hover:bg-teal-50 group-hover:text-teal-700">
-                  {shortcut.icon}
-                </span>
-                <span className="text-xs font-semibold text-slate-800">{shortcut.label}</span>
-                <span className="text-[11px] text-slate-400">{shortcut.note}</span>
-              </Link>
-            ))}
-          </div>
         </div>
       </section>
 
-      <section className="space-y-3">
-        <h2 className="text-base font-semibold text-slate-900">Бүх тайлан</h2>
-        <ReportTable
-          role="sender"
-          reports={reports.map((report) => ({
-            id: report.id,
-            reportNumber: report.reportNumber,
-            reportType: report.reportType,
-            title: report.title,
-            submittedAt: report.submittedAt?.toISOString() || null,
-            status: report.status,
-            finalScore: report.signedScanUrl ? report.finalScore : null,
-            senderCompany: report.senderCompany,
-            location: report.location,
-          }))}
-        />
-      </section>
     </main>
   );
 }

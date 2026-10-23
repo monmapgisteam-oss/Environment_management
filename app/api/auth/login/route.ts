@@ -3,6 +3,7 @@ import dataStore from '@/lib/db';
 import { createToken, isRole, ROLE_HOME, SESSION_COOKIE, sessionCookieOptions } from '@/lib/auth/session';
 import { verifyPassword } from '@/lib/auth/password';
 import { clientIp, rateLimit } from '@/lib/auth/rateLimit';
+import { isActiveUser } from '@/lib/auth/accounts';
 
 // Brute-force guard: a handful of attempts per account and per address.
 const ATTEMPT_WINDOW_MS = 15 * 60 * 1000;
@@ -39,6 +40,9 @@ export async function POST(request: Request) {
   if (!user || !verifyPassword(password, user.password) || !isRole(user.role)) {
     return NextResponse.json({ error: 'Имэйл эсвэл нууц үг буруу.' }, { status: 401 });
   }
+  if (!isActiveUser(user)) {
+    return NextResponse.json({ error: 'Таны эрх идэвхгүй болсон байна. Системийн админд хандана уу.' }, { status: 403 });
+  }
 
   // A login portal may allow several roles (e.g. the review organisation lets
   // both the manager and staff in); each is then routed to its own home page.
@@ -58,6 +62,8 @@ export async function POST(request: Request) {
     success: true,
     role: user.role,
     redirect: ROLE_HOME[user.role],
+    // The app asks for a new password right after this login.
+    mustChangePassword: !!user.mustChangePassword,
   });
   response.cookies.set(SESSION_COOKIE, token, sessionCookieOptions());
   return response;

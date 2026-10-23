@@ -31,13 +31,13 @@ export async function fetchConclusionRows(search: ConclusionSearchParams = {}) {
       if (documents.length === 0) return null;
       return {
         id: report.id,
-        reportNumber: report.reportNumber,
+        conclusionNumber: report.conclusionNumber || report.reportNumber,
+        year: String(report.year || report.submittedAt?.getFullYear() || ''),
         submittedAt: report.submittedAt,
-        reportTypeName: report.reportType?.name || '-',
-        title: report.title,
+        category: report.reportCategory || '-',
+        projectName: report.projectName || report.title,
         senderCompanyName: report.senderCompany?.name || '-',
         implementerName: report.implementerName,
-        province: report.location?.province || null,
         district: report.location?.district || null,
         conclusionType: report.description || CONCLUSION_TYPES[0],
         status: report.status,

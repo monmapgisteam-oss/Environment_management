@@ -34,7 +34,7 @@ export default async function ReportLocationPage(props: Props) {
     <main className="flex-1 min-w-0 space-y-6 px-6 py-7 lg:px-8">
       <PageHeader title="Байршил" subtitle={<>{report.reportNumber} — {report.title}</>} />
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft" style={{ height: 'calc(100vh - 220px)' }}>
+      <div className="overflow-hidden border border-slate-200 bg-white shadow-soft" style={{ height: 'calc(100vh - 220px)' }}>
         {lat != null && lng != null ? (
           <LocationMap lat={lat} lng={lng} />
         ) : (
@@ -45,7 +45,7 @@ export default async function ReportLocationPage(props: Props) {
       </div>
 
       <div className="flex justify-end">
-        <a href={backHref} className="h-10 px-5 rounded-xl border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 transition inline-flex items-center">
+        <a href={backHref} className="h-10 px-5 border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 transition inline-flex items-center">
           Буцах
         </a>
       </div>

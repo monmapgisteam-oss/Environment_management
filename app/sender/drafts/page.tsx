@@ -30,6 +30,7 @@ export default async function DraftsPage() {
         <EmptyState title="Ноорог хадгалаагүй байна." hint="Тайлан бичиж эхлээд «Ноорог хадгалах» товчийг дарвал энд хадгалагдана." action={{ label: "Тайлан илгээх", href: "/sender/submit?type=plan" }} />
       ) : (
         <ReportTable
+          emptyHint="Илгээх маягт дээр «Ноорог хадгалах» дарсан тайлан энд хадгалагдана."
           role="sender"
           reports={reports.map((report) => ({
             id: report.id,

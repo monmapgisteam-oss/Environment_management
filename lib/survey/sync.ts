@@ -4,7 +4,7 @@ import type { Payload } from '@/lib/db/types';
 import { SURVEY_LAYER_ID, SURVEY_REPEAT_LAYER_ID, addSurveyRecord, querySurvey, updateSurveyRecord } from '@/lib/db/survey';
 import { fetchSurveyPhotoMap, type SurveyPhoto } from '@/lib/survey/photos';
 import { normalizeSurveyReportType } from '@/lib/survey/reportType';
-import { fetchCriteriaFor } from '@/lib/reports/criteria';
+import { fetchCriteriaForReport } from '@/lib/reports/criteria';
 
 // ---------------------------------------------------------------------------
 // Survey write-back integration.
@@ -174,7 +174,7 @@ export async function syncEvaluationToSurvey(params: {
     ]);
 
     if (!report || !evaluation) return;
-    const criteria = await fetchCriteriaFor(report.reportCategory);
+    const criteria = await fetchCriteriaForReport(report);
 
     // Map each criterion of the report's sheet (in sort order) to Q1, Q2, ….
     const qByCriterion: Record<string, string> = {};

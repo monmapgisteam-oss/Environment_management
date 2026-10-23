@@ -1,5 +1,6 @@
 import PageHeader from '@/components/layout/PageHeader';
 import dataStore from '@/lib/db';
+import { ACTIVE_USER_WHERE } from '@/lib/auth/accounts';
 import AssignBoard from '@/components/evaluation/AssignBoard';
 import { attachEffectiveSenderCompanies } from '@/lib/reports/companies';
 import { fetchSurveyReports } from '@/lib/survey/reports';
@@ -8,7 +9,7 @@ import { uniqueAssignmentsByEvaluator } from '@/lib/reports/assignments';
 
 async function fetchStaff() {
   const staff = await dataStore.user.findMany({
-    where: { role: 'evaluator' },
+    where: { role: 'evaluator', ...ACTIVE_USER_WHERE },
     select: {
       id: true,
       name: true,

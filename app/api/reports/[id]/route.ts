@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 import dataStore from '@/lib/db';
 import { canAccessReport, getApiUser, unauthorized } from '@/lib/auth';
-import { serializeDocumentAttachments, serializeReportAttachments } from '@/lib/reports/attachments';
+import { deleteUploads, droppedReferences } from '@/lib/db/storage';
+import { notifyReportResubmitted } from '@/lib/reports/resubmitNotifications';
+import { parseAttachments, serializeDocumentAttachments, serializeReportAttachments } from '@/lib/reports/attachments';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
 import { REPORT_CATEGORIES } from '@/lib/constants';
 import { resolveAdministrativeLocation } from '@/lib/map/locationResolver';
@@ -99,6 +101,7 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
         // Fixing a returned report clears the previous return reason.
         returnReason: null,
         returnRequestedBy: null,
+        revisionItems: null,
         submittedAt: status === 'draft' ? null : new Date(),
         ...(hasLocation
           ? {
@@ -111,8 +114,18 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
       include: { senderCompany: true },
     });
 
-    // Notify managers that a previously returned report has been resubmitted.
-    if (status === 'submitted') {
+    // Files the sender took out of the report while editing are deleted for good.
+    await deleteUploads(droppedReferences(parseAttachments(existing.fileUrl), parseAttachments(report.fileUrl)));
+
+    // A returned report fixed through the full form: managers and its assigned
+    // staff are told. A first submission from a draft goes to managers only.
+    if (status === 'submitted' && existing.status === 'needs_revision') {
+      try {
+        await notifyReportResubmitted({ reportId: report.id, reportNumber: report.reportNumber, senderName: report.senderCompany.name });
+      } catch (notifyError) {
+        console.error('Failed to create resubmit notifications', notifyError);
+      }
+    } else if (status === 'submitted') {
       try {
         const isConclusion = report.title === GENERAL_EVALUATION_CONCLUSION_TITLE;
         const managers = await dataStore.user.findMany({

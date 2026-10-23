@@ -7,7 +7,7 @@ type Criterion = { id: string; name: string; maxScore: number };
 type Evaluation = {
   evaluatorName: string;
   totalScore: number;
-  scores: { criterionId: string; score: number }[];
+  scores: { criterionId: string; score: number; note?: string | null }[];
 };
 
 type Props = {
@@ -40,14 +40,14 @@ export default function PrintScoreModal({
 
   return createPortal(
     <div className="print-portal fixed inset-0 z-[1000] flex items-center justify-center bg-slate-900/60 p-4 print:static print:bg-transparent print:p-0">
-      <div className="flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl print:max-h-none print:w-auto print:max-w-none print:overflow-visible print:rounded-none print:shadow-none">
+      <div className="flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden bg-white shadow-2xl print:max-h-none print:w-auto print:max-w-none print:overflow-visible print:rounded-none print:shadow-none">
         <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 print:hidden">
           <h2 className="text-base font-semibold text-slate-900">Хэвлэх урьдчилан харах</h2>
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => window.print()}
-              className="inline-flex items-center gap-2 rounded-xl bg-color-primary px-4 py-2 text-sm font-semibold text-white hover:bg-color-primary-dark transition"
+              className="inline-flex items-center gap-2 bg-color-primary px-4 py-2 text-sm font-semibold text-white hover:bg-color-primary-dark transition"
             >
               <HiPrinter size={16} />
               Хэвлэх
@@ -55,7 +55,7 @@ export default function PrintScoreModal({
             <button
               type="button"
               onClick={onClose}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 transition"
+              className="inline-flex h-9 w-9 items-center justify-center border border-slate-200 text-slate-500 hover:bg-slate-50 transition"
               aria-label="Хаах"
             >
               <HiX size={18} />
@@ -98,7 +98,7 @@ export default function PrintScoreModal({
                   <th rowSpan={2} className="border border-slate-500 bg-slate-100 px-1.5 py-2 font-bold text-slate-800 w-16">
                     Гишүүдийн үнэлсэн онооны энгийн арифметик дундаж
                   </th>
-                  <th rowSpan={2} className="border border-slate-500 bg-slate-100 px-1.5 py-2 font-bold text-slate-800 w-24">
+                  <th rowSpan={2} className="border border-slate-500 bg-slate-100 px-1.5 py-2 font-bold text-slate-800 w-56">
                     Үндэслэл, тайлбар
                   </th>
                 </tr>
@@ -115,6 +115,10 @@ export default function PrintScoreModal({
                   const rowScores = evaluations.map((ev) => ev.scores.find((s) => s.criterionId === c.id)?.score ?? null);
                   const scored = rowScores.filter((s): s is number => s != null);
                   const avg = scored.length ? scored.reduce((sum, s) => sum + s, 0) / scored.length : null;
+                  // Each member's үндэслэл; names are shown when several members scored.
+                  const notes = evaluations
+                    .map((ev) => ({ name: ev.evaluatorName, note: ev.scores.find((s) => s.criterionId === c.id)?.note?.trim() }))
+                    .filter((entry): entry is { name: string; note: string } => !!entry.note);
                   return (
                     <tr key={c.id} className="break-inside-avoid">
                       <td className="border border-slate-400 px-1.5 py-2 text-center">{ci + 1}</td>
@@ -126,7 +130,14 @@ export default function PrintScoreModal({
                       <td className="border border-slate-400 px-1.5 py-2 text-center font-semibold">
                         {avg != null ? Math.round(avg * 10) / 10 : ''}
                       </td>
-                      <td className="border border-slate-400 px-1.5 py-2" />
+                      <td className="border border-slate-400 px-1.5 py-2 align-top space-y-1">
+                        {notes.map((entry, i) => (
+                          <p key={i} className="whitespace-pre-wrap">
+                            {evaluations.length > 1 && <span className="font-semibold">{entry.name}: </span>}
+                            {entry.note}
+                          </p>
+                        ))}
+                      </td>
                     </tr>
                   );
                 })}

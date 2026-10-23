@@ -1,5 +1,5 @@
 import dataStore from "@/lib/db";
-import { fetchCriteriaFor } from "@/lib/reports/criteria";
+import { fetchCriteriaFor, fetchCriteriaForReport } from "@/lib/reports/criteria";
 import { requireUser } from "@/lib/auth";
 import EvaluationTable from "@/components/evaluation/EvaluationTable";
 import AttachmentList from "@/components/reports/AttachmentList";
@@ -11,7 +11,9 @@ import { signAttachments } from "@/lib/db/storage";
 import { formatDate } from "@/lib/utils";
 import { attachEffectiveSenderCompanies } from "@/lib/reports/companies";
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from "@/lib/reports/conclusions";
-import { splitScoringAttachments } from "@/lib/reports/scoringAttachments";
+import { scoringAttachmentsFor } from "@/lib/reports/scoringAttachments";
+import { reportSections } from "@/lib/reports/revisions";
+import { signSections } from "@/lib/reports/reportSections";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -54,12 +56,13 @@ export default async function StaffEvaluatePage(props: Props) {
   }
 
   const report = (await attachEffectiveSenderCompanies([assignment.report]))[0];
-  const criteria = await fetchCriteriaFor(report.reportCategory);
+  const criteria = await fetchCriteriaForReport(report);
   const tableCriteria = criteria.map((c) => ({
     id: c.id,
     name: c.name,
     maxScore: c.maxScore,
     sortOrder: c.sortOrder,
+    sheet: c.sheet,
   }));
 
   // Each staff member only ever sees their own scoring — other evaluators'
@@ -73,7 +76,17 @@ export default async function StaffEvaluatePage(props: Props) {
       {},
     ) || null;
   const signedAttachments = await signAttachments(parseAttachments(report.fileUrl));
-  const { criterionAttachments, reportAttachments } = splitScoringAttachments(signedAttachments, tableCriteria);
+  // Upload sections the staff member can flag when asking for a return.
+  const sections = await signSections(
+    reportSections({
+      reportType: report.reportType.name,
+      reportCategory: report.reportCategory,
+      // Evidence rows of the submit form follow the performance sheet.
+      criteria: await fetchCriteriaFor(report.reportCategory, 'performance'),
+      attachments: parseAttachments(report.fileUrl),
+    }),
+  );
+  const { criterionAttachments, reportAttachments } = scoringAttachmentsFor(signedAttachments, tableCriteria);
   const locationMap =
     report.location?.latitude != null && report.location?.longitude != null
       ? { lat: report.location.latitude, lng: report.location.longitude }
@@ -82,7 +95,7 @@ export default async function StaffEvaluatePage(props: Props) {
   return (
     <main className="flex-1 min-w-0 space-y-6 px-6 py-7 lg:px-8">
       {/* Report info */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6">
+      <div className="bg-white border border-slate-200 p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
             <p className="text-xs text-slate-500">Тайлангийн дугаар</p>
@@ -100,7 +113,7 @@ export default async function StaffEvaluatePage(props: Props) {
 
         {/* Deadline the manager set when distributing this report */}
         {assignment.deadline && (
-          <div className="mb-4 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <div className="mb-4 flex items-center gap-2 border border-amber-200 bg-amber-50 px-4 py-3">
             <svg
               width="18"
               height="18"
@@ -193,7 +206,7 @@ export default async function StaffEvaluatePage(props: Props) {
       </div>
 
       {locationMap && (
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+        <div className="overflow-hidden border border-slate-200 bg-white">
           <div className="border-b border-slate-100 px-6 py-4">
             <h2 className="text-base font-semibold text-slate-900">Газрын зураг дээрх байршил</h2>
             <p className="mt-1 text-sm text-slate-500">
@@ -219,6 +232,7 @@ export default async function StaffEvaluatePage(props: Props) {
         criteria={tableCriteria}
         reportId={report.id}
         savedScores={savedScores}
+        savedNotes={Object.fromEntries((assignment.evaluation?.scores || []).map((s) => [s.criterionId, s.note || '']))}
         savedComment={assignment.evaluation?.comment || null}
         locked={assignment.evaluation?.status === 'SIGNED'}
         signatureStatus={assignment.evaluation?.signatureStatus || null}
@@ -230,7 +244,7 @@ export default async function StaffEvaluatePage(props: Props) {
         selfName={user.name}
         leftAction={
           <div className="flex flex-col items-start gap-1">
-            <StaffReturnButton reportId={report.id} />
+            <StaffReturnButton reportId={report.id} sections={sections} />
             <p className="text-sm text-slate-500">
               Менежерт буцаах хүсэлт илгээнэ үү.
             </p>

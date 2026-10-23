@@ -1,5 +1,5 @@
 import dataStore from '@/lib/db';
-import { fetchCriteriaFor } from '@/lib/reports/criteria';
+import { fetchCriteriaForReport } from '@/lib/reports/criteria';
 import SignatureBadge from '@/components/signature/SignatureBadge';
 import { formatScore } from '@/lib/utils';
 import { canAccessReport, requireUser } from '@/lib/auth';
@@ -17,6 +17,7 @@ async function fetchReportDetail(reportId: string) {
       senderCompanyId: true,
       implementerRegister: true,
       reportCategory: true,
+      reportType: { select: { name: true } },
       finalScore: true,
       signedScanUrl: true,
       location: true,
@@ -50,7 +51,7 @@ export default async function ReportScoresPage(props: Props) {
   if (!report || !(await canAccessReport(currentUser, report))) {
     return <div className="p-8 text-center text-slate-500">Тайлан олдсонгүй.</div>;
   }
-  const criteria = await fetchCriteriaFor(report.reportCategory);
+  const criteria = await fetchCriteriaForReport(report);
 
   // Scores stay hidden from the sender until the manager explicitly sends the
   // signed scan — a single (or even every) staff member finishing must not
@@ -88,7 +89,7 @@ export default async function ReportScoresPage(props: Props) {
   return (
     <main className="flex-1 min-w-0 space-y-6 px-6 py-7 lg:px-8">
       {scoreRows.length > 0 ? (
-        <div className="bg-white rounded-2xl border border-slate-200 p-6">
+        <div className="bg-white border border-slate-200 p-6">
           <h2 className="text-base font-semibold text-slate-900 mb-5">Үнэлгээний дүн</h2>
 
           <div className="overflow-x-auto">
@@ -168,7 +169,7 @@ export default async function ReportScoresPage(props: Props) {
             <div className="mt-5 space-y-2">
               <h3 className="text-sm font-semibold text-slate-700">Сэтгэгдлүүд</h3>
               {scoreRows.filter((row) => row.comment).map((row, i) => (
-                <div key={i} className="rounded-xl bg-slate-50 border border-slate-100 p-3">
+                <div key={i} className="bg-slate-50 border border-slate-100 p-3">
                   <p className="text-xs font-semibold text-slate-600 mb-0.5">{row.evaluatorName}</p>
                   <p className="text-sm text-slate-700">{row.comment}</p>
                 </div>
@@ -177,7 +178,7 @@ export default async function ReportScoresPage(props: Props) {
           )}
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 text-center">
+        <div className="bg-white border border-slate-200 p-6 text-center">
           <p className="text-sm text-slate-500">
             {isSenderView && !scoresVisible
               ? 'Тайлан хянагдаж байна. Менежер баталгаажуулсны дараа үнэлгээний дүн харагдана.'
@@ -187,7 +188,7 @@ export default async function ReportScoresPage(props: Props) {
       )}
 
       <div className="flex justify-end">
-        <a href={backHref} className="h-10 px-5 rounded-xl border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 transition inline-flex items-center">
+        <a href={backHref} className="h-10 px-5 border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 transition inline-flex items-center">
           Буцах
         </a>
       </div>

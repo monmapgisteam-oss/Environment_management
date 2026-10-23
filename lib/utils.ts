@@ -22,3 +22,11 @@ export function formatDate(dateString?: string | Date | null) {
   const d = date.getDate();
   return `${y} оны ${m}-р сарын ${d}`;
 }
+
+// Compact date for tables: 2026.10.23.
+export function formatShortDate(dateString?: string | Date | null) {
+  if (!dateString) return '-';
+  const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+  if (Number.isNaN(date.getTime())) return '-';
+  return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
+}

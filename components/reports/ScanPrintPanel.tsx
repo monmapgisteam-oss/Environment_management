@@ -5,12 +5,13 @@ import { useRouter } from 'next/navigation';
 import { HiPrinter, HiUpload, HiDocument } from 'react-icons/hi';
 import { formatDate } from '@/lib/utils';
 import PrintScoreModal from './PrintScoreModal';
+import { offerUndo } from '@/lib/undo';
 
 type Criterion = { id: string; name: string; maxScore: number };
 type Evaluation = {
   evaluatorName: string;
   totalScore: number;
-  scores: { criterionId: string; score: number }[];
+  scores: { criterionId: string; score: number; note?: string | null }[];
 };
 
 type Props = {
@@ -86,9 +87,11 @@ export default function ScanPrintPanel({
         body: JSON.stringify({ url: uploaded.url, name: uploaded.name }),
       });
       if (!saveRes.ok) throw new Error();
+      const saved = await saveRes.json().catch(() => ({}));
 
       setPendingFile(null);
       router.refresh();
+      offerUndo('Скан хуулга илгээгдлээ.', saved.undoToken, () => router.refresh());
     } catch {
       setError('Хуулга хадгалахад алдаа гарлаа. Дахин оролдоно уу.');
     } finally {
@@ -108,7 +111,7 @@ export default function ScanPrintPanel({
       <button
         type="button"
         onClick={() => setPrintOpen(true)}
-        className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
+        className="inline-flex items-center gap-2 border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
       >
         <HiPrinter size={16} />
         Хэвлэх
@@ -118,7 +121,7 @@ export default function ScanPrintPanel({
         type="button"
         onClick={() => fileInputRef.current?.click()}
         disabled={uploading}
-        className="inline-flex items-center gap-2 rounded-xl bg-color-primary px-4 py-2 text-sm font-semibold text-white hover:bg-color-primary-dark transition disabled:opacity-60"
+        className="inline-flex items-center gap-2 bg-color-primary px-4 py-2 text-sm font-semibold text-white hover:bg-color-primary-dark transition disabled:opacity-60"
       >
         <HiUpload size={16} />
         {uploading ? 'Хуулж байна...' : signedScanName ? 'Скан хуулга дахин явуулах' : 'Скан хуулга явуулах'}
@@ -133,15 +136,15 @@ export default function ScanPrintPanel({
 
       {pendingFile && (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-900/60 p-4" onClick={() => !uploading && cancelPending()}>
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-md bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-base font-semibold text-slate-900">Скан хуулга илгээх үү?</h3>
             <p className="mt-1 text-sm text-slate-500">
               Энэ файл илгээгч байгууллагад шууд харагдана. Зөв файл эсэхийг шалгаад баталгаажуулна уу.
             </p>
 
-            <div className="mt-4 rounded-xl border border-slate-200 p-3">
+            <div className="mt-4 border border-slate-200 p-3">
               {previewUrl ? (
-                <img src={previewUrl} alt={pendingFile.name} className="mx-auto max-h-64 rounded-lg object-contain" />
+                <img src={previewUrl} alt={pendingFile.name} className="mx-auto max-h-64 object-contain" />
               ) : (
                 <div className="flex items-center gap-2 text-slate-600">
                   <HiDocument size={20} />
@@ -157,7 +160,7 @@ export default function ScanPrintPanel({
                 type="button"
                 onClick={confirmSend}
                 disabled={uploading}
-                className="flex-1 rounded-xl bg-color-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-color-primary-dark transition disabled:opacity-60"
+                className="flex-1 bg-color-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-color-primary-dark transition disabled:opacity-60"
               >
                 {uploading ? 'Илгээж байна...' : 'Илгээх'}
               </button>
@@ -165,7 +168,7 @@ export default function ScanPrintPanel({
                 type="button"
                 onClick={cancelPending}
                 disabled={uploading}
-                className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition disabled:opacity-60"
+                className="flex-1 border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition disabled:opacity-60"
               >
                 Цуцлах
               </button>

@@ -125,7 +125,7 @@ export function useReportSubmission() {
     spentAmount: "",
   });
   // The regulation's scoring sheets are for performance reports only. Plans and
-  // performance reports each attach the documents their "Тайлангийн төрөл"
+  // performance reports each attach the documents their "Төслийн ангилал"
   // requires (lib/reports/materials.ts); the other forms attach general files only.
   const isPerformanceReport = !isGeneralEvaluation && formData.reportType === PERFORMANCE_REPORT_LABEL;
   const materials = isGeneralEvaluation ? [] : materialsFor(formData.reportType, formData.reportCategory);
@@ -137,7 +137,7 @@ export function useReportSubmission() {
     }
   }, [router, typeSlug]);
 
-  // Evidence rows follow the scoring sheet of the chosen "Тайлангийн төрөл", so
+  // Evidence rows follow the scoring sheet of the chosen "Төслийн ангилал", so
   // they load once the sender picks it and reload when it changes.
   const reportCategory = formData.reportCategory;
   useEffect(() => {
@@ -298,7 +298,7 @@ export function useReportSubmission() {
   };
 
   // Only the current category's materials are kept, in case the sender switched
-  // "Тайлангийн төрөл" after picking files.
+  // "Төслийн ангилал" after picking files.
   const uploadMaterialAttachments = async () => {
     const uploaded: Attachment[] = [];
     for (const [materialId, files] of Object.entries(materialFiles)) {

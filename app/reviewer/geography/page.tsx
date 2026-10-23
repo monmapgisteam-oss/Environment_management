@@ -10,7 +10,7 @@ export default async function ReviewerGeographyPage() {
       <PageHeader title="Газарзүйн мэдээлэл" subtitle="Хянагдсан байгууллагуудын байршил, хяналтын үнэлгээгээр өнгөөр ялгасан." />
 
       <div
-        className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft"
+        className="overflow-hidden border border-slate-200 bg-white shadow-soft"
         style={{ height: 'calc(100vh - 200px)', minHeight: 480 }}
       >
         <CompanyMapSection points={points} detailRole="reviewer" />

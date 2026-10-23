@@ -68,7 +68,7 @@ const iconMap: Record<string, ReactNode> = {
 };
 
 const itemClass =
-  "group relative flex w-full items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] font-medium transition-colors";
+  "group relative flex w-full items-center gap-3 px-3 py-2 text-[13.5px] font-medium transition-colors";
 
 function itemStateClass(isActive: boolean) {
   return isActive ? "bg-teal-50 text-teal-800" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900";
@@ -126,7 +126,7 @@ function SidebarItem({ item, activeHref }: { item: NavItem; activeHref: string |
                 <Link
                   key={child.href}
                   href={child.href}
-                  className={`relative block rounded-md px-3 py-1.5 text-[13px] transition-colors ${
+                  className={`relative block px-3 py-1.5 text-[13px] transition-colors ${
                     childActive
                       ? "bg-teal-50 font-medium text-teal-800"
                       : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
@@ -154,30 +154,16 @@ function SidebarItem({ item, activeHref }: { item: NavItem; activeHref: string |
   );
 }
 
-export default function Sidebar({ items, role }: Props) {
+// Menu sections plus the feedback link at the bottom; shared by the desktop
+// sidebar and the phone drawer.
+export function SidebarContent({ items, role }: Props) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const activeHref = findActiveHref(items, pathname, new URLSearchParams(searchParams.toString()));
   const bottomItemClass = `${itemClass} ${itemStateClass(false)}`;
 
   return (
-    <aside className="app-chrome hidden md:flex md:flex-col sticky top-0 h-screen w-64 shrink-0 border-r border-slate-200 bg-white">
-      {/* Logo only, same height as the header so their borders line up. The
-          full system name is shown in the header. */}
-      <Link
-        href={items[0]?.href ?? "/"}
-        title="Байгаль орчны менежментийн төлөвлөгөөний систем"
-        className="flex h-16 shrink-0 items-center gap-3 border-b border-slate-200 px-4"
-      >
-        <img src="/logo.svg" alt="" width={44} height={44} className="h-11 w-11 shrink-0" />
-        <span className="text-[13px] font-bold leading-[1.2] text-slate-900">
-          Нийслэлийн байгаль
-          <br />
-          орчны газар
-        </span>
-      </Link>
-
-      {/* Navigation */}
+    <>
       <nav className="sidebar-scroll flex-1 overflow-y-auto px-3 py-4">
         {items.map((item, index) => (
           <div key={item.href}>
@@ -208,6 +194,16 @@ export default function Sidebar({ items, role }: Props) {
           <SupportButton className={bottomItemClass} />
         )}
       </div>
+    </>
+  );
+}
+
+// Desktop sidebar under the full-width header (h-16), which carries the logo.
+// Phones use MobileNav instead.
+export default function Sidebar({ items, role }: Props) {
+  return (
+    <aside className="app-chrome hidden md:flex md:flex-col sticky top-16 h-[calc(100vh-4rem)] w-64 shrink-0 border-r border-slate-200 bg-white">
+      <SidebarContent items={items} role={role} />
     </aside>
   );
 }

@@ -15,20 +15,22 @@ export async function GET(request: Request) {
   }
 }
 
-// Adds a criterion to the end of a category's sheet (admin only).
+// Adds a criterion to the end of a category's plan or performance sheet (admin only).
 export async function POST(request: Request) {
   if (!(await getApiUser('admin'))) return unauthorized();
   try {
-    const parsed = parseCriterionFields(await request.json());
+    const data = await request.json();
+    const parsed = parseCriterionFields(data);
     if ('error' in parsed) return NextResponse.json({ error: parsed.error }, { status: 400 });
     const { name, category, maxScore } = parsed.fields as { name: string; category: string; maxScore: number };
+    const sheet = data.sheet === 'plan' ? ('plan' as const) : ('performance' as const);
     const last = await dataStore.evaluationCriterion.findFirst({
-      where: { category },
+      where: { category, ...(sheet === 'plan' ? { sheet } : { OR: [{ sheet: null }, { sheet }] }) },
       orderBy: { sortOrder: 'desc' },
       select: { sortOrder: true },
     });
     const criterion = await dataStore.evaluationCriterion.create({
-      data: { name, category, maxScore, sortOrder: (last?.sortOrder ?? 0) + 1, isActive: true },
+      data: { name, category, sheet, maxScore, sortOrder: (last?.sortOrder ?? 0) + 1, isActive: true },
     });
     return NextResponse.json(criterion, { status: 201 });
   } catch (error) {

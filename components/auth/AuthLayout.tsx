@@ -37,8 +37,8 @@ export default function AuthLayout({ children, size = 'md' }: Props) {
 
         <div className="relative max-w-xl">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-200">Нийслэлийн Байгаль орчны газар</p>
-          <h2 className="mt-4 text-[34px] font-bold leading-[1.15]">
-            Тайлангаа нэг дороос илгээж, хянуулж, үнэлүүлнэ.
+          <h2 className="mt-4 text-[30px] font-bold leading-[1.2]">
+            Байгаль орчны менежментийн төлөвлөгөө болон тайлангаа нэг дороос илгээж, хянуулж, үнэлүүлнэ.
           </h2>
           <ul className="mt-8 grid gap-2.5">
             {POINTS.map((point) => (

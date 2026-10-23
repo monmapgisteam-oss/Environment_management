@@ -16,7 +16,7 @@ export default function AttachmentList({
   const images = attachments.filter(isImageAttachment);
   const documents = attachments.filter((file) => !isImageAttachment(file));
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 p-6">
+    <div className="bg-white border border-slate-200 p-6">
       <div className="mb-4 flex items-baseline justify-between gap-3">
         <h2 className="text-base font-semibold text-slate-900">{title}</h2>
         {attachments.length > 0 && <span className="text-xs text-slate-500">{attachments.length} файл</span>}
@@ -34,7 +34,7 @@ export default function AttachmentList({
           {images.map((file, index) => (
             <div
               key={index}
-              className="overflow-hidden rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition"
+              className="overflow-hidden border border-slate-200 bg-white hover:bg-slate-50 transition"
             >
               <a href={file.url} target="_blank" rel="noopener noreferrer" className="block bg-slate-50">
                 <img src={file.url} alt={file.name} className="h-40 w-full object-cover" loading="lazy" />
@@ -51,7 +51,7 @@ export default function AttachmentList({
                 </a>
                 <a
                   href={downloadUrl(file)}
-                  className="inline-flex items-center gap-1 rounded-lg bg-color-primary px-3 py-1.5 text-xs font-medium text-white hover:opacity-90 transition"
+                  className="inline-flex items-center gap-1 bg-color-primary px-3 py-1.5 text-xs font-medium text-white hover:opacity-90 transition"
                 >
                   Татах
                 </a>

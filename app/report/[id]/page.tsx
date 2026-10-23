@@ -1,5 +1,5 @@
 import dataStore from '@/lib/db';
-import { fetchCriteriaFor } from '@/lib/reports/criteria';
+import { fetchCriteriaFor, fetchCriteriaForReport } from '@/lib/reports/criteria';
 import AttachmentList from '@/components/reports/AttachmentList';
 import MaterialAttachmentList from '@/components/reports/MaterialAttachmentList';
 import ManagerReturnPanel from '@/components/reports/ManagerReturnPanel';
@@ -8,6 +8,7 @@ import ReportCoverLink from '@/components/reports/detail/ReportCoverLink';
 import SignedScanCard from '@/components/reports/detail/SignedScanCard';
 import AssignedStaffCard from '@/components/reports/detail/AssignedStaffCard';
 import ReportInfoSection from '@/components/reports/detail/ReportInfoSection';
+import ReportLocationCard from '@/components/reports/detail/ReportLocationCard';
 import RevisionNotice from '@/components/reports/detail/RevisionNotice';
 import EvaluationSection from '@/components/reports/detail/EvaluationSection';
 import ReportActions from '@/components/reports/detail/ReportActions';
@@ -20,7 +21,9 @@ import { fetchSurveyReportByObjectId, type SurveyReport } from '@/lib/survey/rep
 import { attachEffectiveSenderCompanies, normalizeRegister } from '@/lib/reports/companies';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
 import { uniqueAssignmentsByEvaluator } from '@/lib/reports/assignments';
-import { splitScoringAttachments } from '@/lib/reports/scoringAttachments';
+import { scoringAttachmentsFor } from '@/lib/reports/scoringAttachments';
+import { parseRevisionItems, reportSections } from '@/lib/reports/revisions';
+import { signSections } from '@/lib/reports/reportSections';
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -82,7 +85,7 @@ export default async function ReportDetailPage(props: Props) {
   if (!report || !(await canAccessReport(currentUser, report))) {
     return <div className="p-8 text-center text-slate-500">Тайлан олдсонгүй.</div>;
   }
-  const criteria = await fetchCriteriaFor(report.reportCategory);
+  const criteria = await fetchCriteriaForReport(report);
 
   const uniqueAssignments = uniqueAssignmentsByEvaluator(report.assignments);
 
@@ -116,7 +119,21 @@ export default async function ReportDetailPage(props: Props) {
   const needsRevision = isSenderView && !isConclusion && report.status === 'needs_revision';
 
   const attachments = await signAttachments(parseAttachments(report.fileUrl));
-  const { criterionAttachments, reportAttachments } = splitScoringAttachments(attachments, criteria);
+  const revisionItems = parseRevisionItems(report.revisionItems);
+  // The manager picks from these sections when returning the report.
+  const sections =
+    isReviewer && !isConclusion
+      ? await signSections(
+          reportSections({
+            reportType: report.reportType.name,
+            reportCategory: report.reportCategory,
+            // Evidence rows of the submit form follow the performance sheet.
+            criteria: await fetchCriteriaFor(report.reportCategory, 'performance'),
+            attachments: parseAttachments(report.fileUrl),
+          }),
+        )
+      : [];
+  const { criterionAttachments, reportAttachments } = scoringAttachmentsFor(attachments, criteria);
   const signedScanDownloadUrl = report.signedScanUrl ? await createSignedUrl(report.signedScanUrl) : null;
 
   // Manager only sees the print/scan panel once every assigned staff member
@@ -135,10 +152,16 @@ export default async function ReportDetailPage(props: Props) {
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
         {/* Left: everything about the report itself */}
         <div className="min-w-0 space-y-5">
+          {/* Sender sees first why the report was returned and what to fix. */}
+          {needsRevision && (report.returnReason || revisionItems.length > 0) && (
+            <RevisionNotice
+              reason={report.returnReason}
+              items={revisionItems}
+              fixHref={revisionItems.length > 0 ? `/sender/revise/${report.id}` : `/sender/submit?edit=${report.id}`}
+            />
+          )}
           <ReportInfoSection report={report} isConclusion={isConclusion} isSenderView={isSenderView} />
 
-          {/* Sender sees why the manager returned the report for revision. */}
-          {needsRevision && report.returnReason && <RevisionNotice reason={report.returnReason} />}
 
           {reportAttachments.length > 0 && (
             <AttachmentList
@@ -161,6 +184,8 @@ export default async function ReportDetailPage(props: Props) {
               scoresVisible={scoresVisible}
             />
           )}
+
+          {!isConclusion && <ReportLocationCard report={report} />}
         </div>
 
         {/* Right: progress and actions, kept in view while scrolling */}
@@ -182,7 +207,16 @@ export default async function ReportDetailPage(props: Props) {
           )}
 
           {/* Manager sees which staff this report was distributed to. */}
-          {isReviewer && !isConclusion && <AssignedStaffCard staff={assignedStaff} />}
+          {isReviewer && !isConclusion && (
+            <AssignedStaffCard
+              staff={assignedStaff}
+              assignReport={
+                report.status === 'completed' || report.status === 'approved'
+                  ? undefined
+                  : { id: report.id, reportNumber: report.reportNumber, title: report.title }
+              }
+            />
+          )}
 
           {/* Manager controls: confirm/dismiss a staff return request, or return
               the report to the sender directly. */}
@@ -192,6 +226,8 @@ export default async function ReportDetailPage(props: Props) {
               status={report.status}
               returnReason={report.returnReason}
               returnRequestedBy={report.returnRequestedBy}
+              revisionItems={revisionItems}
+              sections={sections}
             />
           )}
 
@@ -202,7 +238,9 @@ export default async function ReportDetailPage(props: Props) {
               isConclusion={isConclusion}
               isReviewer={isReviewer}
               isStaff={isStaff}
-              canFix={needsRevision}
+              // The revision notice at the top carries the fix button when shown.
+              canFix={needsRevision && !report.returnReason && revisionItems.length === 0}
+              revisePath={revisionItems.length > 0 ? `/sender/revise/${report.id}` : undefined}
             />
           </div>
         </aside>

@@ -3,8 +3,10 @@ export const runtime = "nodejs";
 import dataStore from "@/lib/db";
 import { NextResponse } from "next/server";
 import { getApiUser, unauthorized } from "@/lib/auth";
+import { ACTIVE_USER_WHERE } from "@/lib/auth/accounts";
 import { materializeSurveyReportByObjectId } from "@/lib/survey/reports";
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from "@/lib/reports/conclusions";
+import { createNotifications, createUndoToken } from "@/lib/reports/undo";
 
 async function resolveAssignableReportId(reportId: string) {
   const match = /^survey-(\d+)$/.exec(reportId);
@@ -32,13 +34,20 @@ export async function POST(request: Request) {
 
     const targetReport = await dataStore.report.findUnique({
       where: { id: reportId },
-      select: { title: true },
+      select: { title: true, status: true },
     });
     if (!targetReport || targetReport.title === GENERAL_EVALUATION_CONCLUSION_TITLE) {
       return NextResponse.json(
         { error: "Ерөнхий үнэлгээний дүгнэлт нь оноох тайлан биш." },
         { status: 400 },
       );
+    }
+
+    const assignable = await dataStore.user.count({
+      where: { id: { in: evaluatorIds }, role: "evaluator", ...ACTIVE_USER_WHERE },
+    });
+    if (assignable !== evaluatorIds.length) {
+      return NextResponse.json({ error: "Идэвхгүй эсвэл буруу гишүүн сонгогдсон байна." }, { status: 400 });
     }
 
     const assignedByUserId = current.id;
@@ -55,16 +64,15 @@ export async function POST(request: Request) {
       ? new Date(data.deadline)
       : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
+    let undoToken: string | null = null;
     if (toAssign.length > 0) {
-      await dataStore.reportAssignment.createMany({
-        data: toAssign.map((evaluatorUserId) => ({
-          reportId,
-          evaluatorUserId,
-          assignedByUserId,
-          status: "pending",
-          deadline,
-        })),
-      });
+      const assignmentIds: string[] = [];
+      for (const evaluatorUserId of toAssign) {
+        const created = await dataStore.reportAssignment.create({
+          data: { reportId, evaluatorUserId, assignedByUserId, status: "pending", deadline },
+        });
+        assignmentIds.push(created.id);
+      }
 
       const report = await dataStore.report.update({
         where: { id: reportId },
@@ -72,14 +80,14 @@ export async function POST(request: Request) {
       });
 
       // Let each newly assigned staff member know they have work to do.
-      await dataStore.notification.createMany({
-        data: toAssign.map((userId) => ({
+      const notificationIds = await createNotifications(
+        toAssign.map((userId) => ({
           userId,
           reportId,
           title: "Танд тайлан оноогдлоо",
           message: `"${report.title}" тайланд үнэлгээ хийх үүрэг даалгавар ирлээ.`,
         })),
-      });
+      );
 
       // Confirm the distribution back to the manager who made it.
       const assignedStaff = await dataStore.user.findMany({
@@ -87,18 +95,25 @@ export async function POST(request: Request) {
         select: { name: true },
       });
       const staffNames = assignedStaff.map((s) => s.name).join(", ");
-      await dataStore.notification.create({
-        data: {
-          userId: assignedByUserId,
-          reportId,
-          title: "Тайлан амжилттай оноогдлоо",
-          message: `Та ${staffNames}-д "${report.title}" тайланг оноож өглөө.`,
-        },
-      });
+      notificationIds.push(
+        ...(await createNotifications([
+          {
+            userId: assignedByUserId,
+            reportId,
+            title: "Тайлан амжилттай оноогдлоо",
+            message: `Та ${staffNames}-д "${report.title}" тайланг оноож өглөө.`,
+          },
+        ])),
+      );
+      undoToken = createUndoToken(
+        { kind: "assign", reportId, assignmentIds, notificationIds, prevStatus: targetReport.status },
+        current.id,
+        report.updatedAt,
+      );
     }
 
     return NextResponse.json(
-      { success: true, assigned: toAssign.length },
+      { success: true, assigned: toAssign.length, undoToken },
       { status: 201 },
     );
   } catch (error) {
