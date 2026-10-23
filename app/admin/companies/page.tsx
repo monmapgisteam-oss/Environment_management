@@ -1,6 +1,9 @@
 import PageHeader from '@/components/layout/PageHeader';
 import dataStore from '@/lib/db';
 import CompaniesView, { type CompanyRow } from '@/components/admin/CompaniesView';
+import PendingCompanies, { type PendingCompany } from '@/components/admin/PendingCompanies';
+import { parseAttachments } from '@/lib/reports/attachments';
+import { createSignedUrl } from '@/lib/db/storage';
 import { attachEffectiveSenderCompanies, normalizeRegister } from '@/lib/reports/companies';
 import { fetchSurveyReports } from '@/lib/survey/reports';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
@@ -78,12 +81,52 @@ async function fetchCompanyRows(): Promise<CompanyRow[]> {
   });
 }
 
+// Self-registered companies the admin has to approve, with their contact and
+// the conclusion they sent, so the register number can be checked.
+async function fetchPendingCompanies(): Promise<PendingCompany[]> {
+  const companies = await dataStore.company.findMany({
+    where: { type: 'sender', approvalStatus: 'pending' },
+    include: {
+      users: { select: { name: true, email: true, phone: true, position: true }, orderBy: { createdAt: 'asc' } },
+      reports: {
+        where: { title: GENERAL_EVALUATION_CONCLUSION_TITLE },
+        select: { projectName: true, conclusionNumber: true, fileUrl: true },
+      },
+    },
+    orderBy: { createdAt: 'asc' },
+  });
+  return Promise.all(
+    companies.map(async (company) => {
+      const report = company.reports[0];
+      const file = report ? parseAttachments(report.fileUrl)[0] : undefined;
+      return {
+        id: company.id,
+        name: company.name,
+        registerNumber: company.registerNumber,
+        createdAt: new Date(company.createdAt).toISOString(),
+        contact: company.users[0] ?? null,
+        conclusion:
+          report && file
+            ? {
+                projectName: report.projectName,
+                conclusionNumber: report.conclusionNumber,
+                fileName: file.name,
+                fileUrl: await createSignedUrl(file.url),
+              }
+            : null,
+      };
+    }),
+  );
+}
+
 export default async function AdminCompaniesPage() {
-  const rows = await fetchCompanyRows();
+  const [rows, pending] = await Promise.all([fetchCompanyRows(), fetchPendingCompanies()]);
 
   return (
     <main className="flex-1 min-w-0 space-y-6 px-6 py-7 lg:px-8">
       <PageHeader title="Компаниуд" subtitle="Бүх байгууллага болон тэдгээрийн бөглөсөн судалгааны мэдээлэл" />
+
+      <PendingCompanies companies={pending} />
 
       <CompaniesView companies={rows} />
     </main>

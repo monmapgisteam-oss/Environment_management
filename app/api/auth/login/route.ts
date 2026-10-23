@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server';
 import dataStore from '@/lib/db';
 import { createToken, isRole, ROLE_HOME, SESSION_COOKIE, sessionCookieOptions } from '@/lib/auth/session';
 import { verifyPassword } from '@/lib/auth/password';
-import { clientIp, rateLimit } from '@/lib/auth/rateLimit';
-import { isActiveUser } from '@/lib/auth/accounts';
+import { clientIp, limitRequest } from '@/lib/auth/rateLimit';
+import { isActiveUser, isCompanyApproved } from '@/lib/auth/accounts';
 
 // Brute-force guard: a handful of attempts per account and per address.
 const ATTEMPT_WINDOW_MS = 15 * 60 * 1000;
@@ -16,8 +16,10 @@ export async function POST(request: Request) {
   if (typeof email !== 'string' || !email.trim() || typeof password !== 'string') {
     return NextResponse.json({ error: 'Email and password are required.' }, { status: 400 });
   }
-  const byAddress = rateLimit(`login:ip:${clientIp(request)}`, ATTEMPTS_PER_ADDRESS, ATTEMPT_WINDOW_MS);
-  const byEmail = rateLimit(`login:email:${email.trim().toLowerCase()}`, ATTEMPTS_PER_EMAIL, ATTEMPT_WINDOW_MS);
+  const [byAddress, byEmail] = await Promise.all([
+    limitRequest(`login:ip:${clientIp(request)}`, ATTEMPTS_PER_ADDRESS, ATTEMPT_WINDOW_MS),
+    limitRequest(`login:email:${email.trim().toLowerCase()}`, ATTEMPTS_PER_EMAIL, ATTEMPT_WINDOW_MS),
+  ]);
   if (!byAddress.ok || !byEmail.ok) {
     const retryAfter = Math.max(byAddress.retryAfterSeconds, byEmail.retryAfterSeconds);
     return NextResponse.json(
@@ -42,6 +44,17 @@ export async function POST(request: Request) {
   }
   if (!isActiveUser(user)) {
     return NextResponse.json({ error: 'Таны эрх идэвхгүй болсон байна. Системийн админд хандана уу.' }, { status: 403 });
+  }
+  if (user.role === 'sender' && !isCompanyApproved(user.company)) {
+    return NextResponse.json(
+      {
+        error:
+          user.company?.approvalStatus === 'rejected'
+            ? 'Таны байгууллагын бүртгэлийг баталгаажуулаагүй байна. Системийн админд хандана уу.'
+            : 'Таны байгууллагын бүртгэлийг системийн админ хянаж байна. Баталгаажсаны дараа нэвтэрнэ үү.',
+      },
+      { status: 403 },
+    );
   }
 
   // A login portal may allow several roles (e.g. the review organisation lets

@@ -4,6 +4,8 @@ export type Company = {
   name: string;
   registerNumber: string;
   type: 'sender' | 'reviewer' | 'admin';
+  // A self-registered sender company waits for the admin; null for older companies (approved).
+  approvalStatus: 'pending' | 'approved' | 'rejected' | null;
   createdAt: Date;
   updatedAt: Date;
 };

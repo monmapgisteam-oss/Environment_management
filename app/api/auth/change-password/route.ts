@@ -3,7 +3,7 @@ import dataStore from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
 import { parseNewPassword } from '@/lib/auth/accounts';
 import { hashPassword, verifyPassword } from '@/lib/auth/password';
-import { clientIp, rateLimit } from '@/lib/auth/rateLimit';
+import { clientIp, limitRequest } from '@/lib/auth/rateLimit';
 
 // Replaces the signed-in user's password. After an admin set a temporary
 // password the user picks their own without retyping the old one; otherwise
@@ -11,7 +11,7 @@ import { clientIp, rateLimit } from '@/lib/auth/rateLimit';
 export async function POST(request: Request) {
   const user = await getCurrentUser({ allowPendingPassword: true });
   if (!user) return NextResponse.json({ error: 'Нэвтрээгүй байна.' }, { status: 401 });
-  if (!rateLimit(`change-password:${user.id}:${clientIp(request)}`, 10, 15 * 60 * 1000).ok) {
+  if (!(await limitRequest(`change-password:${user.id}:${clientIp(request)}`, 10, 15 * 60 * 1000)).ok) {
     return NextResponse.json({ error: 'Хэт олон оролдлого. Түр хүлээгээд дахин оролдоно уу.' }, { status: 429 });
   }
 

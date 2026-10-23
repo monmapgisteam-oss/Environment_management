@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import dataStore from '@/lib/db';
 import { hashPassword } from '@/lib/auth/password';
-import { clientIp, rateLimit } from '@/lib/auth/rateLimit';
-import { createToken, ROLE_HOME, SESSION_COOKIE, sessionCookieOptions } from '@/lib/auth/session';
+import { clientIp, limitRequest } from '@/lib/auth/rateLimit';
 import { conclusionFileError, parseConclusion, parseSignup, type SignupInput } from '@/lib/auth/signup';
 import { findSenderCompanyByRegister } from '@/lib/reports/companies';
 import { CONCLUSION_PROVINCE, GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
@@ -33,12 +32,14 @@ async function accountConflict(input: SignupInput) {
 // Sign-up has two steps. The first posts the account fields as JSON and is only
 // checked. The second posts everything as multipart form data with the general
 // evaluation conclusion PDF; then the company, its first user and the
-// conclusion are created together and the user is signed in.
+// conclusion are created together. The company waits for the admin to approve
+// it (anyone could type another organisation's register number), so nobody is
+// signed in yet.
 export async function POST(request: Request) {
   const isFinal = (request.headers.get('content-type') || '').includes('multipart/form-data');
   const limit = isFinal
-    ? rateLimit(`signup:ip:${clientIp(request)}`, 10, 60 * 60 * 1000)
-    : rateLimit(`signup-check:ip:${clientIp(request)}`, 30, 60 * 60 * 1000);
+    ? await limitRequest(`signup:ip:${clientIp(request)}`, 10, 60 * 60 * 1000)
+    : await limitRequest(`signup-check:ip:${clientIp(request)}`, 15, 60 * 60 * 1000);
   if (!limit.ok) {
     return NextResponse.json({ error: 'Хэт олон оролдлого. Түр хүлээгээд дахин оролдоно уу.' }, { status: 429 });
   }
@@ -84,7 +85,7 @@ export async function POST(request: Request) {
     // is created yet when it does.
     const attachment = await uploadAttachment(file, PENDING_UPLOAD_OWNER);
     const company = await dataStore.company.create({
-      data: { name: input.companyName, registerNumber: input.registerNumber, type: 'sender' },
+      data: { name: input.companyName, registerNumber: input.registerNumber, type: 'sender', approvalStatus: 'pending' },
     });
     const user = await dataStore.user.create({
       data: {
@@ -124,16 +125,17 @@ export async function POST(request: Request) {
       }),
     );
 
-    // A notification failure must not fail the sign-up itself.
+    // The admins review the new company; managers hear about its conclusion
+    // once it is approved. A notification failure must not fail the sign-up.
     try {
-      const managers = await dataStore.user.findMany({ where: { role: 'review_manager' }, select: { id: true } });
-      if (managers.length > 0) {
+      const admins = await dataStore.user.findMany({ where: { role: 'admin' }, select: { id: true } });
+      if (admins.length > 0) {
         await dataStore.notification.createMany({
-          data: managers.map((manager) => ({
-            userId: manager.id,
+          data: admins.map((admin) => ({
+            userId: admin.id,
             reportId: report.id,
-            title: 'Шинэ дүгнэлт ирлээ',
-            message: `${company.name} бүртгүүлж, "${conclusion.projectName}" төслийн ерөнхий үнэлгээний дүгнэлт илгээлээ.`,
+            title: 'Шинэ байгууллага бүртгүүллээ',
+            message: `${company.name} (РД ${company.registerNumber}) бүртгүүлж, баталгаажуулалт хүлээж байна. «Компаниуд» хэсгээс шалгана уу.`,
           })),
         });
       }
@@ -141,10 +143,7 @@ export async function POST(request: Request) {
       console.error('[auth/signup] notification failed:', notifyError);
     }
 
-    const token = createToken({ userId, role: 'sender', companyId: company.id, companyType: 'sender' });
-    const response = NextResponse.json({ success: true, redirect: ROLE_HOME.sender }, { status: 201 });
-    response.cookies.set(SESSION_COOKIE, token, sessionCookieOptions());
-    return response;
+    return NextResponse.json({ success: true, pending: true }, { status: 201 });
   } catch (error) {
     console.error('[auth/signup] failed:', error);
     return NextResponse.json({ error: 'Бүртгэл үүсгэхэд алдаа гарлаа. Дахин оролдоно уу.' }, { status: 500 });

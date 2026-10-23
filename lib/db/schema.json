@@ -30,6 +30,16 @@
         ],
         "length": 4096
       },
+      "approvalStatus": {
+        "type": "string",
+        "nullable": true,
+        "values": [
+          "pending",
+          "approved",
+          "rejected"
+        ],
+        "length": 4096
+      },
       "createdAt": {
         "type": "date",
         "nullable": false,

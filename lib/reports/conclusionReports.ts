@@ -1,4 +1,5 @@
 import dataStore from '@/lib/db';
+import { isCompanyApproved } from '@/lib/auth/accounts';
 import { isDocumentAttachment, parseAttachments } from '@/lib/reports/attachments';
 import {
   CONCLUSION_TYPES,
@@ -24,7 +25,10 @@ export async function fetchConclusionRows(search: ConclusionSearchParams = {}) {
     orderBy: { submittedAt: 'desc' },
   });
 
-  const attachedReports = await attachEffectiveSenderCompanies(reports);
+  // Conclusions of companies the admin has not approved yet stay hidden.
+  const attachedReports = (await attachEffectiveSenderCompanies(reports)).filter((report) =>
+    isCompanyApproved(report.senderCompany),
+  );
   const rows = await Promise.all(
     attachedReports.map(async (report): Promise<ConclusionRow | null> => {
       const documents = parseAttachments(report.fileUrl).filter(isDocumentAttachment);

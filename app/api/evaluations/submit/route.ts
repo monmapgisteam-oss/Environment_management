@@ -314,7 +314,7 @@ export async function POST(request: Request) {
     );
   } catch (error) {
     console.error(error);
-    const message = error instanceof Error ? error.message : 'Failed to submit evaluation';
-    return NextResponse.json({ error: message || 'Failed to submit evaluation' }, { status: 500 });
+    // Details stay in the server log; the browser gets a plain message.
+    return NextResponse.json({ error: 'Үнэлгээ хадгалахад алдаа гарлаа. Дахин оролдоно уу.' }, { status: 500 });
   }
 }

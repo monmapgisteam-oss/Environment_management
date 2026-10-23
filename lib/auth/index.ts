@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 import dataStore from '@/lib/db';
 import { attachEffectiveSenderCompanies } from '@/lib/reports/companies';
 import { LOGIN_PATH, SESSION_COOKIE, verifyToken, type Role } from './session';
-import { isActiveUser } from './accounts';
+import { isActiveUser, isCompanyApproved } from './accounts';
 
 export * from './session';
 
@@ -23,6 +23,7 @@ export async function getCurrentUser({ allowPendingPassword = false } = {}) {
   });
   // A deactivated account loses its open sessions on the next request.
   if (!user || !isActiveUser(user)) return null;
+  if (user.role === 'sender' && !isCompanyApproved(user.company)) return null;
   if (user.mustChangePassword && !allowPendingPassword) return null;
   return { ...user, company: user.company };
 }

@@ -11,6 +11,12 @@ export function isActiveUser(user: { isActive?: boolean | null }) {
   return user.isActive !== false;
 }
 
+// A self-registered sender company can be used only once the admin approved
+// it; older companies have no status and count as approved.
+export function isCompanyApproved(company: { approvalStatus?: string | null } | null | undefined) {
+  return !company?.approvalStatus || company.approvalStatus === 'approved';
+}
+
 // Roles the admin can create accounts for.
 export const STAFF_ACCOUNT_ROLES = ['evaluator', 'review_manager'] as const;
 export type StaffAccountRole = (typeof STAFF_ACCOUNT_ROLES)[number];

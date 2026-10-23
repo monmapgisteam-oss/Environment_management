@@ -43,4 +43,11 @@ export default defineSchema({
     contentType: v.string(),
     storageId: v.id('_storage'),
   }).index('by_parent', ['layerId', 'parentObjectId']),
+  // Shared attempt counters for login and sign-up (lib/auth/rateLimit.ts), so
+  // the limit holds across restarts and server instances.
+  rateLimit: defineTable({
+    key: v.string(),
+    count: v.number(),
+    resetAt: v.number(),
+  }).index('by_key', ['key']),
 });

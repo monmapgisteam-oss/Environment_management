@@ -12,6 +12,7 @@ import type * as data from "../data.js";
 import type * as engine from "../engine.js";
 import type * as files from "../files.js";
 import type * as migrate from "../migrate.js";
+import type * as rateLimit from "../rateLimit.js";
 import type * as secret from "../secret.js";
 import type * as survey from "../survey.js";
 
@@ -26,6 +27,7 @@ declare const fullApi: ApiFromModules<{
   engine: typeof engine;
   files: typeof files;
   migrate: typeof migrate;
+  rateLimit: typeof rateLimit;
   secret: typeof secret;
   survey: typeof survey;
 }>;

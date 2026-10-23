@@ -63,9 +63,22 @@ test('no signature PIN is hardcoded, stored in plaintext or shown on the public 
 test('login sets a secure cookie in production and notifications are scoped to the caller', () => {
   assert.match(read('lib/auth/session.ts'), /secure:\s*process\.env\.NODE_ENV === 'production'/);
   assert.match(read('app/api/auth/login/route.ts'), /sessionCookieOptions\(\)/);
-  assert.match(read('app/api/auth/login/route.ts'), /rateLimit\(/);
+  // Attempts are counted in the shared (Convex) store, not per server.
+  assert.match(read('app/api/auth/login/route.ts'), /limitRequest\(/);
   const notifications = read('app/api/notifications/route.ts');
   const patch = notifications.slice(notifications.indexOf('export async function PATCH'), notifications.indexOf('export async function GET'));
   assert.match(patch, /getCurrentUser\(\)/);
   assert.match(patch, /userId:\s*user\.id/);
+});
+
+test('pages send a content security policy and survey data is limited to the reader', () => {
+  const config = read('next.config.mjs');
+  assert.match(config, /Content-Security-Policy/);
+  assert.match(config, /frame-ancestors 'none'/);
+  assert.match(config, /object-src 'none'/);
+  for (const route of ['app/api/survey/features/route.ts', 'app/api/survey/attachments/[layerId]/[objectId]/[attachmentId]/route.ts']) {
+    assert.match(read(route), /getSurveyViewer\(\)/, route);
+  }
+  assert.match(read('app/api/survey/features/route.ts'), /surveyRegisterFor\(viewer\)/);
+  assert.match(read('app/api/survey/attachments/[layerId]/[objectId]/[attachmentId]/route.ts'), /canSeeSurveyRecord\(/);
 });
