@@ -49,7 +49,7 @@ export function senderNav(): NavItem[] {
     { label: 'Хяналтын самбар', href: '/sender' },
     { label: 'Жилийн төлөвлөгөө', href: '/sender/submit?type=plan', section: 'Тайлан илгээх' },
     { label: 'Биелэлтийн тайлан', href: '/sender/submit?type=performance' },
-    { label: 'Миний тайлангууд', href: '/sender/reports', match: ['/report/'], section: 'Миний ажил' },
+    { label: 'Миний төлөвлөгөө, тайлан', href: '/sender/reports', match: ['/report/'], section: 'Миний ажил' },
     { label: 'Ноорог', href: '/sender/drafts' },
     { label: 'Газарзүйн мэдээлэл', href: '/sender/geography' },
   ];
@@ -94,6 +94,7 @@ export function adminNav(): NavItem[] {
     { label: 'Удирдлагын хуудас', href: '/admin' },
     { label: 'Компаниуд', href: '/admin/companies', section: 'Бүртгэл' },
     { label: 'Хэрэглэгчид', href: '/admin/users' },
+    { label: 'Мэдэгдэл илгээх', href: '/admin/notifications' },
     { label: 'Газрын зураг', href: '/admin/map', section: 'Систем' },
     { label: 'Үнэлгээний шалгуур', href: '/admin/criteria' },
     { label: 'Тохиргоо', href: '/admin/settings' },

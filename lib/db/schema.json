@@ -835,6 +835,11 @@
         "nullable": true,
         "length": 128
       },
+      "broadcastId": {
+        "type": "string",
+        "nullable": true,
+        "length": 128
+      },
       "title": {
         "type": "string",
         "nullable": false,
@@ -958,5 +963,59 @@
     },
     "relations": {},
     "attachments": true
+  },
+  "broadcast": {
+    "name": "broadcast",
+    "fields": {
+      "id": {
+        "type": "string",
+        "nullable": false,
+        "unique": true,
+        "default": "uuid",
+        "length": 128
+      },
+      "title": {
+        "type": "string",
+        "nullable": false,
+        "length": 4096
+      },
+      "message": {
+        "type": "string",
+        "nullable": false,
+        "length": 1000000
+      },
+      "audience": {
+        "type": "string",
+        "nullable": false,
+        "values": [
+          "all",
+          "sender",
+          "review",
+          "evaluator",
+          "review_manager"
+        ],
+        "length": 4096
+      },
+      "sentByUserId": {
+        "type": "string",
+        "nullable": false,
+        "length": 128
+      },
+      "sentByName": {
+        "type": "string",
+        "nullable": false,
+        "length": 4096
+      },
+      "recipientCount": {
+        "type": "integer",
+        "nullable": false
+      },
+      "createdAt": {
+        "type": "date",
+        "nullable": false,
+        "default": "now"
+      }
+    },
+    "relations": {}
   }
 }

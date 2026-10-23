@@ -26,3 +26,15 @@ test('older accounts without a flag count as active', () => {
   assert.equal(isActiveUser({ isActive: false }), false);
   assert.deepEqual(ACTIVE_USER_WHERE, { OR: [{ isActive: null }, { isActive: true }] });
 });
+
+test('a broadcast needs a title, a message and a known audience', () => {
+  const { parseBroadcast, audienceRoles } = require('../lib/notifications/broadcast.ts');
+  assert.deepEqual(parseBroadcast({ title: ' Сануулга ', message: ' Хугацаа дуусна ', audience: 'sender' }), {
+    input: { title: 'Сануулга', message: 'Хугацаа дуусна', audience: 'sender' },
+  });
+  assert.ok('error' in parseBroadcast({ title: '', message: 'x', audience: 'all' }));
+  assert.ok('error' in parseBroadcast({ title: 'x', message: 'x', audience: 'admin' }));
+  assert.ok('error' in parseBroadcast({ title: 'x'.repeat(121), message: 'x', audience: 'all' }));
+  assert.deepEqual(audienceRoles('all').sort(), ['evaluator', 'review_manager', 'sender']);
+  assert.deepEqual(audienceRoles('review').sort(), ['evaluator', 'review_manager']);
+});

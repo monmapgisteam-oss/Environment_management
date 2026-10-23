@@ -63,7 +63,7 @@ export default async function SenderReportsPage() {
   return (
 
     <main className="flex-1 min-w-0 space-y-6 px-6 py-7 lg:px-8">
-      <PageHeader title="Миний тайлангууд" />
+      <PageHeader title="Миний төлөвлөгөө, тайлан" />
 
       <ReportTable
         emptyHint="Илгээсэн тайлан, төлөвлөгөө энд харагдана. Зүүн цэсний «Жилийн төлөвлөгөө» эсвэл «Биелэлтийн тайлан»-аас илгээнэ үү."

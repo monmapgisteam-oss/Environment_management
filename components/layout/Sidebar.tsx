@@ -26,6 +26,7 @@ import {
   HiOutlineDocumentDuplicate,
   HiOutlineSearch,
   HiOutlineQuestionMarkCircle,
+  HiOutlineSpeakerphone,
 } from "react-icons/hi";
 import SupportButton from "./SupportButton";
 import { findActiveHref, type NavItem } from "@/lib/nav";
@@ -44,7 +45,7 @@ const iconMap: Record<string, ReactNode> = {
   "Жилийн төлөвлөгөө": <HiOutlineCalendar size={18} />,
   "Биелэлтийн тайлан": <HiOutlineTrendingUp size={18} />,
   "Ерөнхий үнэлгээний дүгнэлт": <HiOutlineDocumentText size={18} />,
-  "Миний тайлангууд": <HiOutlineFolder size={18} />,
+  "Миний төлөвлөгөө, тайлан": <HiOutlineFolder size={18} />,
   "Засвар шаардсан тайлан": <HiOutlineExclamation size={18} />,
   Ноорог: <HiOutlineDocumentDuplicate size={18} />,
   "Үнэлгээний хариу": <HiOutlineCheckCircle size={18} />,
@@ -65,6 +66,7 @@ const iconMap: Record<string, ReactNode> = {
   "Үнэлгээний шалгуур": <HiOutlineCog size={18} />,
   Тохиргоо: <HiOutlineCog size={18} />,
   "Санал хүсэлт": <HiOutlineQuestionMarkCircle size={18} />,
+  "Мэдэгдэл илгээх": <HiOutlineSpeakerphone size={18} />,
 };
 
 const itemClass =

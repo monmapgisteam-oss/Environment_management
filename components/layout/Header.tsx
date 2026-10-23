@@ -12,6 +12,8 @@ type Notification = {
   isRead: boolean;
   createdAt: string;
   reportId: string | null;
+  // Set on a system message the admin sent to many users.
+  broadcastId?: string | null;
 };
 
 // A staff member (evaluator) and a manager share the same `reviewer` company,
@@ -51,16 +53,28 @@ export default function Header({ userName, companyName, role, mobileNav }: Props
   const notifRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
+  // Notifications are scoped to the logged-in user server-side, so no role
+  // needs to be passed here. They refresh every minute and when the tab comes
+  // back into view, so an admin's system message shows up without a reload.
   useEffect(() => {
-    // Notifications are scoped to the logged-in user server-side, so no role
-    // needs to be passed here.
-    fetch('/api/notifications')
-      .then((res) => res.json())
-      .then((data) => {
-        setNotifications(data.notifications || []);
-        setUnreadCount(data.unreadCount || 0);
-      })
-      .catch(() => {});
+    const load = () =>
+      fetch('/api/notifications')
+        .then((res) => res.json())
+        .then((data) => {
+          setNotifications(data.notifications || []);
+          setUnreadCount(data.unreadCount || 0);
+        })
+        .catch(() => {});
+    load();
+    const timer = window.setInterval(load, 60_000);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') load();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, []);
 
   useEffect(() => {
@@ -158,8 +172,11 @@ export default function Header({ userName, companyName, role, mobileNav }: Props
                         }}
                         className={`px-4 py-3 border-b border-slate-50 hover:bg-slate-50 transition ${n.reportId ? 'cursor-pointer' : ''} ${!n.isRead ? 'bg-blue-50/50' : ''}`}
                       >
+                        {n.broadcastId && (
+                          <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wide text-teal-700">Системийн мэдэгдэл</p>
+                        )}
                         <p className="text-sm font-medium text-slate-800">{n.title}</p>
-                        <p className="text-xs text-slate-500 mt-0.5">{n.message}</p>
+                        <p className="text-xs text-slate-500 mt-0.5 whitespace-pre-wrap">{n.message}</p>
                       </div>
                     ))
                   )}

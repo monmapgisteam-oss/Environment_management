@@ -21,7 +21,7 @@ const STEPS = [
   { title: "Илгээгдсэн", text: "Таны илгээсэн мэдээлэл хадгалагдлаа." },
   { title: "Хянах байгууллага хүлээн авна", text: "Хянах менежерт мэдэгдэл очсон." },
   { title: "Гишүүд үнэлнэ", text: "Үнэлгээний гишүүд журмын шалгуураар үнэлнэ." },
-  { title: "Дүгнэлт ирнэ", text: "Гарын үсэгтэй дүгнэлтийг «Миний тайлангууд» хэсгээс татна." },
+  { title: "Дүгнэлт ирнэ", text: "Гарын үсэгтэй дүгнэлтийг «Миний төлөвлөгөө, тайлан» хэсгээс татна." },
 ];
 
 // Shown after a report is submitted: the number to keep, what happens next,
@@ -71,7 +71,7 @@ export default function SubmitSuccessCard({
         <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
           {isGeneralEvaluation
             ? "Таны ерөнхий үнэлгээний дүгнэлтийг хүлээн авлаа."
-            : `Явцыг хяналтын самбар болон «Миний тайлангууд» хэсгээс хянана.`}
+            : `Явцыг хяналтын самбар болон «Миний төлөвлөгөө, тайлан» хэсгээс хянана.`}
         </p>
 
         {reportNumber && (
@@ -139,7 +139,7 @@ export default function SubmitSuccessCard({
       <div className="flex flex-col-reverse gap-3 border-t border-slate-200 bg-slate-50 px-6 py-5 sm:flex-row sm:items-center sm:justify-center">
         {isEdit ? (
           <button type="button" onClick={onBackToReports} className={buttonClass}>
-            Миний тайлангууд руу буцах
+            Миний төлөвлөгөө, тайлан руу буцах
           </button>
         ) : (
           <>
@@ -147,7 +147,7 @@ export default function SubmitSuccessCard({
               {isGeneralEvaluation ? "Дахин дүгнэлт илгээх" : `Шинэ ${noun.one} илгээх`}
             </button>
             <Link href="/sender/reports" className={buttonClass}>
-              Миний тайлангууд
+              Миний төлөвлөгөө, тайлан
             </Link>
           </>
         )}

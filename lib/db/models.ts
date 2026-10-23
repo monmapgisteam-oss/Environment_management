@@ -135,10 +135,25 @@ export type EvaluationScore = {
   note: string | null;
 };
 
+// A message the admin sent to a group of users; each user receives it as a
+// notification carrying this id.
+export type Broadcast = {
+  id: string;
+  title: string;
+  message: string;
+  audience: 'all' | 'sender' | 'review' | 'evaluator' | 'review_manager';
+  sentByUserId: string;
+  sentByName: string;
+  recipientCount: number;
+  createdAt: Date;
+};
+
 export type Notification = {
   id: string;
   userId: string;
   reportId: string | null;
+  // Set on a message the admin sent to many users at once.
+  broadcastId: string | null;
   title: string;
   message: string;
   isRead: boolean;
@@ -169,6 +184,7 @@ export type Models = {
   notification: Notification;
   activityLog: ActivityLog;
   upload: Upload;
+  broadcast: Broadcast;
 };
 
 export type Relations = {
@@ -225,5 +241,7 @@ export type Relations = {
     report: { model: "report"; many: false; nullable: true };
   };
   upload: {
+  };
+  broadcast: {
   };
 };
