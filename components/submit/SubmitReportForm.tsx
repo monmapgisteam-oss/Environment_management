@@ -16,9 +16,9 @@ import { PROJECT_INTRO, materialsTitle, type ReportMaterial } from "@/lib/report
 import { planCoverSample, sampleForCriterion, samplesForMaterial, scoringSheetSample } from "@/lib/reports/samples";
 import { nounForReportType } from "@/lib/reports/terms";
 
-// `register` is the sender company's РД. The server stores that company as the
-// project implementer, so the form does not ask for it.
-export default function SubmitReportForm({ register }: { register: string }) {
+// The server stores the sender company as the project implementer, so the
+// form does not ask for it.
+export default function SubmitReportForm() {
   const form = useReportSubmission();
   const showSavedAttachments = form.isEdit && form.existingAttachments.length > 0;
   const isStepForm = !form.isGeneralEvaluation;
@@ -90,7 +90,6 @@ export default function SubmitReportForm({ register }: { register: string }) {
         <LocationCard
           onLocationChange={form.setLocation}
           initialLocation={form.initialLocation}
-          register={register}
         />
       ),
     },

@@ -101,21 +101,6 @@ function findKnownNameInText(text: string | null | undefined, names: string[]) {
   return names.find((name) => textKey.includes(key(name)));
 }
 
-export function extractSurveyLocation(attrs: Record<string, unknown> | undefined): AdministrativeLocation {
-  return {
-    province: canonicalName(
-      firstText(attrs, ['aimag_city', 'Aimag_city', 'aimag', 'Aimag', 'province', 'Province', 'city', 'City', 'hot', 'Hot']),
-      PROVINCES,
-      PROVINCE_OVERRIDES,
-    ),
-    district: canonicalName(
-      firstText(attrs, ['district_duureg', 'District_duureg', 'duureg', 'Duureg', 'district', 'District', 'sum', 'Sum', 'soum', 'Soum']),
-      Object.values(DISTRICTS).flat(),
-      DISTRICT_OVERRIDES,
-    ),
-  };
-}
-
 export function extractNominatimLocation(data: ReverseGeocodeResponse): AdministrativeLocation {
   const address = data?.address || {};
   const province = canonicalName(
@@ -186,7 +171,7 @@ async function reverseGeocodeLocation(lat: number, lng: number): Promise<Adminis
 }
 
 // Fills in the province and district of a point when the sender's form did not
-// supply them (the survey record or the map click had no usable address). Saved
+// supply them (the map click had no usable address). Saved
 // names win; the geocoders only fill the blanks.
 export async function resolveAdministrativeLocation(
   lat: number | null | undefined,

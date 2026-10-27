@@ -8,6 +8,7 @@ const AREA_ROLES: { prefix: string; roles: Role[] }[] = [
   { prefix: '/reviewer', roles: ['review_manager'] },
   { prefix: '/evaluator', roles: ['evaluator'] },
   { prefix: '/sender', roles: ['sender'] },
+  { prefix: '/registration', roles: ['sender'] },
   { prefix: '/report', roles: ['admin', 'review_manager', 'evaluator', 'sender'] },
   { prefix: '/profile', roles: ['admin', 'review_manager', 'evaluator', 'sender'] },
 ];
@@ -31,6 +32,7 @@ export const config = {
     '/reviewer/:path*',
     '/evaluator/:path*',
     '/sender/:path*',
+    '/registration',
     '/report/:path*',
     '/profile',
   ],

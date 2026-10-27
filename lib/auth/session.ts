@@ -28,6 +28,10 @@ export const ROLE_HOME: Record<Role, string> = {
 };
 
 // Login portal for each role. The manager and staff share one portal.
+// Where a sender of a company the admin has not approved yet (or rejected)
+// lands: the registration status, reviewers' comments and the conclusion fix.
+export const REGISTRATION_PATH = '/registration';
+
 export const LOGIN_PATH: Record<Role, string> = {
   admin: '/login/admin',
   sender: '/login/sender',

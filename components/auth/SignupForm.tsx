@@ -121,7 +121,6 @@ export default function SignupForm() {
   });
   const [file, setFile] = useState<File | null>(null);
   // Sent: the company now waits for the admin to approve it.
-  const [done, setDone] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -188,9 +187,8 @@ export default function SignupForm() {
       const response = await fetch('/api/auth/signup', { method: 'POST', body });
       const data = await response.json().catch(() => ({}));
       if (response.ok) {
-        setDone(true);
-        setLoading(false);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        // Signed in: the registration page shows the status and comments.
+        window.location.href = data.redirect || '/registration';
         return;
       }
       setError(data.error || 'Бүртгүүлэхэд алдаа гарлаа.');
@@ -208,27 +206,6 @@ export default function SignupForm() {
   };
 
   const currentYear = new Date().getFullYear();
-
-  if (done) {
-    return (
-      <div className="py-6 text-center">
-        <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-teal-50 text-teal-700 ring-8 ring-teal-50/50">
-          <LuCheck size={30} />
-        </span>
-        <h1 className="mt-6 text-2xl font-bold tracking-tight text-slate-900">Бүртгэл хүлээн авлаа</h1>
-        <p className="mx-auto mt-2 max-w-md text-sm text-slate-600">
-          <span className="font-semibold text-slate-900">{form.companyName}</span> байгууллагын бүртгэлийг системийн админ шалгаж
-          баталгаажуулна. Баталгаажсаны дараа <span className="font-semibold text-slate-900">{form.email}</span> хаягаар нэвтэрнэ үү.
-        </p>
-        <Link
-          href="/login/sender"
-          className="mt-8 inline-flex h-11 items-center justify-center gap-2 bg-[#0F766E] px-6 text-sm font-semibold text-white transition-colors hover:bg-[#115E59]"
-        >
-          Нэвтрэх хуудас руу <LuArrowRight size={16} />
-        </Link>
-      </div>
-    );
-  }
 
   return (
     <div>

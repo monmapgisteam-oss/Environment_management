@@ -13,7 +13,6 @@ import { STATUS_BADGE_COLORS, STATUS_LABELS } from '@/lib/constants';
 
 export type CompanyPoint = {
   id: string;
-  source?: 'report' | 'survey';
   lat: number;
   lng: number;
   company: string;
@@ -25,10 +24,6 @@ export type CompanyPoint = {
   score: number | null;
   province?: string;
   district?: string;
-  description?: string;
-  projectDate?: string;
-  organization?: string;
-  photos?: { src: string; alt?: string }[];
 };
 
 interface CompanyMapProps {
@@ -62,10 +57,6 @@ const PROVINCE_CENTERS = [
   { name: 'Хэнтий', lat: 47.32, lng: 110.65 },
 ];
 
-function pointSource(point: CompanyPoint) {
-  return point.source === 'survey' ? 'survey' : 'report';
-}
-
 function knownLocationName(value?: string | null) {
   const name = value?.trim();
   if (!name || name.toLowerCase().includes('тодорхойгүй')) return null;
@@ -92,13 +83,11 @@ function inferProvince(point: CompanyPoint) {
 }
 
 function pointStatusLabel(status: string) {
-  if (status === 'survey') return 'Тайлан';
   return STATUS_LABELS[status] || status;
 }
 
 function pointMapKey(point: CompanyPoint, index: number) {
   return [
-    pointSource(point),
     point.id,
     point.reportNumber,
     point.register,
@@ -116,30 +105,26 @@ export default function CompanyMap({ points, detailRole = 'reviewer' }: CompanyM
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [sourceFilter, setSourceFilter] = useState<'all' | 'report' | 'survey'>('all');
   const [panelOpen, setPanelOpen] = useState(true);
 
   const filteredPoints = useMemo(() => {
     const term = search.trim().toLowerCase();
     return points.filter((p) => {
-      const haystack = [p.register, p.company, p.reportNumber, p.reportType, p.description, p.organization]
+      const haystack = [p.register, p.company, p.reportNumber, p.reportType]
         .filter(Boolean)
         .join(' ')
         .toLowerCase();
       if (term && !haystack.includes(term)) return false;
-      if (sourceFilter !== 'all' && pointSource(p) !== sourceFilter) return false;
       if (statusFilter && p.status !== statusFilter) return false;
       return true;
     });
-  }, [points, search, sourceFilter, statusFilter]);
+  }, [points, search, statusFilter]);
 
   const statusOptions = useMemo(() => Array.from(new Set(points.map((p) => p.status))), [points]);
   const stats = useMemo(() => {
     const byProvince = new Map<string, number>();
     const byDistrict = new Map<string, { district: string; province: string; count: number }>();
-    const reportPoints = points.filter((p) => pointSource(p) === 'report');
-
-    reportPoints.forEach((p) => {
+    points.forEach((p) => {
       const province = inferProvince(p) || 'Аймаг/хот';
       const district = knownLocationName(p.district) || 'Сум/дүүрэг';
 
@@ -167,22 +152,14 @@ export default function CompanyMap({ points, detailRole = 'reviewer' }: CompanyM
     );
 
     return {
-      total: reportPoints.length,
+      total: points.length,
       provinceRows,
       districtRows,
     };
   }, [points]);
-  const sourceCounts = useMemo(
-    () => ({
-      all: points.length,
-      report: points.filter((p) => pointSource(p) === 'report').length,
-      survey: points.filter((p) => pointSource(p) === 'survey').length,
-    }),
-    [points],
-  );
   const pointGroups = useMemo(
     () => [
-      { key: 'report', label: 'Reports', points: filteredPoints },
+      { key: 'report', label: 'Тайлан', points: filteredPoints },
     ],
     [filteredPoints],
   );
@@ -232,7 +209,6 @@ export default function CompanyMap({ points, detailRole = 'reviewer' }: CompanyM
 
     filteredPoints.forEach((p, index) => {
       const bucket = scoreBucket(p.score);
-      const isSurvey = p.source === 'survey';
       const accent = SCORE_COLORS[bucket];
       const marker = L.marker([p.lat, p.lng], { icon: createPinIcon(accent) });
 
@@ -240,24 +216,15 @@ export default function CompanyMap({ points, detailRole = 'reviewer' }: CompanyM
         popupCard({
           title: p.company,
           accent,
-          badge: isSurvey ? p.reportType || pointStatusLabel(p.status) : pointStatusLabel(p.status),
-          badgeClass: isSurvey ? 'map-popup-badge' : STATUS_BADGE_COLORS[p.status] || 'badge-gray',
-          rows: isSurvey
-            ? [
-                ['Байгууллага', p.organization],
-                ['Регистрийн дугаар', p.register],
-                ['Төрөл', p.reportType],
-                ['Огноо', p.projectDate],
-                ['Тайлбар', p.description],
-              ]
-            : [
-                ['Регистрийн дугаар', p.register],
-                ['Хаяг', p.location],
-                ['Хяналтын үнэлгээ', p.score != null ? `${p.score} (${SCORE_LABELS[bucket]})` : SCORE_LABELS.none],
-                ['Тайлангийн дугаар', p.reportNumber],
-              ],
-          images: p.photos,
-          link: isSurvey ? undefined : { label: 'Дэлгэрэнгүй харах', href: `/report/${p.id}?role=${detailRole}` },
+          badge: pointStatusLabel(p.status),
+          badgeClass: STATUS_BADGE_COLORS[p.status] || 'badge-gray',
+          rows: [
+            ['Регистрийн дугаар', p.register],
+            ['Хаяг', p.location],
+            ['Хяналтын үнэлгээ', p.score != null ? `${p.score} (${SCORE_LABELS[bucket]})` : SCORE_LABELS.none],
+            ['Тайлангийн дугаар', p.reportNumber],
+          ],
+          link: { label: 'Дэлгэрэнгүй харах', href: `/report/${p.id}?role=${detailRole}` },
         }),
       );
       marker.addTo(cluster);
@@ -304,28 +271,6 @@ export default function CompanyMap({ points, detailRole = 'reviewer' }: CompanyM
               placeholder="РД, нэр, мэдээлэл хайх..."
               className="h-8 w-full border border-slate-200 bg-white pl-7 pr-2.5 text-[11.5px] text-slate-700 placeholder:text-slate-400 transition focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-100"
             />
-          </div>
-
-          <div className="grid grid-cols-3 gap-1 bg-slate-100 p-1">
-            {[
-              { key: 'all', label: 'All', count: sourceCounts.all },
-              { key: 'report', label: 'Reports', count: sourceCounts.report },
-              { key: 'survey', label: 'Survey', count: sourceCounts.survey },
-            ].map((item) => (
-              <button
-                key={item.key}
-                type="button"
-                onClick={() => setSourceFilter(item.key as 'all' | 'report' | 'survey')}
-                className={`min-w-0 px-1.5 py-1 text-[10px] font-semibold transition ${
-                  sourceFilter === item.key
-                    ? 'bg-white text-slate-900 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                <span className="block truncate">{item.label}</span>
-                <span className="block text-[9px] font-medium opacity-70">{item.count}</span>
-              </button>
-            ))}
           </div>
 
           <select

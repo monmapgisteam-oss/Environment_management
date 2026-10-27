@@ -20,8 +20,6 @@ type Report = {
   finalScore: number | null;
   senderCompany: { name: string } | null;
   location: { province: string; district: string } | null;
-  source?: 'web' | 'survey123';
-  detailHref?: string;
 };
 
 type Props = {
@@ -74,9 +72,6 @@ export default function ReportTable({ reports, role = 'sender', showStatusFilter
     return status;
   };
 
-  const sourceLabel = (source?: Report['source']) =>
-    source === 'survey123' ? `Survey системээс ${noun.one} ирлээ` : null;
-
   const reportTypeLabel = (report: Report) =>
     report.title === GENERAL_EVALUATION_CONCLUSION_TITLE
       ? GENERAL_EVALUATION_CONCLUSION_TITLE
@@ -113,7 +108,7 @@ export default function ReportTable({ reports, role = 'sender', showStatusFilter
   // Only a report nobody is assigned to yet gets "Оноох" as its main action;
   // reassigning stays on the report page.
   const needsAssignment = (report: Report) => role === 'reviewer' && report.status === 'submitted';
-  const detailHref = (report: Report) => report.detailHref || `/report/${report.id}?role=${role ?? 'sender'}`;
+  const detailHref = (report: Report) => `/report/${report.id}?role=${role ?? 'sender'}`;
   const primaryAction = (report: Report) => {
     const buttonClass =
       'inline-flex h-9 items-center justify-center whitespace-nowrap bg-color-primary px-3.5 text-xs font-semibold text-white transition hover:bg-color-primary-dark';
@@ -260,9 +255,6 @@ export default function ReportTable({ reports, role = 'sender', showStatusFilter
                       <Link href={detailHref(report)} className="font-mono text-[13px] font-semibold text-slate-900 hover:text-teal-700">
                         {report.reportNumber}
                       </Link>
-                      {sourceLabel(report.source) && (
-                        <span className="mt-1 block w-fit bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">Survey</span>
-                      )}
                     </td>
                     <td className="px-4 py-3.5">
                       <p className="font-medium text-slate-900">{report.title}</p>

@@ -1,10 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { HiOutlineDocumentText, HiOutlineShieldCheck } from 'react-icons/hi';
-import { confirmDialog } from '@/lib/confirm';
-import { toast } from '@/lib/toast';
+import Link from 'next/link';
+import { HiOutlineChatAlt2, HiOutlineDocumentText, HiOutlineShieldCheck } from 'react-icons/hi';
+import CompanyApprovalButtons from '@/components/admin/CompanyApprovalButtons';
 
 export type PendingCompany = {
   id: string;
@@ -12,43 +10,12 @@ export type PendingCompany = {
   registerNumber: string;
   createdAt: string;
   contact: { name: string; email: string; phone: string | null; position: string | null } | null;
-  conclusion: { projectName: string | null; conclusionNumber: string | null; fileName: string; fileUrl: string } | null;
+  conclusion: { reportId: string; projectName: string | null; conclusionNumber: string | null; fileName: string; fileUrl: string } | null;
 };
 
 // Self-registered companies waiting for the admin. Approve after checking the
 // register number belongs to the organisation (e.g. against the conclusion).
 export default function PendingCompanies({ companies }: { companies: PendingCompany[] }) {
-  const router = useRouter();
-  const [busy, setBusy] = useState<string | null>(null);
-
-  const decide = async (company: PendingCompany, action: 'approve' | 'reject') => {
-    if (action === 'reject') {
-      const ok = await confirmDialog({
-        title: 'Бүртгэлийг татгалзах',
-        message: `${company.name} (РД ${company.registerNumber}) нэвтрэх боломжгүй хэвээр үлдэнэ. Дараа нь баталгаажуулж болно.`,
-        confirmLabel: 'Татгалзах',
-        danger: true,
-      });
-      if (!ok) return;
-    }
-    setBusy(company.id);
-    try {
-      const res = await fetch(`/api/admin/companies/${company.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error);
-      toast(action === 'approve' ? `${company.name} баталгаажлаа.` : `${company.name}-ийн бүртгэлийг татгалзлаа.`);
-      router.refresh();
-    } catch (error) {
-      toast((error as Error).message || 'Хадгалахад алдаа гарлаа.', 'error');
-    } finally {
-      setBusy(null);
-    }
-  };
-
   if (companies.length === 0) return null;
   return (
     <section className="border border-amber-200 bg-white">
@@ -89,29 +56,18 @@ export default function PendingCompanies({ companies }: { companies: PendingComp
                     <HiOutlineDocumentText size={14} className="shrink-0" />
                     <span className="truncate">{company.conclusion.fileName}</span>
                   </a>
+                  <Link
+                    href={`/report/${company.conclusion.reportId}?role=reviewer`}
+                    className="ml-3 inline-flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-teal-700"
+                  >
+                    <HiOutlineChatAlt2 size={14} /> Дэлгэрэнгүй, тайлбар
+                  </Link>
                 </>
               ) : (
                 <p className="text-xs text-slate-400">Дүгнэлт хавсаргаагүй</p>
               )}
             </div>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => decide(company, 'reject')}
-                disabled={busy === company.id}
-                className="h-9 border border-rose-200 bg-white px-3 text-xs font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-50"
-              >
-                Татгалзах
-              </button>
-              <button
-                type="button"
-                onClick={() => decide(company, 'approve')}
-                disabled={busy === company.id}
-                className="h-9 bg-[#0F766E] px-4 text-xs font-semibold text-white hover:bg-[#115E59] disabled:opacity-50"
-              >
-                Баталгаажуулах
-              </button>
-            </div>
+            <CompanyApprovalButtons company={company} />
           </li>
         ))}
       </ul>

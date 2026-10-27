@@ -1046,5 +1046,60 @@
       }
     },
     "relations": {}
+  },
+  "reportComment": {
+    "name": "reportComment",
+    "fields": {
+      "id": {
+        "type": "string",
+        "nullable": false,
+        "unique": true,
+        "default": "uuid",
+        "length": 128
+      },
+      "reportId": {
+        "type": "string",
+        "nullable": false,
+        "length": 128
+      },
+      "userId": {
+        "type": "string",
+        "nullable": false,
+        "length": 128
+      },
+      "authorName": {
+        "type": "string",
+        "nullable": false,
+        "length": 4096
+      },
+      "authorRole": {
+        "type": "string",
+        "nullable": false,
+        "values": [
+          "admin",
+          "review_manager"
+        ],
+        "length": 4096
+      },
+      "body": {
+        "type": "string",
+        "nullable": false,
+        "length": 1000000
+      },
+      "createdAt": {
+        "type": "date",
+        "nullable": false,
+        "default": "now"
+      }
+    },
+    "relations": {
+      "report": {
+        "model": "report",
+        "many": false,
+        "nullable": false,
+        "local": "reportId",
+        "foreign": "id"
+      }
+    }
   }
 }

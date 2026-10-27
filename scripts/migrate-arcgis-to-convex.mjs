@@ -1,6 +1,5 @@
-// One-time copy of every ArcGIS record (application tables, Survey123 layer 0
-// and repeat_1, and their attachments) into Convex. Run it from a machine that
-// can reach the ArcGIS portal:
+// One-time copy of the ArcGIS application tables and their uploaded files into
+// Convex. Run it from a machine that can reach the ArcGIS portal:
 //
 //   node scripts/migrate-arcgis-to-convex.mjs --dry-run
 //   node scripts/migrate-arcgis-to-convex.mjs
@@ -167,77 +166,15 @@ for (const [model, rows] of Object.entries(appRows)) {
 }
 console.log(`file references rewritten: ${rewritten}`);
 
-// --- Survey123 layers -------------------------------------------------------
-const CANONICAL = [
-  'objectid', 'globalid', 'Report_type', 'project_name', 'Organization', 'Register', 'Project_date',
-  'Description', 'aimag', 'sum', 'bag', 'CreationDate', 'Creator', 'EditDate', 'Editor',
-  'Member_name', 'Q1', 'Q2', 'Q3', 'Q4', 'Q5', 'Q6', 'Q7', 'Q8', 'parentglobalid',
-];
-const ALIASES = {
-  ...Object.fromEntries(CANONICAL.map((name) => [name.toLowerCase(), name])),
-  created_date: 'CreationDate', created_user: 'Creator', last_edited_date: 'EditDate', last_edited_user: 'Editor',
-};
-function canonical(attributes) {
-  const result = {};
-  for (const [key, value] of Object.entries(attributes)) {
-    const name = ALIASES[key.toLowerCase()] ?? key;
-    if (!(name in result) || result[name] == null) result[name] = value;
-  }
-  return result;
-}
-
-const surveyRecords = [];
-const surveyAttachments = [];
-for (const [arcgisName, layerId] of [['Tailan', 0], ['repeat_1', 1]]) {
-  const layer = arcgisName === 'Tailan' ? entries.find((item) => item.id === 0) : entry(arcgisName);
-  if (!layer) { console.log(`survey ${arcgisName}: not found, skipped`); continue; }
-  const { features } = await queryAll(layer.id, { returnGeometry: true, outSR: 4326 });
-  const objectIds = [];
-  for (const feature of features) {
-    const { objectid, globalid, parentglobalid, ...attributes } = canonical(feature.attributes);
-    if (typeof objectid !== 'number' || typeof globalid !== 'string') throw new Error(`Survey ${arcgisName} record without objectid/globalid.`);
-    for (const key of Object.keys(attributes)) if (key.startsWith('$')) delete attributes[key];
-    objectIds.push(objectid);
-    const x = feature.geometry?.x;
-    const y = feature.geometry?.y;
-    surveyRecords.push({
-      layerId, objectid, globalid,
-      parentglobalid: typeof parentglobalid === 'string' ? parentglobalid : null,
-      attributes,
-      x: typeof x === 'number' ? x : null,
-      y: typeof y === 'number' ? y : null,
-    });
-  }
-  let files = 0;
-  const info = await arcgis(String(layer.id));
-  if (info.hasAttachments && objectIds.length) {
-    for (const group of await attachmentGroups(layer.id, objectIds)) {
-      for (const attachment of group.attachmentInfos || []) {
-        const file = await download(layer.id, group.parentObjectId, attachment.id);
-        const contentType = attachment.contentType || file.contentType;
-        surveyAttachments.push({
-          layerId, parentObjectId: group.parentObjectId, attachmentId: attachment.id,
-          name: attachment.name || `attachment-${attachment.id}`, contentType,
-          storageId: await store(file.bytes, contentType),
-        });
-        files++;
-      }
-    }
-  }
-  console.log(`survey ${arcgisName} -> layer ${layerId}: ${features.length} records, ${files} files`);
-}
-
 if (dryRun) {
   console.log('Dry run: nothing written to Convex.');
   process.exit(0);
 }
 
 for (const model of Object.keys(schemas)) await insert(model, appRows[model]);
-await insert('surveyRecord', surveyRecords);
-await insert('surveyAttachment', surveyAttachments);
 
 const after = await convex.mutation(anyApi.migrate.tableCounts, { secret });
-const expected = { ...Object.fromEntries(Object.entries(appRows).map(([m, rows]) => [m, rows.length])), surveyRecord: surveyRecords.length, surveyAttachment: surveyAttachments.length };
+const expected = Object.fromEntries(Object.entries(appRows).map(([m, rows]) => [m, rows.length]));
 const mismatched = Object.entries(expected).filter(([table, count]) => after[table] !== count);
 if (mismatched.length) throw new Error(`Count mismatch after import: ${JSON.stringify(mismatched)}`);
 console.log('Migration complete. Convex counts:', after);

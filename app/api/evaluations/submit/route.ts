@@ -1,7 +1,6 @@
 import dataStore from '@/lib/db';
 import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
-import { syncEvaluationToSurvey } from '@/lib/survey/sync';
 import { computeDocumentHash, generateSignatureId, verifyPin } from '@/lib/auth/signature';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
 import { uniqueAssignmentsByEvaluator } from '@/lib/reports/assignments';
@@ -263,16 +262,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Mirror this evaluator's scores into the survey records of the private
-    // Feature Service. Failure-tolerant: it never throws, so a problem here
-    // can't break score submission.
-    await syncEvaluationToSurvey({
-      reportId,
-      evaluationId,
-      evaluatorName: current.name || 'Үнэлгээ',
-    });
-
-    // The survey sync may write to the report too, so read it back last.
     const finalReport = await dataStore.report.findUnique({ where: { id: reportId }, select: { updatedAt: true } });
     const undoToken =
       evaluationExisted || !finalReport

@@ -4,12 +4,11 @@ import CompaniesView, { type CompanyRow } from '@/components/admin/CompaniesView
 import PendingCompanies, { type PendingCompany } from '@/components/admin/PendingCompanies';
 import { parseAttachments } from '@/lib/reports/attachments';
 import { createSignedUrl } from '@/lib/db/storage';
-import { attachEffectiveSenderCompanies, normalizeRegister } from '@/lib/reports/companies';
-import { fetchSurveyReports } from '@/lib/survey/reports';
+import { attachEffectiveSenderCompanies } from '@/lib/reports/companies';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
 
 async function fetchCompanyRows(): Promise<CompanyRow[]> {
-  const [companies, rawReports, surveyReports] = await Promise.all([
+  const [companies, rawReports] = await Promise.all([
     dataStore.company.findMany({
       orderBy: { name: 'asc' },
       include: {
@@ -24,13 +23,11 @@ async function fetchCompanyRows(): Promise<CompanyRow[]> {
       include: { senderCompany: true, reportType: true, location: true },
       orderBy: { submittedAt: 'desc' },
     }),
-    fetchSurveyReports(),
   ]);
   const reports = await attachEffectiveSenderCompanies(rawReports);
 
   return companies.map((company) => {
-    const companyRegister = normalizeRegister(company.registerNumber);
-    const webSurveys = reports
+    const companyReports = reports
       .filter((r) => r.senderCompany?.id === company.id)
       .map((r) => ({
         id: r.id,
@@ -45,24 +42,6 @@ async function fetchCompanyRows(): Promise<CompanyRow[]> {
         finalScore: r.finalScore,
         location: r.location ? { addressDetail: r.location.addressDetail } : null,
       }));
-    const existingReportNumbers = new Set(webSurveys.map((survey) => survey.reportNumber));
-    const externalSurveys = surveyReports
-      .filter((survey) => normalizeRegister(survey.register) === companyRegister)
-      .filter((survey) => !existingReportNumbers.has(survey.reportNumber))
-      .map((survey) => ({
-        id: survey.id,
-        reportNumber: survey.reportNumber,
-        reportTypeName: survey.reportType.name,
-        title: survey.title,
-        implementerName: survey.organization,
-        implementerRegister: survey.register,
-        approvedDate: survey.projectDate ? new Date(survey.projectDate).toISOString() : null,
-        submittedAt: survey.submittedAt,
-        status: survey.status,
-        finalScore: survey.finalScore,
-        location: null,
-      }));
-
     return {
       id: company.id,
       name: company.name,
@@ -74,7 +53,7 @@ async function fetchCompanyRows(): Promise<CompanyRow[]> {
         phone: u.phone,
         position: u.position,
       })),
-      surveys: [...webSurveys, ...externalSurveys].sort(
+      reports: companyReports.sort(
         (a, b) => new Date(b.submittedAt || 0).getTime() - new Date(a.submittedAt || 0).getTime(),
       ),
     };
@@ -90,7 +69,7 @@ async function fetchPendingCompanies(): Promise<PendingCompany[]> {
       users: { select: { name: true, email: true, phone: true, position: true }, orderBy: { createdAt: 'asc' } },
       reports: {
         where: { title: GENERAL_EVALUATION_CONCLUSION_TITLE },
-        select: { projectName: true, conclusionNumber: true, fileUrl: true },
+        select: { id: true, projectName: true, conclusionNumber: true, fileUrl: true },
       },
     },
     orderBy: { createdAt: 'asc' },
@@ -108,6 +87,7 @@ async function fetchPendingCompanies(): Promise<PendingCompany[]> {
         conclusion:
           report && file
             ? {
+                reportId: report.id,
                 projectName: report.projectName,
                 conclusionNumber: report.conclusionNumber,
                 fileName: file.name,

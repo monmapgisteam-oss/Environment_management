@@ -1,11 +1,14 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { HiSearch, HiUser, HiMail, HiPhone, HiOfficeBuilding, HiPlus } from 'react-icons/hi';
+import { HiDotsVertical, HiPlus, HiSearch } from 'react-icons/hi';
+import KpiStrip from '@/components/ui/KpiStrip';
 import { CreateStaffDialog, CredentialsDialog, ResetPasswordDialog } from '@/components/admin/StaffAccountDialog';
 import { confirmDialog } from '@/lib/confirm';
 import { toast } from '@/lib/toast';
+import { decideCompany } from '@/lib/companyApproval';
 
 export type UserRow = {
   id: string;
@@ -14,7 +17,8 @@ export type UserRow = {
   phone: string | null;
   position: string | null;
   role: string;
-  company: { name: string; registerNumber: string } | null;
+  // approvalStatus: a self-registered sender company waits for the admin.
+  company: { id: string; name: string; registerNumber: string; approvalStatus: 'pending' | 'approved' | 'rejected' | null } | null;
   isActive: boolean;
   // Still on the temporary password an admin set.
   mustChangePassword: boolean;
@@ -30,15 +34,12 @@ const ROLE_LABELS: Record<string, string> = {
   admin: 'Админ',
 };
 
-const ROLE_BADGE: Record<string, string> = {
-  sender: 'badge-blue',
-  review_manager: 'badge-purple',
-  evaluator: 'badge-green',
-  admin: 'badge-gray',
+const ROLE_DOT: Record<string, string> = {
+  sender: 'bg-sky-500',
+  review_manager: 'bg-violet-500',
+  evaluator: 'bg-teal-600',
+  admin: 'bg-slate-400',
 };
-
-const inputClass =
-  'h-11 w-full border border-slate-200 bg-white px-3.5 text-sm text-slate-700 transition focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-100';
 
 export default function UsersView({ users }: { users: UserRow[] }) {
   const router = useRouter();
@@ -106,11 +107,27 @@ export default function UsersView({ users }: { users: UserRow[] }) {
   };
 
   const [search, setSearch] = useState('');
-  const [applied, setApplied] = useState('');
   const [role, setRole] = useState('');
+  // Row whose action menu is open, with where to draw it (the table scrolls
+  // sideways, so the menu is fixed to the window instead of the row).
+  const [menu, setMenu] = useState<{ user: UserRow; top: number; right: number } | null>(null);
+
+  useEffect(() => {
+    if (!menu) return;
+    const close = () => setMenu(null);
+    const onKey = (event: KeyboardEvent) => event.key === 'Escape' && close();
+    window.addEventListener('scroll', close, true);
+    window.addEventListener('resize', close);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('resize', close);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [menu]);
 
   const visible = useMemo(() => {
-    const term = applied.trim().toLowerCase();
+    const term = search.trim().toLowerCase();
     return users.filter((u) => {
       if (role && u.role !== role) return false;
       if (!term) return true;
@@ -120,7 +137,7 @@ export default function UsersView({ users }: { users: UserRow[] }) {
         (u.company?.name.toLowerCase().includes(term) ?? false)
       );
     });
-  }, [users, applied, role]);
+  }, [users, search, role]);
 
   const counts = useMemo(() => {
     const c: Record<string, number> = {};
@@ -128,192 +145,265 @@ export default function UsersView({ users }: { users: UserRow[] }) {
     return c;
   }, [users]);
 
+  // Sender companies that signed up and wait for the admin (one row per company).
+  const pendingCompanies = new Set(
+    users.flatMap((u) => (u.role === 'sender' && u.company?.approvalStatus === 'pending' ? [u.company.id] : [])),
+  ).size;
+
+  const decide = async (user: UserRow, action: 'approve' | 'reject') => {
+    if (!user.company) return;
+    setBusy(user.id);
+    if (await decideCompany(user.company, action)) router.refresh();
+    setBusy(null);
+  };
+
+  const staffWithoutSignature = users.filter(
+    (u) => u.isActive && (u.role === 'evaluator' || u.role === 'review_manager') && !u.hasSignature,
+  ).length;
+
+  const tabs = [
+    { value: '', label: 'Бүгд', count: users.length },
+    { value: 'sender', label: 'Илгээгч', count: counts.sender ?? 0 },
+    { value: 'review_manager', label: 'Менежер', count: counts.review_manager ?? 0 },
+    { value: 'evaluator', label: 'Ажилтан', count: counts.evaluator ?? 0 },
+  ];
+
+  const openMenu = (user: UserRow, button: HTMLElement) => {
+    if (menu?.user.id === user.id) {
+      setMenu(null);
+      return;
+    }
+    const rect = button.getBoundingClientRect();
+    setMenu({ user, top: rect.bottom + 4, right: window.innerWidth - rect.right });
+  };
+
+  const menuItem = 'flex w-full items-center px-3.5 py-2 text-left text-sm transition hover:bg-slate-50 disabled:opacity-50';
+
   return (
-    <div className="space-y-6">
-      <div className="flex justify-end">
-        <button
-          type="button"
-          onClick={() => setCreating(true)}
-          className="inline-flex h-10 items-center gap-2 bg-[#0F766E] px-4 text-sm font-semibold text-white transition hover:bg-[#115E59]"
-        >
-          <HiPlus size={16} /> Ажилтны эрх үүсгэх
-        </button>
-      </div>
+    <div className="space-y-5">
+      <KpiStrip
+        items={[
+          { label: 'Нийт хэрэглэгч', value: users.length, note: `${users.filter((u) => !u.isActive).length} идэвхгүй`, accent: 'bg-slate-400' },
+          { label: 'Илгээгч', value: counts.sender ?? 0, note: 'Тайлан илгээх байгууллага', accent: 'bg-sky-500' },
+          { label: 'Хянах менежер', value: counts.review_manager ?? 0, note: 'Хянах байгууллага', accent: 'bg-violet-500' },
+          {
+            label: 'Ажилтан',
+            value: counts.evaluator ?? 0,
+            note: staffWithoutSignature ? `${staffWithoutSignature} нь гарын үсэггүй` : 'Бүгд гарын үсэгтэй',
+            accent: 'bg-teal-600',
+          },
+        ]}
+      />
 
-      {/* Summary */}
-      <section className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div className="border border-slate-200 bg-white p-5 shadow-soft">
-          <span className="text-sm font-medium text-slate-600">Нийт хэрэглэгч</span>
-          <p className="mt-3 text-3xl font-bold tracking-tight text-slate-900">{users.length}</p>
+      <section className="border border-slate-200 bg-white shadow-soft">
+        {/* Toolbar: instant search, role tabs, create */}
+        <div className="flex flex-col gap-3 border-b border-slate-200 p-4 lg:flex-row lg:items-center">
+          <div className="relative w-full lg:max-w-xs">
+            <HiSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={17} />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Нэр, имэйл, байгууллага"
+              className="h-10 w-full border border-slate-200 bg-white pl-9 pr-3 text-sm text-slate-700 transition focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-100"
+            />
+          </div>
+          <div className="flex overflow-x-auto border border-slate-200 bg-slate-50 p-0.5">
+            {tabs.map((tab) => (
+              <button
+                key={tab.value || 'all'}
+                type="button"
+                onClick={() => setRole(tab.value)}
+                className={`inline-flex h-9 shrink-0 items-center gap-1.5 px-3.5 text-sm font-medium transition ${
+                  role === tab.value ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                {tab.label}
+                <span className="text-xs tabular-nums text-slate-400">{tab.count}</span>
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => setCreating(true)}
+            className="inline-flex h-10 shrink-0 items-center justify-center gap-2 bg-[#0F766E] px-4 text-sm font-semibold text-white transition hover:bg-[#115E59] lg:ml-auto"
+          >
+            <HiPlus size={16} /> Ажилтны эрх үүсгэх
+          </button>
         </div>
-        <div className="border border-blue-100 bg-blue-50/70 p-5 shadow-soft">
-          <span className="text-sm font-medium text-slate-600">Илгээгч</span>
-          <p className="mt-3 text-3xl font-bold tracking-tight text-blue-600">{counts.sender ?? 0}</p>
-        </div>
-        <div className="border border-violet-100 bg-violet-50/70 p-5 shadow-soft">
-          <span className="text-sm font-medium text-slate-600">Хянах менежер</span>
-          <p className="mt-3 text-3xl font-bold tracking-tight text-violet-600">{counts.review_manager ?? 0}</p>
-        </div>
-        <div className="border border-emerald-100 bg-emerald-50/70 p-5 shadow-soft">
-          <span className="text-sm font-medium text-slate-600">Ажилтан</span>
-          <p className="mt-3 text-3xl font-bold tracking-tight text-emerald-600">{counts.evaluator ?? 0}</p>
-        </div>
-      </section>
 
-      {/* Filter */}
-      <div className="border border-slate-200 bg-white p-4 shadow-soft sm:p-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
-          <div className="flex-1">
-            <label className="mb-1.5 block text-xs font-medium text-slate-500">Хайлт</label>
-            <div className="relative">
-              <HiSearch className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') setApplied(search); }}
-                placeholder="Нэр, имэйл, байгууллагын нэр"
-                className={`${inputClass} pl-10`}
-              />
-            </div>
+        {pendingCompanies > 0 && (
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-200 bg-amber-50 px-5 py-3 text-sm text-amber-800">
+            <span>
+              <span className="font-semibold">{pendingCompanies} байгууллага</span> бүртгүүлж, баталгаажуулалт хүлээж байна. Мөрийн ⋮
+              цэснээс эсвэл «Компаниуд» хэсгээс дүгнэлтийг нь шалгаад баталгаажуулна уу.
+            </span>
+            <Link href="/admin/companies" className="font-semibold text-amber-900 underline-offset-2 hover:underline">
+              Компаниуд руу
+            </Link>
           </div>
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-slate-500">Төрөл</label>
-            <select value={role} onChange={(e) => setRole(e.target.value)} className={inputClass}>
-              <option value="">Бүгд</option>
-              <option value="sender">Илгээгч</option>
-              <option value="review_manager">Хянах менежер</option>
-              <option value="evaluator">Ажилтан</option>
-              <option value="admin">Админ</option>
-            </select>
-          </div>
-          <div className="flex items-center gap-2.5">
-            <button
-              type="button"
-              onClick={() => setApplied(search)}
-              className="inline-flex h-11 items-center justify-center gap-2 bg-[#0F766E] px-5 text-sm font-semibold text-white transition hover:bg-[#115E59]"
-            >
-              <HiSearch size={16} />
-              Шүүх
-            </button>
-            <button
-              type="button"
-              onClick={() => { setSearch(''); setApplied(''); setRole(''); }}
-              className="inline-flex h-11 items-center justify-center border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
-            >
-              Цэвэрлэх
-            </button>
-          </div>
-        </div>
-      </div>
+        )}
 
-      {/* Users table */}
-      {visible.length === 0 ? (
-        <div className="border border-slate-200 bg-white px-4 py-16 text-center text-slate-400 shadow-soft">
-          Хэрэглэгч олдсонгүй.
-        </div>
-      ) : (
-        <div className="overflow-hidden border border-slate-200 bg-white shadow-soft">
+        {visible.length === 0 ? (
+          <p className="px-4 py-16 text-center text-sm text-slate-400">Хэрэглэгч олдсонгүй.</p>
+        ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full text-sm text-slate-700">
+            <table className="min-w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-200 bg-teal-50/50 text-left text-[11px] font-bold uppercase tracking-[0.08em] text-slate-500">
-                  <th className="px-4 py-3">Нэр</th>
-                  <th className="px-4 py-3">Имэйл</th>
-                  <th className="px-4 py-3">Утас</th>
-                  <th className="px-4 py-3">Албан тушаал</th>
-                  <th className="px-4 py-3">Төрөл</th>
-                  <th className="px-4 py-3">Байгууллага</th>
-                  <th className="px-4 py-3">Төлөв</th>
-                  <th className="px-4 py-3 text-right">Үйлдэл</th>
+                <tr className="border-b border-slate-200 bg-slate-50 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  <th className="px-5 py-2.5">Хэрэглэгч</th>
+                  <th className="px-4 py-2.5">Байгууллага, албан тушаал</th>
+                  <th className="px-4 py-2.5">Утас</th>
+                  <th className="px-4 py-2.5">Эрх</th>
+                  <th className="px-4 py-2.5">Төлөв</th>
+                  <th className="w-12 px-4 py-2.5" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {visible.map((u) => (
-                  <tr key={u.id} className={`transition-colors hover:bg-teal-50/40 ${u.isActive ? '' : 'bg-slate-50 text-slate-400'}`}>
-                    <td className="px-4 py-3.5 font-semibold text-slate-900 whitespace-nowrap">
-                      <span className="inline-flex items-center gap-1.5">
-                        <HiUser size={14} className="text-slate-400" />
-                        {u.name}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3.5 text-slate-600 whitespace-nowrap">
-                      <span className="inline-flex items-center gap-1.5">
-                        <HiMail size={14} className="text-slate-400" />
-                        {u.email}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3.5 text-slate-600 whitespace-nowrap">
-                      {u.phone ? (
-                        <span className="inline-flex items-center gap-1.5">
-                          <HiPhone size={14} className="text-slate-400" />
-                          {u.phone}
+                {visible.map((u) => {
+                  const staff = u.role === 'evaluator' || u.role === 'review_manager';
+                  return (
+                    <tr key={u.id} className={`transition-colors hover:bg-slate-50 ${u.isActive ? '' : 'opacity-60'}`}>
+                      <td className="px-5 py-3">
+                        <div className="flex items-center gap-3">
+                          <span className="flex h-9 w-9 shrink-0 items-center justify-center bg-slate-100 text-xs font-bold text-slate-600">
+                            {u.name.trim().charAt(0).toUpperCase() || '?'}
+                          </span>
+                          <div className="min-w-0">
+                            <p className="truncate font-semibold text-slate-900">{u.name}</p>
+                            <p className="truncate text-xs text-slate-500">{u.email}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="max-w-[16rem] px-4 py-3">
+                        <p className="truncate text-slate-800">{u.company?.name || '—'}</p>
+                        {u.position && <p className="truncate text-xs text-slate-500">{u.position}</p>}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 tabular-nums text-slate-600">{u.phone || '—'}</td>
+                      <td className="whitespace-nowrap px-4 py-3">
+                        <span className="inline-flex items-center gap-2 text-slate-700">
+                          <span className={`h-2 w-2 rounded-full ${ROLE_DOT[u.role] ?? 'bg-slate-400'}`} />
+                          {ROLE_LABELS[u.role] ?? u.role}
                         </span>
-                      ) : '—'}
-                    </td>
-                    <td className="px-4 py-3.5 text-slate-600">{u.position || '—'}</td>
-                    <td className="px-4 py-3.5">
-                      <span className={`inline-flex items-center whitespace-nowrap px-3 py-1 text-xs font-semibold ${ROLE_BADGE[u.role] ?? 'badge-gray'}`}>
-                        {ROLE_LABELS[u.role] ?? u.role}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3.5 text-slate-600">
-                      {u.company ? (
-                        <span className="inline-flex items-center gap-1.5">
-                          <HiOfficeBuilding size={14} className="text-slate-400" />
-                          {u.company.name}
-                        </span>
-                      ) : '—'}
-                    </td>
-                    <td className="px-4 py-3.5 whitespace-nowrap">
-                      {!u.isActive ? (
-                        <span className="badge-gray inline-flex px-2.5 py-1 text-xs font-semibold">Идэвхгүй</span>
-                      ) : u.mustChangePassword ? (
-                        <span className="badge-orange inline-flex px-2.5 py-1 text-xs font-semibold">Нууц үг солиогүй</span>
-                      ) : (
-                        <span className="badge-green inline-flex px-2.5 py-1 text-xs font-semibold">Идэвхтэй</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <div className="flex justify-end gap-2 whitespace-nowrap">
-                        {u.isActive && (u.role === 'evaluator' || u.role === 'review_manager') && (
-                          <button
-                            type="button"
-                            onClick={() => setResetting(u)}
-                            className="border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                          >
-                            Нууц үг шинэчлэх
-                          </button>
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3">
+                        {u.role === 'sender' && u.company?.approvalStatus === 'pending' ? (
+                          <span className="font-medium text-amber-700">Баталгаажуулалт хүлээж буй</span>
+                        ) : u.role === 'sender' && u.company?.approvalStatus === 'rejected' ? (
+                          <span className="font-medium text-rose-600">Татгалзсан</span>
+                        ) : !u.isActive ? (
+                          <span className="text-slate-500">Идэвхгүй</span>
+                        ) : u.mustChangePassword ? (
+                          <span className="font-medium text-amber-700">Нууц үг солиогүй</span>
+                        ) : (
+                          <span className="text-emerald-700">Идэвхтэй</span>
                         )}
-                        {u.isActive && (u.role === 'evaluator' || u.role === 'review_manager') && (
-                          <button
-                            type="button"
-                            onClick={() => issueSignature(u)}
-                            disabled={busy === u.id}
-                            className={`border px-2.5 py-1.5 text-xs font-semibold disabled:opacity-50 ${
-                              u.hasSignature ? 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50' : 'border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100'
-                            }`}
-                          >
-                            {u.hasSignature ? 'Гарын үсэг шинэчлэх' : 'Гарын үсэг олгох'}
-                          </button>
+                        {u.isActive && staff && !u.hasSignature && (
+                          <span className="block text-xs text-amber-700">Гарын үсэг олгоогүй</span>
                         )}
+                      </td>
+                      <td className="px-4 py-3 text-right">
                         <button
                           type="button"
-                          onClick={() => setActive(u, !u.isActive)}
+                          onClick={(event) => openMenu(u, event.currentTarget)}
                           disabled={busy === u.id}
-                          className={`border px-2.5 py-1.5 text-xs font-semibold disabled:opacity-50 ${
-                            u.isActive ? 'border-rose-200 bg-white text-rose-600 hover:bg-rose-50' : 'border-teal-600 bg-white text-teal-700 hover:bg-teal-50'
-                          }`}
+                          aria-label={`${u.name}: үйлдэл`}
+                          aria-expanded={menu?.user.id === u.id}
+                          className="inline-flex h-8 w-8 items-center justify-center text-slate-500 transition hover:bg-slate-100 hover:text-slate-800 disabled:opacity-50"
                         >
-                          {u.isActive ? 'Идэвхгүй болгох' : 'Идэвхжүүлэх'}
+                          <HiDotsVertical size={18} />
                         </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
-        </div>
+        )}
+      </section>
+
+      {menu && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setMenu(null)} />
+          <div
+            role="menu"
+            className="fixed z-50 w-52 border border-slate-200 bg-white py-1 shadow-lg"
+            style={{ top: menu.top, right: menu.right }}
+          >
+            {menu.user.isActive && (menu.user.role === 'evaluator' || menu.user.role === 'review_manager') && (
+              <>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className={`${menuItem} text-slate-700`}
+                  onClick={() => {
+                    setResetting(menu.user);
+                    setMenu(null);
+                  }}
+                >
+                  Нууц үг шинэчлэх
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className={`${menuItem} ${menu.user.hasSignature ? 'text-slate-700' : 'font-semibold text-amber-700'}`}
+                  onClick={() => {
+                    const user = menu.user;
+                    setMenu(null);
+                    issueSignature(user);
+                  }}
+                >
+                  {menu.user.hasSignature ? 'Гарын үсэг шинэчлэх' : 'Гарын үсэг олгох'}
+                </button>
+                <div className="my-1 h-px bg-slate-100" />
+              </>
+            )}
+            {menu.user.role === 'sender' &&
+              (menu.user.company?.approvalStatus === 'pending' || menu.user.company?.approvalStatus === 'rejected') && (
+                <>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className={`${menuItem} font-semibold text-teal-700`}
+                    onClick={() => {
+                      const user = menu.user;
+                      setMenu(null);
+                      decide(user, 'approve');
+                    }}
+                  >
+                    Байгууллагыг баталгаажуулах
+                  </button>
+                  {menu.user.company.approvalStatus === 'pending' && (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className={`${menuItem} text-rose-600 hover:bg-rose-50`}
+                      onClick={() => {
+                        const user = menu.user;
+                        setMenu(null);
+                        decide(user, 'reject');
+                      }}
+                    >
+                      Бүртгэлийг татгалзах
+                    </button>
+                  )}
+                  <div className="my-1 h-px bg-slate-100" />
+                </>
+              )}
+            <button
+              type="button"
+              role="menuitem"
+              className={`${menuItem} ${menu.user.isActive ? 'text-rose-600 hover:bg-rose-50' : 'text-teal-700'}`}
+              onClick={() => {
+                const user = menu.user;
+                setMenu(null);
+                setActive(user, !user.isActive);
+              }}
+            >
+              {menu.user.isActive ? 'Идэвхгүй болгох' : 'Идэвхжүүлэх'}
+            </button>
+          </div>
+        </>
       )}
 
       {creating && (

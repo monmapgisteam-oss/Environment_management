@@ -22,27 +22,6 @@ const appTables = Object.fromEntries(Object.entries(schemas).map(([model, schema
 
 export default defineSchema({
   ...appTables,
-  // Survey123 records copied from ArcGIS: layer 0 features and repeat_1 rows.
-  surveyRecord: defineTable({
-    layerId: v.number(),
-    objectid: v.number(),
-    globalid: v.string(),
-    parentglobalid: v.union(v.string(), v.null()),
-    attributes: v.any(),
-    x: v.union(v.number(), v.null()),
-    y: v.union(v.number(), v.null()),
-  })
-    .index('by_layer_objectid', ['layerId', 'objectid'])
-    .index('by_layer_globalid', ['layerId', 'globalid'])
-    .index('by_parentglobalid', ['parentglobalid']),
-  surveyAttachment: defineTable({
-    layerId: v.number(),
-    parentObjectId: v.number(),
-    attachmentId: v.number(),
-    name: v.string(),
-    contentType: v.string(),
-    storageId: v.id('_storage'),
-  }).index('by_parent', ['layerId', 'parentObjectId']),
   // Shared attempt counters for login and sign-up (lib/auth/rateLimit.ts), so
   // the limit holds across restarts and server instances.
   rateLimit: defineTable({

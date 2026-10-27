@@ -69,7 +69,6 @@ export function reviewerNav(reportTypes: NavReportType[]): NavItem[] {
     { label: 'Буцаасан тайлан', href: '/reviewer/returned' },
     { label: 'Үнэлгээний явц', href: '/reviewer/evaluation-progress', section: 'Хяналт' },
     { label: 'Газарзүйн мэдээлэл', href: '/reviewer/geography' },
-    { label: 'Тайлан хайх', href: '/reviewer/survey' },
   ];
 }
 
@@ -85,7 +84,6 @@ export function staffNav(reportTypes: NavReportType[]): NavItem[] {
     { label: 'Ерөнхий үнэлгээний дүгнэлт', href: '/evaluator/conclusions' },
     { label: 'Үнэлгээ өгсөн тайлангууд', href: '/evaluator/evaluated' },
     { label: 'Газарзүйн мэдээлэл', href: '/evaluator/geography', section: 'Хяналт' },
-    { label: 'Тайлан хайх', href: '/evaluator/survey' },
   ];
 }
 

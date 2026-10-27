@@ -49,6 +49,8 @@ export default function EvaluationScoresCard({
             criteria={criteria}
             evaluations={evaluations}
             approval={approval}
+            canApprove={report.status === 'completed' && !report.scoresApprovedAt}
+            finalScore={report.finalScore}
           />
         )}
       </div>

@@ -71,14 +71,19 @@ test('login sets a secure cookie in production and notifications are scoped to t
   assert.match(patch, /userId:\s*user\.id/);
 });
 
-test('pages send a content security policy and survey data is limited to the reader', () => {
+test('pages send a content security policy', () => {
   const config = read('next.config.mjs');
   assert.match(config, /Content-Security-Policy/);
   assert.match(config, /frame-ancestors 'none'/);
   assert.match(config, /object-src 'none'/);
-  for (const route of ['app/api/survey/features/route.ts', 'app/api/survey/attachments/[layerId]/[objectId]/[attachmentId]/route.ts']) {
-    assert.match(read(route), /getSurveyViewer\(\)/, route);
-  }
-  assert.match(read('app/api/survey/features/route.ts'), /surveyRegisterFor\(viewer\)/);
-  assert.match(read('app/api/survey/attachments/[layerId]/[objectId]/[attachmentId]/route.ts'), /canSeeSurveyRecord\(/);
+});
+
+test('an unapproved company signs in to the registration page only', () => {
+  const auth = read('lib/auth/index.ts');
+  // Everywhere else the unapproved sender still counts as signed out.
+  assert.match(auth, /!isCompanyApproved\(user\.company\) && !allowUnapprovedCompany\) return null/);
+  assert.match(auth, /redirect\(REGISTRATION_PATH\)/);
+  assert.match(read('app/api/registration/conclusion/route.ts'), /getRegistrationApiUser\(\)/);
+  assert.match(read('app/registration/layout.tsx'), /requireRegistrationUser\(\)/);
+  assert.match(read('app/api/auth/login/route.ts'), /REGISTRATION_PATH : ROLE_HOME/);
 });

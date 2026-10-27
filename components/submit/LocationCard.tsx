@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
-import { extractNominatimLocation, extractSurveyLocation, type AdministrativeLocation } from "@/lib/map/locationResolver";
+import { extractNominatimLocation, type AdministrativeLocation } from "@/lib/map/locationResolver";
 
 const MapPicker = dynamic(() => import("@/components/map/MapPicker"), {
   ssr: false,
@@ -17,10 +17,6 @@ function MapPlaceholder() {
   );
 }
 
-// Survey layer (served by the app) — used to resolve a company's location
-// from its register number, so entering РД drops the marker automatically.
-const SURVEY_QUERY_URL = "/api/survey/features";
-
 interface LocationData {
   lat?: number;
   lng?: number;
@@ -34,17 +30,11 @@ interface LocationCardProps {
   onLocationChange?: (location: LocationData) => void;
   // Pre-fills the card when editing an existing report.
   initialLocation?: LocationData | null;
-  // The implementer register (РД). When it matches a survey record, that
-  // company's location is shown on the map automatically.
-  register?: string;
 }
 
-export default function LocationCard({ onLocationChange, initialLocation, register }: LocationCardProps) {
+export default function LocationCard({ onLocationChange, initialLocation }: LocationCardProps) {
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [address, setAddress] = useState("");
-  const [matchInfo, setMatchInfo] = useState("");
-  const [notFound, setNotFound] = useState(false);
-  const [looking, setLooking] = useState(false);
   const seeded = useRef(false);
 
   const push = (
@@ -77,57 +67,9 @@ export default function LocationCard({ onLocationChange, initialLocation, regist
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialLocation]);
 
-  // Look the register up in the survey service (debounced) and show its point.
-  useEffect(() => {
-    const reg = (register || "").trim();
-    if (reg.length < 3) {
-      setMatchInfo("");
-      setNotFound(false);
-      return;
-    }
-
-    let cancelled = false;
-    setLooking(true);
-    const handle = setTimeout(async () => {
-      try {
-        const res = await fetch(`${SURVEY_QUERY_URL}?${new URLSearchParams({ register: reg })}`);
-        const data = await res.json();
-        if (cancelled) return;
-        const feature = data.features?.[0];
-        const c = feature?.geometry?.coordinates;
-        if (c && c.length >= 2) {
-          const [lng, lat] = c;
-          const org = feature.properties?.Organization || feature.properties?.project_name || "";
-          const resolvedLocation = extractSurveyLocation(feature.properties);
-          setCoords({ lat, lng });
-          setAddress(org);
-          setMatchInfo(org || "Бүртгэлээс олдлоо");
-          setNotFound(false);
-          push({ lat, lng }, org, resolvedLocation);
-        } else {
-          // No match — keep any existing marker, just flag it so the user knows.
-          setMatchInfo("");
-          setNotFound(true);
-        }
-      } catch {
-        /* network errors are non-fatal — the map still works manually */
-      } finally {
-        if (!cancelled) setLooking(false);
-      }
-    }, 500);
-
-    return () => {
-      cancelled = true;
-      clearTimeout(handle);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [register]);
-
-  // Manual fallback: clicking the map sets the point (e.g. when a register has
-  // no survey record yet).
+  // Clicking the map sets the point and looks up its address.
   const handleMapClick = async (lat: number, lng: number) => {
     setCoords({ lat, lng });
-    setNotFound(false);
     push({ lat, lng }, address);
     try {
       const res = await fetch(
@@ -137,7 +79,6 @@ export default function LocationCard({ onLocationChange, initialLocation, regist
       const display = data.display_name || "";
       const resolvedLocation = extractNominatimLocation(data);
       setAddress(display);
-      setMatchInfo("");
       push({ lat, lng }, display, resolvedLocation);
     } catch {}
   };
@@ -161,24 +102,8 @@ export default function LocationCard({ onLocationChange, initialLocation, regist
         <h3 className="text-base font-semibold text-color-text-main">Газарзүйн мэдээлэл</h3>
       </div>
       <p className="text-[13px] text-color-text-muted mt-1 mb-4">
-        Төсөл хэрэгжүүлэгчийн РД-г оруулахад тухайн байгууллагын байршил газрын
-        зураг дээр автоматаар харагдана.
+        Газрын зураг дээр дарж төсөл хэрэгжих байршлыг сонгоно уу.
       </p>
-
-      {/* Lookup status */}
-      {looking && (
-        <p className="mb-3 text-[13px] text-color-text-muted">Байршлыг хайж байна...</p>
-      )}
-      {!looking && matchInfo && (
-        <p className="mb-3 text-[13px] font-medium text-emerald-600">
-          ✔ {matchInfo} — бүртгэлээс олдлоо
-        </p>
-      )}
-      {!looking && notFound && (
-        <p className="mb-3 text-[13px] text-amber-600">
-          Энэ РД-аар бүртгэлээс байршил олдсонгүй. Газрын зураг дээр дарж сонгож болно.
-        </p>
-      )}
 
       <div
         className="overflow-hidden border border-slate-200"

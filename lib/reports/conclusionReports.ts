@@ -11,7 +11,9 @@ import {
 import { attachEffectiveSenderCompanies } from '@/lib/reports/companies';
 import { signAttachments } from '@/lib/db/storage';
 
-export async function fetchConclusionRows(search: ConclusionSearchParams = {}) {
+// `includePending` (review managers) also lists conclusions of companies that
+// signed up but wait for the admin, so they can check and comment early.
+export async function fetchConclusionRows(search: ConclusionSearchParams = {}, { includePending = false } = {}) {
   const reports = await dataStore.report.findMany({
     where: {
       status: { not: 'draft' },
@@ -25,9 +27,11 @@ export async function fetchConclusionRows(search: ConclusionSearchParams = {}) {
     orderBy: { submittedAt: 'desc' },
   });
 
-  // Conclusions of companies the admin has not approved yet stay hidden.
-  const attachedReports = (await attachEffectiveSenderCompanies(reports)).filter((report) =>
-    isCompanyApproved(report.senderCompany),
+  // Otherwise conclusions of companies the admin has not approved yet stay
+  // hidden; rejected companies are never listed.
+  const attachedReports = (await attachEffectiveSenderCompanies(reports)).filter(
+    (report) =>
+      isCompanyApproved(report.senderCompany) || (includePending && report.senderCompany?.approvalStatus === 'pending'),
   );
   const rows = await Promise.all(
     attachedReports.map(async (report): Promise<ConclusionRow | null> => {
@@ -45,6 +49,7 @@ export async function fetchConclusionRows(search: ConclusionSearchParams = {}) {
         district: report.location?.district || null,
         conclusionType: report.description || CONCLUSION_TYPES[0],
         status: report.status,
+        companyPending: !isCompanyApproved(report.senderCompany),
         attachments: await signAttachments(documents),
       };
     }),

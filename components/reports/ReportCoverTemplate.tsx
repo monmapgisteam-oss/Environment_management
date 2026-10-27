@@ -234,8 +234,8 @@ export default function ReportCoverTemplate({
 
       <div className="cover-toolbar mx-auto mb-4 flex max-w-[210mm] flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-slate-900">Тайлангийн нүүр</h1>
-          <p className="mt-1 text-sm text-slate-500">Хүлээн авагч талын дотоод нүүр хуудас</p>
+          <h1 className="text-xl font-bold text-slate-900">Гарын үсгээр баталгаажуулах</h1>
+          <p className="mt-1 text-sm text-slate-500">Тайлангийн нүүрийг шалгаад тоон гарын үсгээр баталгаажуулж, хэвлэнэ.</p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -251,7 +251,7 @@ export default function ReportCoverTemplate({
               }`}
             >
               <HiKey size={18} />
-              {currentVerified ? 'Гарын үсэг баталгаажсан' : 'Тоон гарын үсэг'}
+              {currentVerified ? 'Гарын үсгээр баталгаажсан' : 'Гарын үсгээр баталгаажуулах'}
             </button>
           )}
 
@@ -389,7 +389,7 @@ export default function ReportCoverTemplate({
           <div className="w-full max-w-sm bg-white p-5 shadow-2xl">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-base font-bold text-slate-950">Тоон гарын үсэг</h2>
+                <h2 className="text-base font-bold text-slate-950">Гарын үсгээр баталгаажуулах</h2>
                 <p className="mt-1 text-sm text-slate-500">{currentSigner.name}</p>
               </div>
               <button
@@ -404,7 +404,7 @@ export default function ReportCoverTemplate({
 
             <label className="mt-5 block">
               <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Өөрийн тоон гарын үсэг
+                Тоон гарын үсгийн нууц үг
               </span>
               <input
                 type="password"
@@ -412,7 +412,7 @@ export default function ReportCoverTemplate({
                 pattern="[0-9]*"
                 value={pendingSignature}
                 onChange={(event) => setPendingSignature(event.target.value.replace(/\D/g, ''))}
-                placeholder="Тоон гарын үсгээ оруулна уу"
+                placeholder="••••••"
                 className="mt-2 h-11 w-full border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 outline-none transition focus:border-[#0F766E] focus:ring-2 focus:ring-teal-100"
               />
             </label>
@@ -429,7 +429,7 @@ export default function ReportCoverTemplate({
                 disabled={!pendingSignature.trim() || isVerifying}
                 className="flex-1 bg-[#0F766E] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#115E59] disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {isVerifying ? 'Шалгаж байна...' : 'Баталгаажуулах'}
+                {isVerifying ? 'Шалгаж байна...' : 'Гарын үсэг зурж баталгаажуулах'}
               </button>
               <button
                 type="button"

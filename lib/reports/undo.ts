@@ -1,6 +1,5 @@
 import jwt from 'jsonwebtoken';
 import dataStore from '@/lib/db';
-import { removeSurveyRecord, SURVEY_REPEAT_LAYER_ID } from '@/lib/db/survey';
 import type { Report, ReportAssignment } from '@/lib/db/models';
 
 // Manager and staff actions on a report can be undone for a short while, so a
@@ -150,13 +149,6 @@ export async function undoAction(token: unknown, userId: string): Promise<string
       if (evaluation) {
         await dataStore.evaluationScore.deleteMany({ where: { evaluationId: evaluation.id } });
         await dataStore.evaluation.deleteMany({ where: { id: evaluation.id } });
-        // The score row mirrored into the survey records goes too, so scoring
-        // again does not leave a duplicate.
-        if (evaluation.arcgisGlobalId) {
-          await removeSurveyRecord(SURVEY_REPEAT_LAYER_ID, evaluation.arcgisGlobalId).catch((error) =>
-            console.error('[undo] survey row removal failed:', error),
-          );
-        }
       }
       if (action.assignmentCreated) {
         await dataStore.reportAssignment.deleteMany({ where: { id: action.assignmentId } });

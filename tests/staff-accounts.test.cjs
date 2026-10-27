@@ -38,3 +38,11 @@ test('a broadcast needs a title, a message and a known audience', () => {
   assert.deepEqual(audienceRoles('all').sort(), ['evaluator', 'review_manager', 'sender']);
   assert.deepEqual(audienceRoles('review').sort(), ['evaluator', 'review_manager']);
 });
+
+test('a conclusion comment needs text within the length limit', () => {
+  const { parseComment, COMMENT_MAX_LENGTH } = require('../lib/reports/reportComments.ts');
+  assert.deepEqual(parseComment('  Дүгнэлтийн хуудас дутуу  '), { body: 'Дүгнэлтийн хуудас дутуу' });
+  assert.ok('error' in parseComment('   '));
+  assert.ok('error' in parseComment(42));
+  assert.ok('error' in parseComment('a'.repeat(COMMENT_MAX_LENGTH + 1)));
+});

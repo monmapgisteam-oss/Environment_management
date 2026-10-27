@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dataStore from '@/lib/db';
 import { hashPassword } from '@/lib/auth/password';
+import { createToken, REGISTRATION_PATH, SESSION_COOKIE, sessionCookieOptions } from '@/lib/auth/session';
 import { clientIp, limitRequest } from '@/lib/auth/rateLimit';
 import { conclusionFileError, parseConclusion, parseSignup, type SignupInput } from '@/lib/auth/signup';
 import { findSenderCompanyByRegister } from '@/lib/reports/companies';
@@ -33,8 +34,8 @@ async function accountConflict(input: SignupInput) {
 // checked. The second posts everything as multipart form data with the general
 // evaluation conclusion PDF; then the company, its first user and the
 // conclusion are created together. The company waits for the admin to approve
-// it (anyone could type another organisation's register number), so nobody is
-// signed in yet.
+// it (anyone could type another organisation's register number); meanwhile the
+// new user is signed in to the registration page only.
 export async function POST(request: Request) {
   const isFinal = (request.headers.get('content-type') || '').includes('multipart/form-data');
   const limit = isFinal
@@ -125,17 +126,24 @@ export async function POST(request: Request) {
       }),
     );
 
-    // The admins review the new company; managers hear about its conclusion
-    // once it is approved. A notification failure must not fail the sign-up.
+    // The admins approve the new company; the admins and review managers both
+    // check its conclusion and can comment on it right away. A notification
+    // failure must not fail the sign-up.
     try {
-      const admins = await dataStore.user.findMany({ where: { role: 'admin' }, select: { id: true } });
-      if (admins.length > 0) {
+      const reviewers = await dataStore.user.findMany({
+        where: { role: { in: ['admin', 'review_manager'] } },
+        select: { id: true, role: true },
+      });
+      if (reviewers.length > 0) {
         await dataStore.notification.createMany({
-          data: admins.map((admin) => ({
-            userId: admin.id,
+          data: reviewers.map((reviewer) => ({
+            userId: reviewer.id,
             reportId: report.id,
             title: 'Шинэ байгууллага бүртгүүллээ',
-            message: `${company.name} (РД ${company.registerNumber}) бүртгүүлж, баталгаажуулалт хүлээж байна. «Компаниуд» хэсгээс шалгана уу.`,
+            message:
+              reviewer.role === 'admin'
+                ? `${company.name} (РД ${company.registerNumber}) бүртгүүлж, ерөнхий үнэлгээний дүгнэлтээ илгээлээ. Дүгнэлтийг шалгаад байгууллагыг баталгаажуулна уу.`
+                : `${company.name} (РД ${company.registerNumber}) "${conclusion.projectName}" төслийн ерөнхий үнэлгээний дүгнэлт илгээлээ. Шалгаад тайлбар үлдээх боломжтой.`,
           })),
         });
       }
@@ -143,7 +151,15 @@ export async function POST(request: Request) {
       console.error('[auth/signup] notification failed:', notifyError);
     }
 
-    return NextResponse.json({ success: true, pending: true }, { status: 201 });
+    // Signed in right away: until the admin approves the company the sender
+    // sees only the registration page (status, comments, conclusion fix).
+    const response = NextResponse.json({ success: true, pending: true, redirect: REGISTRATION_PATH }, { status: 201 });
+    response.cookies.set(
+      SESSION_COOKIE,
+      createToken({ userId, role: 'sender', companyId: company.id, companyType: 'sender' }),
+      sessionCookieOptions(),
+    );
+    return response;
   } catch (error) {
     console.error('[auth/signup] failed:', error);
     return NextResponse.json({ error: 'Бүртгэл үүсгэхэд алдаа гарлаа. Дахин оролдоно уу.' }, { status: 500 });

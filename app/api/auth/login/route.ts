@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import dataStore from '@/lib/db';
-import { createToken, isRole, ROLE_HOME, SESSION_COOKIE, sessionCookieOptions } from '@/lib/auth/session';
+import { createToken, isRole, REGISTRATION_PATH, ROLE_HOME, SESSION_COOKIE, sessionCookieOptions } from '@/lib/auth/session';
 import { verifyPassword } from '@/lib/auth/password';
 import { clientIp, limitRequest } from '@/lib/auth/rateLimit';
 import { isActiveUser, isCompanyApproved } from '@/lib/auth/accounts';
@@ -45,17 +45,6 @@ export async function POST(request: Request) {
   if (!isActiveUser(user)) {
     return NextResponse.json({ error: 'Таны эрх идэвхгүй болсон байна. Системийн админд хандана уу.' }, { status: 403 });
   }
-  if (user.role === 'sender' && !isCompanyApproved(user.company)) {
-    return NextResponse.json(
-      {
-        error:
-          user.company?.approvalStatus === 'rejected'
-            ? 'Таны байгууллагын бүртгэлийг баталгаажуулаагүй байна. Системийн админд хандана уу.'
-            : 'Таны байгууллагын бүртгэлийг системийн админ хянаж байна. Баталгаажсаны дараа нэвтэрнэ үү.',
-      },
-      { status: 403 },
-    );
-  }
 
   // A login portal may allow several roles (e.g. the review organisation lets
   // both the manager and staff in); each is then routed to its own home page.
@@ -74,7 +63,8 @@ export async function POST(request: Request) {
   const response = NextResponse.json({
     success: true,
     role: user.role,
-    redirect: ROLE_HOME[user.role],
+    // A sender whose company is not approved yet sees only the registration page.
+    redirect: user.role === 'sender' && !isCompanyApproved(user.company) ? REGISTRATION_PATH : ROLE_HOME[user.role],
     // The app asks for a new password right after this login.
     mustChangePassword: !!user.mustChangePassword,
   });

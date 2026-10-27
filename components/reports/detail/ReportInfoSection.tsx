@@ -15,7 +15,6 @@ export default function ReportInfoSection({ report, isConclusion, isSenderView }
   const isPlanOrPerformanceReport =
     report.reportType?.name?.includes('Жилийн') || report.reportType?.name?.includes('Биелэлт');
   let displayStatus = report.status === 'approved' ? 'completed' : report.status === 'assigned' ? 'submitted' : report.status;
-  const isSurveySource = report.reportNumber?.startsWith('S123-');
   // "return_requested" is an internal staff→manager step; the sender should still
   // see the report as under review until the manager actually returns it.
   if (isSenderView && report.status === 'return_requested') displayStatus = 'in_review';
@@ -26,11 +25,6 @@ export default function ReportInfoSection({ report, isConclusion, isSenderView }
     <div className="bg-white border border-slate-200 p-6">
       <div className="flex items-center justify-between mb-5">
         <div>
-          {isSurveySource && (
-            <span className="mb-2 inline-flex bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
-              Survey системээс тайлан ирлээ
-            </span>
-          )}
           <p className="text-xs text-slate-500 mb-0.5">
             {isConclusion ? 'Дүгнэлтийн дугаар' : 'Тайлангийн дугаар'}
           </p>

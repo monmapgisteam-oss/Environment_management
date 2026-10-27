@@ -41,7 +41,7 @@ export async function uploadAttachment(file: File, ownerUserId: string): Promise
 
 export async function createSignedUrl(reference: string, expiresIn = SIGNED_URL_TTL): Promise<string> {
   if (!REFERENCE.test(reference)) {
-    // Survey photos and other app routes keep their existing links.
+    // Plain links and other app routes are returned as they are.
     if (/^https?:\/\//i.test(reference) || reference.startsWith('/')) return reference;
     throw new Error('Unknown attachment reference.');
   }

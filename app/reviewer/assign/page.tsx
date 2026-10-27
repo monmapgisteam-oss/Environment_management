@@ -3,7 +3,6 @@ import dataStore from '@/lib/db';
 import { ACTIVE_USER_WHERE } from '@/lib/auth/accounts';
 import AssignBoard from '@/components/evaluation/AssignBoard';
 import { attachEffectiveSenderCompanies } from '@/lib/reports/companies';
-import { fetchSurveyReports } from '@/lib/survey/reports';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
 import { uniqueAssignmentsByEvaluator } from '@/lib/reports/assignments';
 
@@ -31,25 +30,21 @@ async function fetchStaff() {
 }
 
 async function fetchDistributableReports() {
-  const [rawReports, surveyReports] = await Promise.all([
-    dataStore.report.findMany({
-      where: {
-        status: { in: ['submitted', 'assigned', 'in_review', 'needs_revision'] },
-        title: { not: GENERAL_EVALUATION_CONCLUSION_TITLE },
-      },
-      include: {
-        reportType: true,
-        senderCompany: true,
-        assignments: { include: { evaluator: { select: { id: true, name: true } } } },
-      },
-      orderBy: { submittedAt: 'desc' },
-    }),
-    fetchSurveyReports(),
-  ]);
+  const rawReports = await dataStore.report.findMany({
+    where: {
+      status: { in: ['submitted', 'assigned', 'in_review', 'needs_revision'] },
+      title: { not: GENERAL_EVALUATION_CONCLUSION_TITLE },
+    },
+    include: {
+      reportType: true,
+      senderCompany: true,
+      assignments: { include: { evaluator: { select: { id: true, name: true } } } },
+    },
+    orderBy: { submittedAt: 'desc' },
+  });
   const reports = await attachEffectiveSenderCompanies(rawReports);
-  const existingReportNumbers = new Set(reports.map((report) => report.reportNumber));
-  return [
-    ...reports.map((report) => ({
+  return reports
+    .map((report) => ({
       id: report.id,
       reportNumber: report.reportNumber,
       title: report.title,
@@ -57,19 +52,8 @@ async function fetchDistributableReports() {
       senderName: report.senderCompany?.name || '-',
       status: report.status,
       assignees: uniqueAssignmentsByEvaluator(report.assignments).map((a) => ({ id: a.evaluator.id, name: a.evaluator.name })),
-    })),
-    ...surveyReports
-      .filter((report) => !existingReportNumbers.has(report.reportNumber))
-      .map((report) => ({
-        id: report.id,
-        reportNumber: report.reportNumber,
-        title: report.title,
-        reportTypeName: report.reportType.name,
-        senderName: report.senderCompany?.name || '-',
-        status: report.status,
-        assignees: [],
-      })),
-  ].sort((a, b) => a.reportNumber.localeCompare(b.reportNumber));
+    }))
+    .sort((a, b) => a.reportNumber.localeCompare(b.reportNumber));
 }
 
 export default async function AssignPage() {

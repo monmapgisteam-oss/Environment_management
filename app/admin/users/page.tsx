@@ -6,7 +6,7 @@ async function fetchUsers() {
   return dataStore.user.findMany({
     where: { role: { not: 'admin' } },
     include: {
-      company: { select: { name: true, registerNumber: true } },
+      company: { select: { id: true, name: true, registerNumber: true, approvalStatus: true } },
       evaluatorAssignments: { select: { status: true } },
     },
     orderBy: { name: 'asc' },
@@ -23,7 +23,9 @@ export default async function AdminUsersPage() {
     phone: u.phone,
     position: u.position,
     role: u.role,
-    company: u.company ? { name: u.company.name, registerNumber: u.company.registerNumber } : null,
+    company: u.company
+      ? { id: u.company.id, name: u.company.name, registerNumber: u.company.registerNumber, approvalStatus: u.company.approvalStatus }
+      : null,
     isActive: u.isActive !== false,
     mustChangePassword: !!u.mustChangePassword,
     // Only whether one exists; the hash never leaves the server.

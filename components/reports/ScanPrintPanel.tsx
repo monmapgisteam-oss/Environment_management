@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { HiPrinter, HiUpload, HiDocument } from 'react-icons/hi';
+import { HiBadgeCheck, HiKey, HiPrinter, HiUpload, HiDocument } from 'react-icons/hi';
 import { formatDate } from '@/lib/utils';
 import PrintScoreModal from './PrintScoreModal';
+import ApproveScoresDialog from './detail/ApproveScoresDialog';
 import { offerUndo } from '@/lib/undo';
 
 type Criterion = { id: string; name: string; maxScore: number };
@@ -40,6 +41,9 @@ type Props = {
   criteria: Criterion[];
   evaluations: Evaluation[];
   approval: Approval | null;
+  // Every evaluator signed and the manager has not signed the scores off yet.
+  canApprove: boolean;
+  finalScore: number | null;
 };
 
 // Manager-side controls once every evaluator has scored the report: preview
@@ -58,12 +62,15 @@ export default function ScanPrintPanel({
   criteria,
   evaluations,
   approval,
+  canApprove,
+  finalScore,
 }: Props) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [printOpen, setPrintOpen] = useState(false);
+  const [approveOpen, setApproveOpen] = useState(false);
   // Picking a file only stages it — nothing is sent to the sender until the
   // manager explicitly confirms, so a wrong file can't go out by accident.
   const [pendingFile, setPendingFile] = useState<File | null>(null);
@@ -132,17 +139,43 @@ export default function ScanPrintPanel({
         Хэвлэх
       </button>
 
-      {/* The scan goes to the sender, so it waits for the manager's approval. */}
-      <button
-        type="button"
-        onClick={() => fileInputRef.current?.click()}
-        disabled={uploading || !approval}
-        title={approval ? undefined : 'Эхлээд үнэлгээг тоон гарын үсгээр баталгаажуулна уу.'}
-        className="inline-flex items-center gap-2 bg-color-primary px-4 py-2 text-sm font-semibold text-white hover:bg-color-primary-dark transition disabled:opacity-60"
-      >
-        <HiUpload size={16} />
-        {uploading ? 'Хуулж байна...' : signedScanName ? 'Скан хуулга дахин явуулах' : 'Скан хуулга явуулах'}
-      </button>
+      {/* First the manager signs the scores off; only then may a signed paper
+          scan go to the sender as well (optional). */}
+      {approval ? (
+        <>
+          <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-700">
+            <HiBadgeCheck size={18} /> Гарын үсгээр баталгаажсан
+          </span>
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="inline-flex items-center gap-2 border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition disabled:opacity-60"
+          >
+            <HiUpload size={16} />
+            {uploading ? 'Хуулж байна...' : signedScanName ? 'Скан хуулга солих' : 'Скан хуулга хавсаргах'}
+          </button>
+        </>
+      ) : (
+        canApprove && (
+          <button
+            type="button"
+            onClick={() => setApproveOpen(true)}
+            className="inline-flex items-center gap-2 bg-color-primary px-4 py-2 text-sm font-semibold text-white hover:bg-color-primary-dark transition"
+          >
+            <HiKey size={16} />
+            Гарын үсгээр баталгаажуулах
+          </button>
+        )
+      )}
+      {approveOpen && (
+        <ApproveScoresDialog
+          reportId={reportId}
+          evaluatorCount={evaluations.length}
+          finalScore={finalScore}
+          onClose={() => setApproveOpen(false)}
+        />
+      )}
       <input
         ref={fileInputRef}
         type="file"

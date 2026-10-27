@@ -156,6 +156,20 @@ export type Broadcast = {
   createdAt: Date;
 };
 
+// A note the admin or a review manager leaves on a report — used for the
+// general evaluation conclusion a company uploads when it signs up. The sender
+// sees these on the conclusion page.
+export type ReportComment = {
+  id: string;
+  reportId: string;
+  userId: string;
+  // Who wrote it, kept as written even if the account changes later.
+  authorName: string;
+  authorRole: 'admin' | 'review_manager';
+  body: string;
+  createdAt: Date;
+};
+
 export type Notification = {
   id: string;
   userId: string;
@@ -193,6 +207,7 @@ export type Models = {
   activityLog: ActivityLog;
   upload: Upload;
   broadcast: Broadcast;
+  reportComment: ReportComment;
 };
 
 export type Relations = {
@@ -251,5 +266,8 @@ export type Relations = {
   upload: {
   };
   broadcast: {
+  };
+  reportComment: {
+    report: { model: "report"; many: false; nullable: false };
   };
 };

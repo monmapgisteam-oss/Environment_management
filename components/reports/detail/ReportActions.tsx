@@ -3,14 +3,17 @@ type Props = {
   isConclusion: boolean;
   isReviewer: boolean;
   isStaff: boolean;
+  isAdmin?: boolean;
   canFix: boolean;
   // Page that fixes only the flagged sections; without it the full form opens.
   revisePath?: string;
 };
 
 // Back link to the viewer's list, plus a "fix" link when the sender must revise the report.
-export default function ReportActions({ reportId, isConclusion, isReviewer, isStaff, canFix, revisePath }: Props) {
-  const backHref = isConclusion
+export default function ReportActions({ reportId, isConclusion, isReviewer, isStaff, isAdmin = false, canFix, revisePath }: Props) {
+  const backHref = isAdmin
+    ? '/admin/companies'
+    : isConclusion
     ? isReviewer
       ? '/reviewer/conclusions'
       : isStaff

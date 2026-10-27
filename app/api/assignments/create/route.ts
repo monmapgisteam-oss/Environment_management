@@ -4,16 +4,8 @@ import dataStore from "@/lib/db";
 import { NextResponse } from "next/server";
 import { getApiUser, unauthorized } from "@/lib/auth";
 import { ACTIVE_USER_WHERE } from "@/lib/auth/accounts";
-import { materializeSurveyReportByObjectId } from "@/lib/survey/reports";
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from "@/lib/reports/conclusions";
 import { createNotifications, createUndoToken } from "@/lib/reports/undo";
-
-async function resolveAssignableReportId(reportId: string) {
-  const match = /^survey-(\d+)$/.exec(reportId);
-  if (!match) return reportId;
-  const report = await materializeSurveyReportByObjectId(Number(match[1]));
-  return report.id;
-}
 
 export async function POST(request: Request) {
   try {
@@ -21,8 +13,7 @@ export async function POST(request: Request) {
     if (!current) return unauthorized();
 
     const data = await request.json();
-    const rawReportId = String(data.reportId || "");
-    const reportId: string = rawReportId ? await resolveAssignableReportId(rawReportId) : "";
+    const reportId = String(data.reportId || "");
     const evaluatorIds: string[] = Array.from(new Set((data.evaluators || []).filter(Boolean)));
 
     if (!reportId || evaluatorIds.length === 0) {

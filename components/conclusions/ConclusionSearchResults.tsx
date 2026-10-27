@@ -168,6 +168,11 @@ export default function ConclusionSearchResults({ rows, search, role }: Props) {
                     <td className="border-r border-slate-100 px-3 py-4">{row.category}</td>
                     <td className="border-r border-slate-100 px-3 py-4">
                       <p>{row.projectName}</p>
+                      {row.companyPending && (
+                        <span className="mt-1 inline-flex bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700 ring-1 ring-amber-200">
+                          Шинэ бүртгэл · баталгаажаагүй
+                        </span>
+                      )}
                       <div className="mt-2 flex flex-col gap-1.5">
                         {row.attachments.map((file) => (
                           <div key={`${row.id}-${file.url}`} className="flex items-center gap-2 whitespace-nowrap">

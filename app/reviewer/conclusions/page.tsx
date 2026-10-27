@@ -8,7 +8,7 @@ type Props = {
 
 export default async function ReviewerConclusionsPage(props: Props) {
   const searchParams = await props.searchParams;
-  const rows = await fetchConclusionRows(searchParams);
+  const rows = await fetchConclusionRows(searchParams, { includePending: true });
 
   return (
     <ConclusionSectionPage rows={rows} search={searchParams} role="reviewer" />

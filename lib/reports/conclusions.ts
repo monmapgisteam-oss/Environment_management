@@ -41,6 +41,8 @@ export type ConclusionRow = {
   district: string | null;
   conclusionType: string;
   status: string;
+  // The company signed up but the admin has not approved it yet.
+  companyPending: boolean;
   attachments: Attachment[];
 };
 

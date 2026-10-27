@@ -3,7 +3,6 @@ import { fetchCriteriaFor, fetchCriteriaForReport } from '@/lib/reports/criteria
 import AttachmentList from '@/components/reports/AttachmentList';
 import MaterialAttachmentList from '@/components/reports/MaterialAttachmentList';
 import ManagerReturnPanel from '@/components/reports/ManagerReturnPanel';
-import SurveyReportDetail from '@/components/reports/detail/SurveyReportDetail';
 import ReportCoverLink from '@/components/reports/detail/ReportCoverLink';
 import SignedScanCard from '@/components/reports/detail/SignedScanCard';
 import AssignedStaffCard from '@/components/reports/detail/AssignedStaffCard';
@@ -14,13 +13,14 @@ import EvaluationSection from '@/components/reports/detail/EvaluationSection';
 import ReportActions from '@/components/reports/detail/ReportActions';
 import StatusTimeline from '@/components/reports/detail/StatusTimeline';
 import ScoreApprovalCard from '@/components/reports/detail/ScoreApprovalCard';
+import CompanyApprovalButtons from '@/components/admin/CompanyApprovalButtons';
+import ConclusionComments, { type ConclusionComment } from '@/components/reports/detail/ConclusionComments';
 import type { AssignedStaffMember, EvaluationSummary, ScoreApproval, ViewerRole } from '@/components/reports/detail/types';
 import { parseAttachments } from '@/lib/reports/attachments';
 import { signAttachments, createSignedUrl } from '@/lib/db/storage';
-import { canAccessReport, requireUser, type CurrentUser } from '@/lib/auth';
+import { canAccessReport, requireUser } from '@/lib/auth';
 import { createQrImageUrl, getPublicProfileQrUrl } from '@/lib/auth/profileQr';
-import { fetchSurveyReportByObjectId, type SurveyReport } from '@/lib/survey/reports';
-import { attachEffectiveSenderCompanies, normalizeRegister } from '@/lib/reports/companies';
+import { attachEffectiveSenderCompanies } from '@/lib/reports/companies';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
 import { uniqueAssignmentsByEvaluator } from '@/lib/reports/assignments';
 import { scoresReleased } from '@/lib/reports/scoreRelease';
@@ -31,19 +31,6 @@ import { signSections } from '@/lib/reports/reportSections';
 type Props = {
   params: Promise<{ id: string }>;
 };
-
-function parseSurveyReportId(id: string) {
-  const match = /^survey-(\d+)$/.exec(id);
-  return match ? Number(match[1]) : null;
-}
-
-// Senders only see survey records filed under their own register number.
-function canViewSurveyReport(user: CurrentUser, survey: SurveyReport) {
-  return (
-    user.role !== 'sender' ||
-    (!!survey.register && normalizeRegister(survey.register) === normalizeRegister(user.company?.registerNumber))
-  );
-}
 
 async function fetchReportDetail(reportId: string) {
   const report = await dataStore.report.findUnique({
@@ -72,14 +59,6 @@ async function fetchReportDetail(reportId: string) {
 export default async function ReportDetailPage(props: Props) {
   const params = await props.params;
   const currentUser = await requireUser();
-  const surveyObjectId = parseSurveyReportId(params.id);
-  if (surveyObjectId !== null) {
-    const survey = await fetchSurveyReportByObjectId(surveyObjectId);
-    if (!survey || !canViewSurveyReport(currentUser, survey)) {
-      return <div className="p-8 text-center text-slate-500">Survey123 тайлан олдсонгүй.</div>;
-    }
-    return <SurveyReportDetail survey={survey} />;
-  }
   const isStaff = currentUser.role === 'evaluator';
   const isReviewer = currentUser.role === 'review_manager';
 
@@ -168,7 +147,21 @@ export default async function ReportDetailPage(props: Props) {
           approvedAt: report.scoresApprovedAt.toISOString(),
         }
       : null;
-  const canApprove = isReviewer && !isConclusion && report.status === 'completed' && !report.scoresApprovedAt && allEvaluatorsDone;
+
+  // A conclusion carries the admin's and managers' comments; a company that
+  // just signed up is still waiting for the admin.
+  const isAdmin = currentUser.role === 'admin';
+  const conclusionComments: ConclusionComment[] = isConclusion
+    ? (await dataStore.reportComment.findMany({ where: { reportId: report.id }, orderBy: { createdAt: 'asc' } })).map((comment) => ({
+        id: comment.id,
+        authorName: comment.authorName,
+        authorRole: comment.authorRole,
+        body: comment.body,
+        createdAt: comment.createdAt.toISOString(),
+      }))
+    : [];
+  const companyPending = isConclusion && report.senderCompany?.approvalStatus === 'pending';
+  const companyRejected = isConclusion && report.senderCompany?.approvalStatus === 'rejected';
 
   const scoredCount = assignedStaff.filter((member) => member.submitted).length;
 
@@ -184,6 +177,28 @@ export default async function ReportDetailPage(props: Props) {
               items={revisionItems}
               fixHref={revisionItems.length > 0 ? `/sender/revise/${report.id}` : `/sender/submit?edit=${report.id}`}
             />
+          )}
+          {(companyPending || companyRejected) && (isReviewer || isAdmin) && (
+            <div
+              className={`flex flex-wrap items-center justify-between gap-3 border px-5 py-3.5 text-sm ${
+                companyRejected ? 'border-rose-200 bg-rose-50 text-rose-800' : 'border-amber-200 bg-amber-50 text-amber-800'
+              }`}
+            >
+              <p className="min-w-0">
+                {companyRejected ? (
+                  <>
+                    <span className="font-semibold">Татгалзсан бүртгэл.</span> {report.senderCompany.name} байгууллагын бүртгэлийг
+                    татгалзсан.
+                  </>
+                ) : (
+                  <>
+                    <span className="font-semibold">Шинэ бүртгэл.</span> {report.senderCompany.name} байгууллагыг админ баталгаажуулаагүй
+                    байна. Дүгнэлтийг шалгаад {isAdmin ? 'баталгаажуулна уу.' : 'доор тайлбар үлдээнэ үү.'}
+                  </>
+                )}
+              </p>
+              {isAdmin && <CompanyApprovalButtons company={report.senderCompany} rejected={companyRejected} />}
+            </div>
           )}
           <ReportInfoSection report={report} isConclusion={isConclusion} isSenderView={isSenderView} />
 
@@ -211,6 +226,10 @@ export default async function ReportDetailPage(props: Props) {
             />
           )}
 
+          {isConclusion && (
+            <ConclusionComments reportId={report.id} initialComments={conclusionComments} canComment={isReviewer || isAdmin} />
+          )}
+
           {!isConclusion && <ReportLocationCard report={report} />}
         </div>
 
@@ -227,15 +246,7 @@ export default async function ReportDetailPage(props: Props) {
             />
           )}
 
-          {!isConclusion && (
-            <ScoreApprovalCard
-              reportId={report.id}
-              approval={approval}
-              canApprove={canApprove}
-              evaluatorCount={assignedStaff.length}
-              finalScore={report.finalScore}
-            />
-          )}
+          {!isConclusion && <ScoreApprovalCard approval={approval} />}
 
           {/* Sender downloads the manager's scanned, physically-signed copy. */}
           {isSenderView && signedScanDownloadUrl && (
@@ -274,6 +285,7 @@ export default async function ReportDetailPage(props: Props) {
               isConclusion={isConclusion}
               isReviewer={isReviewer}
               isStaff={isStaff}
+              isAdmin={isAdmin}
               // The revision notice at the top carries the fix button when shown.
               canFix={needsRevision && !report.returnReason && revisionItems.length === 0}
               revisePath={revisionItems.length > 0 ? `/sender/revise/${report.id}` : undefined}
