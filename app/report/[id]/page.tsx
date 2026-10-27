@@ -13,14 +13,17 @@ import RevisionNotice from '@/components/reports/detail/RevisionNotice';
 import EvaluationSection from '@/components/reports/detail/EvaluationSection';
 import ReportActions from '@/components/reports/detail/ReportActions';
 import StatusTimeline from '@/components/reports/detail/StatusTimeline';
-import type { AssignedStaffMember, EvaluationSummary, ViewerRole } from '@/components/reports/detail/types';
+import ScoreApprovalCard from '@/components/reports/detail/ScoreApprovalCard';
+import type { AssignedStaffMember, EvaluationSummary, ScoreApproval, ViewerRole } from '@/components/reports/detail/types';
 import { parseAttachments } from '@/lib/reports/attachments';
 import { signAttachments, createSignedUrl } from '@/lib/db/storage';
 import { canAccessReport, requireUser, type CurrentUser } from '@/lib/auth';
+import { createQrImageUrl, getPublicProfileQrUrl } from '@/lib/auth/profileQr';
 import { fetchSurveyReportByObjectId, type SurveyReport } from '@/lib/survey/reports';
 import { attachEffectiveSenderCompanies, normalizeRegister } from '@/lib/reports/companies';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
 import { uniqueAssignmentsByEvaluator } from '@/lib/reports/assignments';
+import { scoresReleased } from '@/lib/reports/scoreRelease';
 import { scoringAttachmentsFor } from '@/lib/reports/scoringAttachments';
 import { parseRevisionItems, reportSections } from '@/lib/reports/revisions';
 import { signSections } from '@/lib/reports/reportSections';
@@ -91,10 +94,16 @@ export default async function ReportDetailPage(props: Props) {
 
   // A staff member viewing the report may only see their OWN evaluation, never
   // their colleagues'. Managers and the sender see every evaluator's scores.
-  const evaluations: EvaluationSummary[] = uniqueAssignments.flatMap(({ evaluator, evaluation }) => {
-    if (!evaluation || (isStaff && evaluator?.id !== currentUser.id)) return [];
-    return [{
+  const visibleAssignments = uniqueAssignments.flatMap(({ evaluator, evaluation }) =>
+    !evaluation || (isStaff && evaluator?.id !== currentUser.id) ? [] : [{ evaluator, evaluation }],
+  );
+  const evaluations: EvaluationSummary[] = await Promise.all(
+    visibleAssignments.map(async ({ evaluator, evaluation }) => ({
       evaluatorName: evaluator.name,
+      evaluatorPosition: evaluator.position,
+      // The manager prints the scores with each signer's QR code, which opens
+      // their public profile (name, position, workplace, contact).
+      evaluatorQrUrl: isReviewer ? await createQrImageUrl(await getPublicProfileQrUrl(evaluator.id), 160) : null,
       totalScore: evaluation.totalScore,
       comment: evaluation.comment,
       scores: evaluation.scores,
@@ -103,8 +112,8 @@ export default async function ReportDetailPage(props: Props) {
       signedAt: evaluation.signedAt ? evaluation.signedAt.toISOString() : null,
       signatureId: evaluation.signatureId,
       documentHash: evaluation.documentHash,
-    }];
-  });
+    })),
+  );
 
   // Staff this report was distributed to, with whether each has scored it yet.
   const assignedStaff: AssignedStaffMember[] = uniqueAssignments.map(({ evaluator, evaluation }) => ({
@@ -140,10 +149,26 @@ export default async function ReportDetailPage(props: Props) {
   // has actually submitted a score — nothing to sign before that.
   const allEvaluatorsDone = assignedStaff.length > 0 && assignedStaff.every((member) => member.submitted);
 
-  // Scores stay hidden from the sender until the manager explicitly sends the
-  // signed scan — a single staff member finishing (or even all of them) must
-  // not leak scores early. Managers and staff always see what they're allowed to.
-  const scoresVisible = !isSenderView || !!report.signedScanUrl;
+  // Scores stay hidden from the sender until the manager signs them off with
+  // their digital signature — a single staff member finishing (or even all of
+  // them) must not leak scores early. Managers and staff always see what
+  // they're allowed to.
+  const scoresVisible = !isSenderView || scoresReleased(report);
+
+  const approver = report.scoresApprovedById
+    ? await dataStore.user.findUnique({ where: { id: report.scoresApprovedById } })
+    : null;
+  const approval: ScoreApproval | null =
+    report.scoresApprovedAt && approver
+      ? {
+          name: approver.name,
+          position: approver.position,
+          qrUrl: isReviewer ? await createQrImageUrl(await getPublicProfileQrUrl(approver.id), 160) : null,
+          signatureId: report.scoresApprovalSignatureId,
+          approvedAt: report.scoresApprovedAt.toISOString(),
+        }
+      : null;
+  const canApprove = isReviewer && !isConclusion && report.status === 'completed' && !report.scoresApprovedAt && allEvaluatorsDone;
 
   const scoredCount = assignedStaff.filter((member) => member.submitted).length;
 
@@ -182,6 +207,7 @@ export default async function ReportDetailPage(props: Props) {
               isReviewer={isReviewer}
               allEvaluatorsDone={allEvaluatorsDone}
               scoresVisible={scoresVisible}
+              approval={approval}
             />
           )}
 
@@ -196,8 +222,18 @@ export default async function ReportDetailPage(props: Props) {
               submittedAt={report.submittedAt}
               assignedCount={assignedStaff.length}
               scoredCount={scoredCount}
-              signedScanAt={report.signedScanUploadedAt ?? null}
-              isSenderView={isSenderView}
+              releasedAt={report.scoresApprovedAt ?? report.signedScanUploadedAt ?? null}
+              released={scoresReleased(report)}
+            />
+          )}
+
+          {!isConclusion && (
+            <ScoreApprovalCard
+              reportId={report.id}
+              approval={approval}
+              canApprove={canApprove}
+              evaluatorCount={assignedStaff.length}
+              finalScore={report.finalScore}
             />
           )}
 

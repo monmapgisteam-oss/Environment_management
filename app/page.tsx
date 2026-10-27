@@ -14,13 +14,13 @@ export default function HomePage() {
         {/* Each organisation links to its own email/password login page. */}
         <div className="mt-6 space-y-2.5">
           <OrgLoginCard
-            title="Тайлан илгээх байгууллага"
+            title="БОМТ илгээх байгууллага"
             subtitle="Төсөл хэрэгжүүлэгч аж ахуйн нэгж"
             icon={<LuSend size={20} />}
             href="/login/sender"
           />
           <OrgLoginCard
-            title="Тайлан хянах байгууллага"
+            title="БОМТ хянах байгууллага"
             subtitle="Хянах менежер, үнэлгээний гишүүд"
             icon={<LuFileSearch size={20} />}
             href="/login/reviewer"
@@ -34,7 +34,7 @@ export default function HomePage() {
           </span>
           <span className="min-w-0 flex-1">
             <span className="block text-sm font-semibold text-slate-900">Шинэ байгууллага уу?</span>
-            <span className="block text-xs text-slate-500">Байгууллагаа бүртгүүлж, тайлан илгээж эхэлнэ.</span>
+            <span className="block text-xs text-slate-500">Байгууллагаа бүртгүүлж, БОМТ илгээж эхэлнэ.</span>
           </span>
           <Link
             href="/signup"

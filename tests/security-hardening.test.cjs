@@ -48,7 +48,7 @@ test('no signature PIN is hardcoded, stored in plaintext or shown on the public 
     'app/api/reports/[id]/cover-signature/route.ts',
     'app/qr/profile/[id]/page.tsx',
     'app/api/evaluations/submit/route.ts',
-    'components/signature/QrSignatureReveal.tsx',
+    'app/api/reports/[id]/approve-scores/route.ts',
   ].map((file) => [file, read(file)]);
   for (const [file, source] of sources) {
     assert.ok(!/KNOWN_SIGNATURES|SIGNATURE_BY_EMAIL/.test(source), `${file} keeps a PIN table`);

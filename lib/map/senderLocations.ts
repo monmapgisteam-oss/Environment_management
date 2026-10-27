@@ -5,6 +5,7 @@ import { fetchSurveyMapPoints } from '@/lib/map/surveyMapPoints';
 import { attachEffectiveSenderCompanies } from '@/lib/reports/companies';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
 import { resolveReportPointLocations } from '@/lib/map/locationResolver';
+import { scoresReleased, senderStatus } from '@/lib/reports/scoreRelease';
 
 // Same Survey123 fallback lookup as fetchReviewedCompanyPoints, kept
 // separate since this one scopes to a single sender company instead of
@@ -86,8 +87,9 @@ export async function fetchSenderCompanyPoints(companyId: string): Promise<Compa
       reportNumber: r.reportNumber,
       reportType: r.reportType?.name || '',
       location: r.location?.addressDetail || '',
-      status: r.status,
-      score: r.finalScore,
+      // The sender's own map: scores only once the manager signed them off.
+      status: senderStatus(r),
+      score: scoresReleased(r) ? r.finalScore : null,
       province: r.location?.province,
       district: r.location?.district,
     });

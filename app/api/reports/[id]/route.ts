@@ -6,6 +6,7 @@ import { notifyReportResubmitted } from '@/lib/reports/resubmitNotifications';
 import { attachmentError } from '@/lib/reports/attachmentOwnership';
 import { parseAttachments, serializeDocumentAttachments, serializeReportAttachments } from '@/lib/reports/attachments';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
+import { scoresReleased, senderStatus } from '@/lib/reports/scoreRelease';
 import { REPORT_CATEGORIES } from '@/lib/constants';
 import { resolveAdministrativeLocation } from '@/lib/map/locationResolver';
 
@@ -23,6 +24,10 @@ export async function GET(_request: Request, props: { params: Promise<{ id: stri
     return NextResponse.json({ error: 'Report not found' }, { status: 404 });
   }
   if (!(await canAccessReport(user, report))) return unauthorized();
+  // The sender gets the score only after the manager signed it off.
+  if (user.role === 'sender' && !scoresReleased(report)) {
+    return NextResponse.json({ ...report, status: senderStatus(report), finalScore: null });
+  }
   return NextResponse.json(report);
 }
 

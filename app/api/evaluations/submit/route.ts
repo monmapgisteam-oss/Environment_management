@@ -2,7 +2,7 @@ import dataStore from '@/lib/db';
 import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { syncEvaluationToSurvey } from '@/lib/survey/sync';
-import { computeDocumentHash, generateSignatureId, hashPin, verifyPin } from '@/lib/auth/signature';
+import { computeDocumentHash, generateSignatureId, verifyPin } from '@/lib/auth/signature';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
 import { uniqueAssignmentsByEvaluator } from '@/lib/reports/assignments';
 import { fetchCriteriaForReport } from '@/lib/reports/criteria';
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
 
     const numericSignature = typeof signature === 'string' ? signature.trim() : '';
     if (!/^\d+$/.test(numericSignature)) {
-      return NextResponse.json({ error: 'Тоон гарын үсгээ зөвхөн тоогоор оруулна уу.' }, { status: 400 });
+      return NextResponse.json({ error: 'Гарын үсгийн нууц үгээ зөвхөн тоогоор оруулна уу.' }, { status: 400 });
     }
 
     // Үндэслэл, тайлбар written for each criterion.
@@ -156,18 +156,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Шалгуур бүрийн үндэслэл, тайлбарыг бичнэ үү.' }, { status: 400 });
     }
 
-    // Verify the numeric signature against the signer's own registered PIN
-    // hash. First-ever signature enrolls the PIN (hashed) since there's no
-    // separate PIN-setup flow; every later signature must match it.
-    if (current.signaturePinHash) {
-      if (!verifyPin(numericSignature, current.signaturePinHash)) {
-        return NextResponse.json({ error: 'Гарын үсэг буруу байна.' }, { status: 400 });
-      }
-    } else {
-      await dataStore.user.update({
-        where: { id: current.id },
-        data: { signaturePinHash: hashPin(numericSignature) },
-      });
+    // Verify the signature password the system issued to this signer (admin
+    // creates or reissues it). Nobody can sign without one.
+    if (!current.signaturePinHash) {
+      return NextResponse.json(
+        { error: 'Танд тоон гарын үсэг олгогдоогүй байна. Админд хандаж гарын үсгийн нууц үгээ авна уу.' },
+        { status: 400 },
+      );
+    }
+    if (!verifyPin(numericSignature, current.signaturePinHash)) {
+      return NextResponse.json({ error: 'Гарын үсгийн нууц үг буруу байна.' }, { status: 400 });
     }
 
     const signedAt = new Date();
@@ -247,21 +245,20 @@ export async function POST(request: Request) {
         finalScore: allDone ? avgScore : null,
         status: allDone ? 'completed' : 'in_review',
       },
-      include: { senderCompany: { include: { users: true } } },
     });
 
-    // Notify the sender and every review manager only when the whole evaluation is complete.
+    // Once every evaluator has signed, the managers are asked to check the
+    // scores and sign them off. The sender hears nothing yet: scores reach
+    // them only after the manager's approval (api/reports/[id]/approve-scores).
     let notificationIds: string[] = [];
     if (allDone) {
-      const senderUsers = updatedReport.senderCompany.users;
       const managers = await dataStore.user.findMany({ where: { role: 'review_manager' } });
-      const recipients = [...senderUsers, ...managers];
       notificationIds = await createNotifications(
-        recipients.map((u) => ({
+        managers.map((u) => ({
           userId: u.id,
           reportId,
-          title: 'Үнэлгээ дууссан',
-          message: `${updatedReport.reportNumber} тайлангийн үнэлгээ дууссан. Эцсийн оноо: ${avgScore.toFixed(1)}`,
+          title: 'Үнэлгээ баталгаажуулалт хүлээж байна',
+          message: `${updatedReport.reportNumber} тайлангийн бүх гишүүн гарын үсгээр үнэлгээгээ баталгаажууллаа. Шалгаад тоон гарын үсгээр баталгаажуулна уу. Дундаж оноо: ${avgScore.toFixed(1)}`,
         })),
       );
     }
@@ -287,7 +284,6 @@ export async function POST(request: Request) {
               evaluationId,
               assignmentId: assignment.id,
               assignmentCreated,
-              pinEnrolled: !current.signaturePinHash,
               notificationIds,
               prev: {
                 assignmentStatus: assignmentBefore.status,

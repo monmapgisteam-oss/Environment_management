@@ -1,7 +1,11 @@
 import { headers } from 'next/headers';
+import QRCode from 'qrcode';
 
-export function createQrImageUrl(data: string, size = 220) {
-  return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&margin=14&data=${encodeURIComponent(data)}`;
+// QR code as an SVG data URL, drawn on the server. No outside QR service sees
+// the link, and printed pages do not depend on one being reachable.
+export async function createQrImageUrl(data: string, size = 220) {
+  const svg = await QRCode.toString(data, { type: 'svg', width: size, margin: 2, errorCorrectionLevel: 'M' });
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 }
 
 function normalizeBaseUrl(value: string) {

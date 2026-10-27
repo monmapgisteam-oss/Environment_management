@@ -83,7 +83,7 @@ export default function EvaluationTable({ criteria, reportId, savedScores, saved
       return;
     }
     if (!/^\d+$/.test(signature.trim())) {
-      toast('Тоон гарын үсгээ зөвхөн тоогоор оруулна уу.', 'error');
+      toast('Тоон гарын үсгийн нууц үгээ оруулна уу.', 'error');
       return;
     }
     setSubmitting(true);
@@ -325,17 +325,22 @@ export default function EvaluationTable({ criteria, reportId, savedScores, saved
         {/* Digital (numeric) signature — the evaluator signs off on their scoring */}
         {!locked && (
           <div className="mt-6">
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">
-              Тоон гарын үсэг <span className="text-red-500">*</span>
+            <label htmlFor="signature-pin" className="block text-sm font-medium text-slate-700 mb-1.5">
+              Тоон гарын үсгийн нууц үг <span className="text-red-500">*</span>
             </label>
             <input
-              type="text"
+              id="signature-pin"
+              type="password"
               inputMode="numeric"
+              autoComplete="off"
               value={signature}
               onChange={(e) => setSignature(e.target.value.replace(/\D/g, ''))}
-              placeholder="Тоон гарын үсгээ оруулна уу"
-              className="w-full max-w-xs border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-color-primary focus:ring-2 focus:ring-color-primary/10 transition"
+              placeholder="••••••"
+              className="w-full max-w-xs border border-slate-200 bg-white px-4 py-2.5 text-sm tracking-widest text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-color-primary focus:ring-2 focus:ring-color-primary/10 transition"
             />
+            <p className="mt-1.5 text-xs text-slate-500">
+              Системээс олгосон 6 оронтой нууц үг. Хэвлэсэн үнэлгээн дээр таны нэр, QR код гарна.
+            </p>
           </div>
         )}
 

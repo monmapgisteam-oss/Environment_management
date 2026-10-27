@@ -13,8 +13,21 @@ export type ReportDetail = Report & {
 // verification metadata only — never the raw numeric signature/PIN.
 export type EvaluationSummary = Pick<Evaluation, 'totalScore' | 'comment' | 'signatureStatus' | 'signatureId' | 'documentHash'> & {
   evaluatorName: User['name'];
+  evaluatorPosition: User['position'];
+  // QR code (data URL) linking to the signer's public profile; set for managers only.
+  evaluatorQrUrl: string | null;
   scores: EvaluationScore[];
   signedAt: string | null;
+};
+
+// The manager's digital-signature approval of all the evaluators' scores.
+export type ScoreApproval = {
+  name: User['name'];
+  position: User['position'];
+  // QR code (data URL) linking to the manager's public profile.
+  qrUrl: string | null;
+  signatureId: string | null;
+  approvedAt: string;
 };
 
 // Staff member the report was distributed to, with whether they have scored it.

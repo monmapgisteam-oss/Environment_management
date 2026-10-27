@@ -3,7 +3,7 @@ import SignatureBadge from '@/components/signature/SignatureBadge';
 import { downloadUrl, type Attachment } from '@/lib/reports/attachments';
 import { formatDate } from '@/lib/utils';
 import type { EvaluationCriterion } from '@/lib/db/models';
-import type { EvaluationSummary, ReportDetail, ViewerRole } from './types';
+import type { EvaluationSummary, ReportDetail, ScoreApproval, ViewerRole } from './types';
 
 type Props = {
   report: ReportDetail;
@@ -13,6 +13,7 @@ type Props = {
   viewerRole: ViewerRole;
   isReviewer: boolean;
   allEvaluatorsDone: boolean;
+  approval: ScoreApproval | null;
 };
 
 // Per-criterion score table with one column per evaluator, followed by their comments.
@@ -24,6 +25,7 @@ export default function EvaluationScoresCard({
   viewerRole,
   isReviewer,
   allEvaluatorsDone,
+  approval,
 }: Props) {
   const locationLabel = [report.location?.province, report.location?.district, report.location?.khoroo, report.location?.addressDetail]
     .filter((v) => v && v !== 'Тодорхойгүй')
@@ -46,6 +48,7 @@ export default function EvaluationScoresCard({
             locationLabel={locationLabel}
             criteria={criteria}
             evaluations={evaluations}
+            approval={approval}
           />
         )}
       </div>

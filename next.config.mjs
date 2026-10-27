@@ -10,7 +10,7 @@ const contentSecurityPolicy = [
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' data: https://fonts.gstatic.com",
-  "img-src 'self' data: blob: https://server.arcgisonline.com https://api.qrserver.com",
+  "img-src 'self' data: blob: https://server.arcgisonline.com",
   `connect-src 'self' https://nominatim.openstreetmap.org${isDev ? ' ws: wss:' : ''}`,
   "frame-src 'self'",
   "object-src 'none'",

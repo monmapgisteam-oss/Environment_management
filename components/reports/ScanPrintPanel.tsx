@@ -10,8 +10,21 @@ import { offerUndo } from '@/lib/undo';
 type Criterion = { id: string; name: string; maxScore: number };
 type Evaluation = {
   evaluatorName: string;
+  evaluatorPosition: string | null;
+  evaluatorQrUrl: string | null;
+  signatureId: string | null;
+  signedAt: string | null;
   totalScore: number;
   scores: { criterionId: string; score: number; note?: string | null }[];
+};
+
+// The manager's digital-signature approval, printed under the evaluators.
+type Approval = {
+  name: string;
+  position: string | null;
+  qrUrl: string | null;
+  signatureId: string | null;
+  approvedAt: string;
 };
 
 type Props = {
@@ -26,11 +39,12 @@ type Props = {
   locationLabel: string;
   criteria: Criterion[];
   evaluations: Evaluation[];
+  approval: Approval | null;
 };
 
 // Manager-side controls once every evaluator has scored the report: preview
-// and print the score table for physical signatures, then scan the signed
-// copy back in and attach it here so the sender can download it.
+// and print the score table, and after the manager's digital approval scan the
+// signed copy back in and attach it here so the sender can download it.
 export default function ScanPrintPanel({
   reportId,
   signedScanName,
@@ -43,6 +57,7 @@ export default function ScanPrintPanel({
   locationLabel,
   criteria,
   evaluations,
+  approval,
 }: Props) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -117,10 +132,12 @@ export default function ScanPrintPanel({
         Хэвлэх
       </button>
 
+      {/* The scan goes to the sender, so it waits for the manager's approval. */}
       <button
         type="button"
         onClick={() => fileInputRef.current?.click()}
-        disabled={uploading}
+        disabled={uploading || !approval}
+        title={approval ? undefined : 'Эхлээд үнэлгээг тоон гарын үсгээр баталгаажуулна уу.'}
         className="inline-flex items-center gap-2 bg-color-primary px-4 py-2 text-sm font-semibold text-white hover:bg-color-primary-dark transition disabled:opacity-60"
       >
         <HiUpload size={16} />
@@ -187,6 +204,7 @@ export default function ScanPrintPanel({
           locationLabel={locationLabel}
           criteria={criteria}
           evaluations={evaluations}
+          approval={approval}
           onClose={() => setPrintOpen(false)}
         />
       )}

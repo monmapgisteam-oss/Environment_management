@@ -79,9 +79,16 @@ function Actions({ saving, submitLabel, onClose, error }: { saving: boolean; sub
   );
 }
 
-// New account for the review organisation. Returns the email and temporary
-// password so the admin can pass them on.
-export function CreateStaffDialog({ onClose, onCreated }: { onClose: () => void; onCreated: (email: string, password: string) => void }) {
+// New account for the review organisation. Returns the email, temporary
+// password and the system-generated signature password so the admin can pass
+// them on.
+export function CreateStaffDialog({
+  onClose,
+  onCreated,
+}: {
+  onClose: () => void;
+  onCreated: (credentials: { email: string; password: string; signaturePin: string }) => void;
+}) {
   const [form, setForm] = useState({ name: '', email: '', role: 'evaluator', position: '', phone: '', password: generatePassword() });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -100,7 +107,7 @@ export function CreateStaffDialog({ onClose, onCreated }: { onClose: () => void;
         setSaving(false);
         return;
       }
-      onCreated(form.email.trim().toLowerCase(), form.password);
+      onCreated({ email: form.email.trim().toLowerCase(), password: form.password, signaturePin: data.signaturePin });
     } catch {
       setError('Бүртгэл үүсгэхэд алдаа гарлаа.');
       setSaving(false);
@@ -185,22 +192,56 @@ export function ResetPasswordDialog({ user, onClose, onDone }: { user: { id: str
 }
 
 // After creating or resetting: the credentials to hand over, shown once.
-export function CredentialsDialog({ email, password, onClose }: { email: string; password: string; onClose: () => void }) {
+// A reissued signature comes without a login password.
+export function CredentialsDialog({
+  email,
+  password,
+  signaturePin,
+  onClose,
+}: {
+  email: string;
+  password?: string;
+  signaturePin?: string;
+  onClose: () => void;
+}) {
   const [copied, setCopied] = useState(false);
+  const lines = [
+    `Имэйл: ${email}`,
+    ...(password ? [`Түр нууц үг: ${password}`] : []),
+    ...(signaturePin ? [`Тоон гарын үсгийн нууц үг: ${signaturePin}`] : []),
+  ];
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(`Имэйл: ${email}\nТүр нууц үг: ${password}`);
+      await navigator.clipboard.writeText(lines.join('\n'));
       setCopied(true);
     } catch {
       // The values stay on screen to copy by hand.
     }
   };
   return (
-    <Shell title="Нэвтрэх мэдээлэл" description="Энэ мэдээллийг хэрэглэгчид дамжуулна уу. Нууц үг дахин харагдахгүй." onClose={onClose} saving={false}>
+    <Shell
+      title={password ? 'Нэвтрэх мэдээлэл' : 'Тоон гарын үсэг'}
+      description="Энэ мэдээллийг хэрэглэгчид дамжуулна уу. Нууц үг дахин харагдахгүй."
+      onClose={onClose}
+      saving={false}
+    >
       <div className="space-y-2 px-6 py-5 font-mono text-sm">
         <p><span className="text-slate-500">Имэйл:</span> <span className="font-semibold text-slate-900">{email}</span></p>
-        <p><span className="text-slate-500">Түр нууц үг:</span> <span className="font-semibold text-slate-900">{password}</span></p>
+        {password && (
+          <p><span className="text-slate-500">Түр нууц үг:</span> <span className="font-semibold text-slate-900">{password}</span></p>
+        )}
+        {signaturePin && (
+          <p>
+            <span className="text-slate-500">Тоон гарын үсгийн нууц үг:</span>{' '}
+            <span className="font-semibold tracking-widest text-slate-900">{signaturePin}</span>
+          </p>
+        )}
       </div>
+      {signaturePin && (
+        <p className="mx-6 mb-5 border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          Тоон гарын үсгийн нууц үгээр БОМТ-ийн үнэлгээнд гарын үсэг зурна. Хэрэглэгч үүнийг өөр хүнд дамжуулахгүй байх ёстой.
+        </p>
+      )}
       <div className="flex justify-end gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4">
         <button type="button" onClick={copy} className="h-10 border border-teal-600 bg-white px-4 text-sm font-semibold text-teal-700 hover:bg-teal-50">
           {copied ? 'Хуулсан' : 'Хуулах'}

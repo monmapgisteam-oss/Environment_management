@@ -4,6 +4,7 @@ import SignatureBadge from '@/components/signature/SignatureBadge';
 import { formatScore } from '@/lib/utils';
 import { canAccessReport, requireUser } from '@/lib/auth';
 import { uniqueAssignmentsByEvaluator } from '@/lib/reports/assignments';
+import { scoresReleased } from '@/lib/reports/scoreRelease';
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -20,6 +21,8 @@ async function fetchReportDetail(reportId: string) {
       reportType: { select: { name: true } },
       finalScore: true,
       signedScanUrl: true,
+      scoresApprovedAt: true,
+      status: true,
       location: true,
       assignments: {
         include: {
@@ -53,11 +56,11 @@ export default async function ReportScoresPage(props: Props) {
   }
   const criteria = await fetchCriteriaForReport(report);
 
-  // Scores stay hidden from the sender until the manager explicitly sends the
-  // signed scan — a single (or even every) staff member finishing must not
-  // leak scores early. Managers and staff always see what they're allowed to.
+  // Scores stay hidden from the sender until the manager signs them off — a
+  // single (or even every) staff member finishing must not leak scores early.
+  // Managers and staff always see what they're allowed to.
   const isSenderView = !isReviewer && !isStaff;
-  const scoresVisible = !isSenderView || !!report.signedScanUrl;
+  const scoresVisible = !isSenderView || scoresReleased(report);
   const viewerRole: 'sender' | 'manager' | 'staff' = isReviewer ? 'manager' : isStaff ? 'staff' : 'sender';
 
   const uniqueAssignments = uniqueAssignmentsByEvaluator(report.assignments);

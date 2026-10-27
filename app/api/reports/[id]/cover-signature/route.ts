@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import dataStore from '@/lib/db';
-import { hashPin, verifyPin } from '@/lib/auth/signature';
+import { verifyPin } from '@/lib/auth/signature';
 
 export async function POST(request: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
@@ -49,15 +49,15 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
       return NextResponse.json({ error: 'Гарын үсэг аль хэдийн баталгаажсан байна.' }, { status: 409 });
     }
 
-    if (user.signaturePinHash) {
-      if (!verifyPin(numericSignature, user.signaturePinHash)) {
-        return NextResponse.json({ error: 'Тоон гарын үсэг буруу байна.' }, { status: 400 });
-      }
-    } else {
-      await dataStore.user.update({
-        where: { id: user.id },
-        data: { signaturePinHash: hashPin(numericSignature) },
-      });
+    // Only the system-issued signature password signs; none is enrolled here.
+    if (!user.signaturePinHash) {
+      return NextResponse.json(
+        { error: 'Танд тоон гарын үсэг олгогдоогүй байна. Админд хандаж гарын үсгийн нууц үгээ авна уу.' },
+        { status: 400 },
+      );
+    }
+    if (!verifyPin(numericSignature, user.signaturePinHash)) {
+      return NextResponse.json({ error: 'Гарын үсгийн нууц үг буруу байна.' }, { status: 400 });
     }
 
     const log = await dataStore.activityLog.create({

@@ -1,4 +1,12 @@
-import { createHash, randomBytes, scryptSync, timingSafeEqual } from 'crypto';
+import { createHash, randomBytes, randomInt, scryptSync, timingSafeEqual } from 'crypto';
+
+// Signature passwords are issued by the system (admin creates or reissues
+// them), never chosen by the signer.
+export const SIGNATURE_PIN_LENGTH = 6;
+
+export function generateSignaturePin(): string {
+  return Array.from({ length: SIGNATURE_PIN_LENGTH }, () => randomInt(10)).join('');
+}
 
 // Numeric-PIN hashing (scrypt, salted). Only the hash is ever persisted —
 // the raw PIN never touches the database or an API response.
@@ -24,11 +32,12 @@ export function computeDocumentHash(payload: unknown): string {
   return createHash('sha256').update(JSON.stringify(payload)).digest('hex');
 }
 
-// SIG-YYYYMMDD-NNNNN, sequence scoped to the calendar day (UTC).
-export function generateSignatureId(sequence: number, at: Date = new Date()): string {
+// SIG-YYYYMMDD-NNNNN, sequence scoped to the calendar day (UTC). A manager's
+// approval of a report's scores uses the BAT- prefix.
+export function generateSignatureId(sequence: number, at: Date = new Date(), prefix = 'SIG'): string {
   const y = at.getUTCFullYear();
   const m = String(at.getUTCMonth() + 1).padStart(2, '0');
   const d = String(at.getUTCDate()).padStart(2, '0');
   const seq = String(sequence).padStart(5, '0');
-  return `SIG-${y}${m}${d}-${seq}`;
+  return `${prefix}-${y}${m}${d}-${seq}`;
 }

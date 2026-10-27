@@ -68,7 +68,9 @@ export default function ReportTable({ reports, role = 'sender', showStatusFilter
   const displayStatus = (status: string) => {
     if (role === 'sender' && status === 'assigned') return 'submitted';
     if (role === 'sender' && status === 'return_requested') return 'in_review';
-    if (status === 'approved') return 'completed';
+    // Senders get the status already masked by the page (lib/reports/scoreRelease.ts);
+    // for them an approved report is simply finished.
+    if (role === 'sender' && status === 'approved') return 'completed';
     return status;
   };
 

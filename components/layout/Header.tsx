@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState, useRef, useEffect, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import type { ViewerRole } from '@/lib/auth/session';
+import ThemeToggle from '@/components/ui/ThemeToggle';
 
 type Notification = {
   id: string;
@@ -109,6 +110,8 @@ export default function Header({ userName, companyName, role, mobileNav }: Props
 
         {/* Right */}
         <div className="flex items-center gap-1 sm:gap-2">
+          <ThemeToggle />
+
           {/* Notification Bell */}
           <div className="relative" ref={notifRef}>
             <button
@@ -130,7 +133,7 @@ export default function Header({ userName, companyName, role, mobileNav }: Props
               aria-label={unreadCount > 0 ? `Мэдэгдэл, ${unreadCount} уншаагүй` : 'Мэдэгдэл'}
               aria-expanded={notifOpen}
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-500">
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
                 <path d="M13.73 21a2 2 0 0 1-3.46 0" />
               </svg>
@@ -203,7 +206,7 @@ export default function Header({ userName, companyName, role, mobileNav }: Props
                 <p className="text-[13px] font-semibold text-color-text-main">{userName}</p>
                 <p className="text-[11px] text-color-text-muted">{companyName}</p>
               </div>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform ${open ? 'rotate-180' : ''}`}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`}>
                 <polyline points="6 9 12 15 18 9" />
               </svg>
             </button>

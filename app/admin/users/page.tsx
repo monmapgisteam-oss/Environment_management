@@ -26,6 +26,8 @@ export default async function AdminUsersPage() {
     company: u.company ? { name: u.company.name, registerNumber: u.company.registerNumber } : null,
     isActive: u.isActive !== false,
     mustChangePassword: !!u.mustChangePassword,
+    // Only whether one exists; the hash never leaves the server.
+    hasSignature: !!u.signaturePinHash,
     // Reports still waiting for this member's score, for the deactivate warning.
     openAssignments: u.evaluatorAssignments.filter((a) => a.status !== 'submitted').length,
   }));

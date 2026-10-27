@@ -30,7 +30,7 @@ export default async function StaffProfilePage(props: Props) {
   const params = await props.params;
   const member = await fetchStaffMember(params.id);
   const staffWorkplace = member?.company?.name || 'Ажлын газар бүртгэгдээгүй';
-  const staffQrUrl = member ? createQrImageUrl(await getPublicProfileQrUrl(member.id)) : '';
+  const staffQrUrl = member ? await createQrImageUrl(await getPublicProfileQrUrl(member.id)) : '';
 
 
   return (
@@ -87,7 +87,7 @@ export default async function StaffProfilePage(props: Props) {
                     className="h-[220px] w-[220px] border border-slate-200 bg-white p-3 shadow-sm"
                   />
                   <p className="text-sm leading-6 text-slate-500">
-                    QR код нь нэр, албан тушаал, ажлын газар, утасны дугаарыг агуулна.
+                    QR код нь нэр, албан тушаал, ажлын газар, утасны дугаар бүхий хуудас руу холбоно.
                   </p>
                 </div>
               </div>

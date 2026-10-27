@@ -12,16 +12,23 @@ function fileKind(name: string) {
 }
 
 // One uploaded file as a compact row: icon or thumbnail, name, open and download.
-export default function AttachmentRow({ file }: { file: Attachment }) {
+// `compact` drops the padding, shrinks the icon and leaves out "Нээх" (the name
+// already opens the file) so it fits beside a label in a dense list.
+export default function AttachmentRow({ file, compact = false }: { file: Attachment; compact?: boolean }) {
   const kind = fileKind(file.name);
+  const iconSize = compact ? 'h-7 w-7' : 'h-9 w-9';
   return (
-    <li className="flex items-center gap-3 px-4 py-2.5">
+    <li className={`flex items-center ${compact ? 'gap-2 py-1' : 'gap-3 px-4 py-2.5'}`}>
       {isImageAttachment(file) ? (
         <a href={file.url} target="_blank" rel="noopener noreferrer" className="shrink-0">
-          <img src={file.url} alt="" className="h-9 w-9 object-cover" loading="lazy" />
+          <img src={file.url} alt="" className={`${iconSize} object-cover`} loading="lazy" />
         </a>
       ) : (
-        <span className={`flex h-9 w-9 shrink-0 items-center justify-center text-[10px] font-bold tracking-wide ${kind.className}`}>
+        <span
+          className={`flex ${iconSize} shrink-0 items-center justify-center font-bold tracking-wide ${
+            compact ? 'text-[9px]' : 'text-[10px]'
+          } ${kind.className}`}
+        >
           {kind.label}
         </span>
       )}
@@ -34,12 +41,15 @@ export default function AttachmentRow({ file }: { file: Attachment }) {
       >
         {file.name}
       </a>
-      <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-slate-500 hover:text-color-primary">
-        Нээх
-      </a>
+      {!compact && (
+        <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-slate-500 hover:text-color-primary">
+          Нээх
+        </a>
+      )}
       <a
         href={downloadUrl(file)}
-        className="inline-flex items-center gap-1 border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-700 transition hover:border-color-primary hover:text-color-primary"
+        title="Татах"
+        className="inline-flex shrink-0 items-center gap-1 border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-700 transition hover:border-color-primary hover:text-color-primary"
       >
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />

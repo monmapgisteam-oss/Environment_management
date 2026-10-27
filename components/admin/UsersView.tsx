@@ -18,6 +18,8 @@ export type UserRow = {
   isActive: boolean;
   // Still on the temporary password an admin set.
   mustChangePassword: boolean;
+  // Has a system-issued digital signature password (staff and managers).
+  hasSignature: boolean;
   openAssignments: number;
 };
 
@@ -42,7 +44,7 @@ export default function UsersView({ users }: { users: UserRow[] }) {
   const router = useRouter();
   const [creating, setCreating] = useState(false);
   const [resetting, setResetting] = useState<UserRow | null>(null);
-  const [credentials, setCredentials] = useState<{ email: string; password: string } | null>(null);
+  const [credentials, setCredentials] = useState<{ email: string; password?: string; signaturePin?: string } | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
   const setActive = async (user: UserRow, active: boolean) => {
@@ -67,6 +69,34 @@ export default function UsersView({ users }: { users: UserRow[] }) {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error);
       toast(active ? `${user.name}-ийн эрхийг идэвхжүүллээ.` : `${user.name}-ийн эрхийг идэвхгүй болголоо.`);
+      router.refresh();
+    } catch (error) {
+      toast((error as Error).message || 'Хадгалахад алдаа гарлаа.', 'error');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  // Issues a new signature password; the old one stops working at once.
+  const issueSignature = async (user: UserRow) => {
+    const ok = await confirmDialog({
+      title: user.hasSignature ? 'Тоон гарын үсэг шинэчлэх' : 'Тоон гарын үсэг олгох',
+      message: user.hasSignature
+        ? `${user.name}-д шинэ гарын үсгийн нууц үг үүсгэнэ. Хуучин нууц үг шууд хүчингүй болно.`
+        : `${user.name}-д гарын үсгийн нууц үг үүсгэнэ.`,
+      confirmLabel: user.hasSignature ? 'Шинэчлэх' : 'Олгох',
+    });
+    if (!ok) return;
+    setBusy(user.id);
+    try {
+      const res = await fetch(`/api/admin/users/${user.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reset-signature' }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error);
+      setCredentials({ email: user.email, signaturePin: data.signaturePin });
       router.refresh();
     } catch (error) {
       toast((error as Error).message || 'Хадгалахад алдаа гарлаа.', 'error');
@@ -254,6 +284,18 @@ export default function UsersView({ users }: { users: UserRow[] }) {
                             Нууц үг шинэчлэх
                           </button>
                         )}
+                        {u.isActive && (u.role === 'evaluator' || u.role === 'review_manager') && (
+                          <button
+                            type="button"
+                            onClick={() => issueSignature(u)}
+                            disabled={busy === u.id}
+                            className={`border px-2.5 py-1.5 text-xs font-semibold disabled:opacity-50 ${
+                              u.hasSignature ? 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50' : 'border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100'
+                            }`}
+                          >
+                            {u.hasSignature ? 'Гарын үсэг шинэчлэх' : 'Гарын үсэг олгох'}
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => setActive(u, !u.isActive)}
@@ -277,9 +319,9 @@ export default function UsersView({ users }: { users: UserRow[] }) {
       {creating && (
         <CreateStaffDialog
           onClose={() => setCreating(false)}
-          onCreated={(email, password) => {
+          onCreated={(created) => {
             setCreating(false);
-            setCredentials({ email, password });
+            setCredentials(created);
             router.refresh();
           }}
         />

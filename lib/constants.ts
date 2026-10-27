@@ -6,7 +6,7 @@ export const STATUS_LABELS: { [key: string]: string } = {
   return_requested: 'Буцаах хүсэлт илгээгдсэн',
   needs_revision: 'Засвар шаардсан',
   completed: 'Үнэлгээ дууссан',
-  approved: 'Батлагдсан',
+  approved: 'Баталгаажсан',
   rejected: 'Татгалзсан',
 };
 

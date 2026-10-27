@@ -12,14 +12,15 @@ import {
   HiOutlineCheck,
   HiOutlineTrendingUp,
 } from 'react-icons/hi';
+import { scoresReleased, senderStatus } from '@/lib/reports/scoreRelease';
 
 const IN_REVIEW = ['submitted', 'assigned', 'in_review', 'return_requested'];
 const DONE = ['completed', 'approved'];
 
 // Review flow as four steps, for the small progress dots on each report.
-function progressStep(status: string, hasScan: boolean) {
+function progressStep(status: string, released: boolean) {
   if (status === 'needs_revision' || status === 'rejected') return { step: 0, tone: 'bg-rose-500' };
-  if (DONE.includes(status) && hasScan) return { step: 4, tone: 'bg-teal-600' };
+  if (DONE.includes(status) && released) return { step: 4, tone: 'bg-teal-600' };
   if (DONE.includes(status) || status === 'in_review') return { step: 3, tone: 'bg-teal-600' };
   if (status === 'assigned') return { step: 2, tone: 'bg-teal-600' };
   return { step: 1, tone: 'bg-teal-600' };
@@ -49,12 +50,12 @@ export default async function SenderDashboard() {
     : [[], []];
   const year = new Date().getFullYear();
   const totalCount = reports.length;
-  const inReviewCount = reports.filter((r) => IN_REVIEW.includes(r.status)).length;
+  const inReviewCount = reports.filter((r) => IN_REVIEW.includes(senderStatus(r))).length;
   const revisionCount = reports.filter((r) => r.status === 'needs_revision').length;
-  const doneCount = reports.filter((r) => DONE.includes(r.status)).length;
-  // A report's score stays hidden from the sender until the manager sends the
-  // signed scan, even once every staff member has finished scoring it.
-  const visibleScores = reports.filter((r) => r.finalScore != null && r.signedScanUrl != null);
+  const doneCount = reports.filter((r) => DONE.includes(senderStatus(r))).length;
+  // A report's score stays hidden from the sender until the manager signs the
+  // scores off, even once every staff member has finished scoring it.
+  const visibleScores = reports.filter((r) => r.finalScore != null && scoresReleased(r));
   const averageScore = visibleScores.length
     ? (visibleScores.reduce((sum: number, r) => sum + (r.finalScore ?? 0), 0) / visibleScores.length).toFixed(1)
     : null;
@@ -145,7 +146,7 @@ export default async function SenderDashboard() {
           ) : (
             <ul className="divide-y divide-slate-100">
               {recent.map((report) => {
-                const progress = progressStep(report.status, !!report.signedScanUrl);
+                const progress = progressStep(report.status, scoresReleased(report));
                 return (
                   <li key={report.id}>
                     <Link href={`/report/${report.id}?role=sender`} className="grid items-center gap-4 px-6 py-3.5 transition hover:bg-slate-50 sm:grid-cols-[150px_minmax(0,1fr)_104px_160px]">
@@ -162,7 +163,7 @@ export default async function SenderDashboard() {
                         ))}
                       </span>
                       <span className="flex sm:justify-end">
-                        <StatusBadge status={report.status === 'return_requested' ? 'in_review' : report.status === 'approved' ? 'completed' : report.status} />
+                        <StatusBadge status={report.status === 'return_requested' ? 'in_review' : senderStatus(report) === 'approved' ? 'completed' : senderStatus(report)} />
                       </span>
                     </Link>
                   </li>

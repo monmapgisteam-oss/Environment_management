@@ -2,7 +2,7 @@ import { formatScore } from '@/lib/utils';
 import type { Attachment } from '@/lib/reports/attachments';
 import type { EvaluationCriterion } from '@/lib/db/models';
 import EvaluationScoresCard from './EvaluationScoresCard';
-import type { EvaluationSummary, ReportDetail, ViewerRole } from './types';
+import type { EvaluationSummary, ReportDetail, ScoreApproval, ViewerRole } from './types';
 
 type Props = {
   report: ReportDetail;
@@ -13,6 +13,7 @@ type Props = {
   isReviewer: boolean;
   allEvaluatorsDone: boolean;
   scoresVisible: boolean;
+  approval: ScoreApproval | null;
 };
 
 // Score table, the "not scored / not released yet" notice and the final average.

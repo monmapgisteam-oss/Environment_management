@@ -61,7 +61,7 @@ export default function SubmitSuccessCard({
   return (
     <div className="mx-auto max-w-3xl overflow-hidden border border-slate-200 bg-white shadow-soft">
       {/* Confirmation */}
-      <div className="relative bg-gradient-to-b from-teal-50 to-white px-6 pb-8 pt-12 text-center sm:px-12">
+      <div className="relative bg-gradient-to-b from-teal-50 dark:from-teal-950/40 to-white dark:to-transparent px-6 pb-8 pt-12 text-center sm:px-12">
         <span className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-white ring-8 ring-teal-100">
           <span className="flex h-14 w-14 items-center justify-center rounded-full bg-teal-600 text-white">
             <HiCheck size={32} />

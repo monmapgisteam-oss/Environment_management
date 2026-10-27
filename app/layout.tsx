@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import { themeScript } from '@/lib/theme/themeScript';
 
 export const metadata: Metadata = {
   title: 'Байгаль орчны менежментийн төлөвлөгөөний систем',
@@ -12,7 +13,12 @@ export const dynamic = 'force-dynamic';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="mn">
+    // The theme script sets `dark` on <html> before React loads, hence the
+    // hydration warning opt-out.
+    <html lang="mn" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className="bg-background text-text antialiased">{children}</body>
     </html>
   );

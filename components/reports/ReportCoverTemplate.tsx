@@ -1,7 +1,8 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { HiCheckCircle, HiKey, HiPrinter, HiX } from 'react-icons/hi';
+import { HiCheckCircle, HiClock, HiKey, HiPrinter, HiX } from 'react-icons/hi';
+import { formatDate } from '@/lib/utils';
 
 type CoverInfo = {
   reportNumber: string;
@@ -35,24 +36,26 @@ type Props = {
   initialVerifiedSignatures: Array<{ userId: string; verifiedAt: string }>;
 };
 
-const lineClass =
-  'min-h-[44px] w-full resize-none rounded-none border-0 border-b border-slate-300 bg-transparent px-0 py-2 text-sm font-semibold text-slate-900 outline-none transition focus:border-[#0F766E]';
+const ORGANIZATION = 'Нийслэлийн Байгаль орчны газар';
+const SYSTEM_NAME = 'Байгаль орчны менежментийн төлөвлөгөөний систем';
 
-function InfoLine({ label, value }: { label: string; value: string }) {
+const dateLineClass =
+  'h-9 w-full border-0 border-b border-slate-400 bg-transparent px-0 text-sm font-semibold text-slate-900 outline-none focus:border-[#0F766E]';
+
+// Values stay editable on screen so the manager can correct a line before
+// printing; in print they read as plain text.
+function EditableText({ value, rows = 1 }: { value: string; rows?: number }) {
   return (
-    <label className="block">
-      <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{label}</span>
-      <textarea
-        defaultValue={value}
-        rows={1}
-        className={lineClass}
-        onInput={(event) => {
-          const target = event.currentTarget;
-          target.style.height = 'auto';
-          target.style.height = `${target.scrollHeight}px`;
-        }}
-      />
-    </label>
+    <textarea
+      defaultValue={value}
+      rows={rows}
+      className="block w-full resize-none border-0 bg-transparent p-0 text-[13px] font-semibold leading-5 text-slate-900 outline-none transition hover:bg-teal-50/40 focus:bg-teal-50/60 print:hover:bg-transparent"
+      onInput={(event) => {
+        const target = event.currentTarget;
+        target.style.height = 'auto';
+        target.style.height = `${target.scrollHeight}px`;
+      }}
+    />
   );
 }
 
@@ -65,29 +68,82 @@ function toDateInputValue(dateString: string) {
   return `${year}-${month}-${day}`;
 }
 
-function SignatureRow({ label, person, verifiedAt }: { label: string; person: Person; verifiedAt: string | null }) {
+function InfoRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="grid grid-cols-[1fr_auto] items-start gap-5 border-b border-slate-200 py-4 last:border-b-0">
-      <div className="min-w-0">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
-        <p className="mt-1 text-base font-bold text-slate-950">{person.name}</p>
-        <p className="mt-0.5 text-sm font-medium text-slate-600">{person.position || person.roleLabel}</p>
-      </div>
+    <tr>
+      <th scope="row" className="w-[52mm] border border-slate-300 bg-slate-50 px-3 py-2 text-left align-top text-[11px] font-semibold uppercase tracking-wide text-slate-600">
+        {label}
+      </th>
+      <td className="border border-slate-300 px-3 py-2 align-top">
+        <EditableText value={value} />
+      </td>
+    </tr>
+  );
+}
 
-      <div className="flex flex-col items-center gap-2">
-        <img
-          src={person.qrUrl}
-          alt={`${person.name} QR`}
-          className="h-[92px] w-[92px] border border-slate-200 bg-white p-1.5"
-        />
-        {verifiedAt && (
-          <span className="inline-flex items-center gap-1.5 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700 ring-1 ring-emerald-200">
-            <HiCheckCircle size={16} />
-            Гарын үсгээр баталгаажсан
-          </span>
+// Emblem, organisation and system name, closed by a double rule.
+function DocumentHeader({ reportNumber, compact = false }: { reportNumber: string; compact?: boolean }) {
+  return (
+    <header>
+      <div className={`flex items-center gap-4 ${compact ? '' : 'flex-col text-center'}`}>
+        <img src="/logo.svg" alt="" className={compact ? 'h-12 w-12' : 'h-20 w-20'} />
+        <div className={compact ? 'min-w-0 flex-1' : ''}>
+          <p className="text-[13px] font-bold uppercase tracking-[0.16em] text-slate-900">{ORGANIZATION}</p>
+          <p className="mt-1 text-xs font-medium text-slate-500">{SYSTEM_NAME}</p>
+        </div>
+        {compact && (
+          <p className="shrink-0 text-right text-[11px] text-slate-500">
+            Тайлангийн дугаар
+            <span className="block text-sm font-bold text-slate-900">{reportNumber}</span>
+          </p>
         )}
       </div>
-    </div>
+      <div className="mt-4 border-t-[3px] border-[#0F766E]" />
+      <div className="mt-[3px] border-t border-[#0F766E]" />
+    </header>
+  );
+}
+
+function DocumentFooter({ page, pages }: { page: number; pages: number }) {
+  return (
+    <footer className="mt-auto flex items-center justify-between border-t border-slate-300 pt-3 text-[11px] text-slate-500">
+      <span>Улаанбаатар хот, {new Date().getFullYear()} он</span>
+      <span>
+        {page} / {pages}
+      </span>
+    </footer>
+  );
+}
+
+function SignerRow({ index, role, person, verifiedAt }: { index: number; role: string; person: Person; verifiedAt: string | null }) {
+  return (
+    <tr className="break-inside-avoid">
+      <td className="border border-slate-300 px-2 py-3 text-center align-middle text-xs text-slate-600">{index}</td>
+      <td className="border border-slate-300 px-3 py-3 align-middle text-xs font-semibold text-slate-700">{role}</td>
+      <td className="border border-slate-300 px-3 py-3 align-middle">
+        <p className="text-sm font-bold text-slate-950">{person.name}</p>
+        <p className="mt-0.5 text-xs text-slate-600">{person.position || person.roleLabel}</p>
+      </td>
+      <td className="border border-slate-300 px-3 py-3 align-middle">
+        {verifiedAt ? (
+          <span className="inline-flex items-start gap-1.5 text-xs font-semibold text-emerald-700">
+            <HiCheckCircle size={16} className="shrink-0" />
+            <span>
+              Баталгаажсан
+              <span className="block font-medium text-slate-500">{formatDate(verifiedAt)}</span>
+            </span>
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-400">
+            <HiClock size={15} className="shrink-0" />
+            Хүлээгдэж байна
+          </span>
+        )}
+      </td>
+      <td className="border border-slate-300 p-1.5 text-center align-middle">
+        <img src={person.qrUrl} alt={`${person.name} QR`} className="mx-auto h-[24mm] w-[24mm]" />
+      </td>
+    </tr>
   );
 }
 
@@ -210,81 +266,121 @@ export default function ReportCoverTemplate({
         </div>
       </div>
 
-      <section className="cover-page mx-auto mb-6 flex w-full max-w-[210mm] flex-col bg-white px-[18mm] py-[18mm] shadow-xl">
-        <div className="border-b-2 border-slate-900 pb-5 text-center">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Тайлангийн нүүр</p>
-          <h2 className="mt-10 text-3xl font-bold leading-tight text-slate-950">{info.title}</h2>
+      <section className="cover-page theme-light mx-auto mb-6 flex min-h-[297mm] w-full max-w-[210mm] flex-col bg-white px-[18mm] py-[16mm] text-slate-900 shadow-xl">
+        <DocumentHeader reportNumber={info.reportNumber} />
+
+        <div className="mt-10 text-center">
+          <p className="inline-block border border-[#0F766E] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-[#0F766E]">
+            {info.reportType}
+          </p>
+          <h2 className="mx-auto mt-5 max-w-[150mm] text-[26px] font-bold leading-tight text-slate-950">{info.title}</h2>
+          <p className="mt-2 text-sm text-slate-500">Тайлангийн нүүр хуудас</p>
         </div>
 
-        <div className="mt-10 grid gap-x-8 gap-y-5 sm:grid-cols-2">
-          <InfoLine label="Тайлангийн дугаар" value={info.reportNumber} />
-          <InfoLine label="Тайлангийн төрөл" value={info.reportType} />
-          <InfoLine label="Илгээсэн байгууллага" value={info.senderCompanyName} />
-          <InfoLine label="Илгээсэн огноо" value={info.submittedAt} />
-          <InfoLine label="Төсөл хэрэгжүүлэгч" value={info.implementerName} />
-          <InfoLine label="Регистр" value={info.implementerRegister} />
-          <InfoLine label="Батлагдсан огноо" value={info.approvedDate} />
-          <InfoLine label="Эцсийн оноо" value={info.finalScore} />
+        <div className="mx-auto mt-8 flex items-stretch border-2 border-[#0F766E]">
+          <div className="flex flex-col justify-center bg-[#0F766E] px-5 py-3 text-white">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-teal-100">Эцсийн оноо</span>
+            <span className="text-[10px] text-teal-100">Үнэлгээний дундаж</span>
+          </div>
+          <div className="flex items-baseline gap-1 px-6 py-2">
+            <span className="text-4xl font-bold tabular-nums text-[#0F766E]">{info.finalScore}</span>
+            {info.finalScore !== '-' && <span className="text-sm font-semibold text-slate-500">оноо</span>}
+          </div>
         </div>
 
-        <div className="mt-7 space-y-5">
-          <InfoLine label="Байршил" value={info.locationLabel} />
-          <label className="block">
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Нэмэлт мэдээлэл</span>
-            <textarea
-              defaultValue={info.description}
-              rows={8}
-              className="mt-2 w-full resize-y border border-slate-300 bg-white px-3 py-3 text-sm font-medium leading-6 text-slate-900 outline-none transition focus:border-[#0F766E] focus:ring-2 focus:ring-teal-100"
-            />
-          </label>
+        <table className="mt-9 w-full border-collapse">
+          <tbody>
+            <InfoRow label="Тайлангийн дугаар" value={info.reportNumber} />
+            <InfoRow label="Тайлангийн төрөл" value={info.reportType} />
+            <InfoRow label="Илгээсэн байгууллага" value={info.senderCompanyName} />
+            <InfoRow label="Төсөл хэрэгжүүлэгч" value={info.implementerName} />
+            <InfoRow label="Регистрийн дугаар" value={info.implementerRegister} />
+            <InfoRow label="Илгээсэн огноо" value={info.submittedAt} />
+            <InfoRow label="Батлагдсан огноо" value={info.approvedDate} />
+            <InfoRow label="Байршил" value={info.locationLabel} />
+          </tbody>
+        </table>
+
+        <div className="mt-6 border border-slate-300">
+          <p className="border-b border-slate-300 bg-slate-50 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-600">
+            Нэмэлт мэдээлэл
+          </p>
+          <div className="min-h-[34mm] px-3 py-2.5">
+            <EditableText value={info.description} rows={5} />
+          </div>
         </div>
 
-        <div className="mt-auto pt-10 text-center text-sm font-medium text-slate-500">{new Date().getFullYear()} он</div>
+        <div className="pt-8" />
+        <DocumentFooter page={1} pages={2} />
       </section>
 
-      <section className="cover-page mx-auto flex w-full max-w-[210mm] flex-col bg-white px-[18mm] py-[18mm] shadow-xl">
-        <div className="border-b-2 border-slate-900 pb-5">
-          <h2 className="text-2xl font-bold text-slate-950">{info.title}</h2>
+      <section className="cover-page theme-light mx-auto flex min-h-[297mm] w-full max-w-[210mm] flex-col bg-white px-[18mm] py-[16mm] text-slate-900 shadow-xl">
+        <DocumentHeader reportNumber={info.reportNumber} compact />
+
+        <div className="mt-8">
+          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#0F766E]">Гарын үсгийн хуудас</p>
+          <h2 className="mt-2 text-xl font-bold leading-snug text-slate-950">{info.title}</h2>
         </div>
 
-        <div className="mt-8 border border-slate-200 px-5">
-          {staffRows.length > 0 ? (
-            staffRows.map((person, index) => (
-              <SignatureRow
-                key={person.id}
-                label={index === 0 ? 'Боловсруулсан' : 'Хамтран боловсруулсан'}
-                person={person}
-                verifiedAt={verifiedSignatures[person.id] || null}
+        <table className="mt-6 w-full border-collapse">
+          <thead>
+            <tr className="bg-slate-50 text-left text-[10px] font-semibold uppercase tracking-wide text-slate-600">
+              <th className="w-[9mm] border border-slate-300 px-2 py-2 text-center">№</th>
+              <th className="w-[34mm] border border-slate-300 px-3 py-2">Үүрэг</th>
+              <th className="border border-slate-300 px-3 py-2">Овог нэр, албан тушаал</th>
+              <th className="w-[36mm] border border-slate-300 px-3 py-2">Тоон гарын үсэг</th>
+              <th className="w-[28mm] border border-slate-300 px-2 py-2 text-center">QR</th>
+            </tr>
+          </thead>
+          <tbody>
+            {staffRows.length > 0 ? (
+              staffRows.map((person, index) => (
+                <SignerRow
+                  key={person.id}
+                  index={index + 1}
+                  role={index === 0 ? 'Боловсруулсан' : 'Хамтран боловсруулсан'}
+                  person={person}
+                  verifiedAt={verifiedSignatures[person.id] || null}
+                />
+              ))
+            ) : (
+              <tr>
+                <td colSpan={5} className="border border-slate-300 px-3 py-5 text-center text-sm text-slate-500">
+                  Боловсруулсан ажилтан оноогдоогүй байна.
+                </td>
+              </tr>
+            )}
+            {manager && (
+              <SignerRow
+                index={staffRows.length + 1}
+                role={verifiedSignatures[manager.id] ? 'Хянаж, баталгаажуулсан' : 'Хянасан'}
+                person={manager}
+                verifiedAt={verifiedSignatures[manager.id] || null}
               />
-            ))
-          ) : (
-            <div className="py-5 text-sm font-medium text-slate-500">Боловсруулсан ажилтан оноогдоогүй байна.</div>
-          )}
-        </div>
+            )}
+          </tbody>
+        </table>
 
-        {manager && (
-          <div className="mt-6 border border-slate-200 px-5">
-            <SignatureRow
-              label={verifiedSignatures[manager.id] ? 'Хянасан, баталгаажуулсан' : 'Хянасан'}
-              person={manager}
-              verifiedAt={verifiedSignatures[manager.id] || null}
-            />
-          </div>
-        )}
-
-        <div className="mt-8 grid gap-5 sm:grid-cols-2">
+        <div className="mt-8 grid grid-cols-2 gap-8">
           <label className="block">
             <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Боловсруулсан огноо</span>
-            <input type="date" className={lineClass} />
+            <input type="date" className={dateLineClass} />
           </label>
           <label className="block">
             <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Баталгаажуулсан огноо</span>
-            <input type="date" value={toDateInputValue(managerVerifiedAt)} readOnly className={lineClass} />
+            <input type="date" value={toDateInputValue(managerVerifiedAt)} readOnly className={dateLineClass} />
           </label>
         </div>
 
-        <div className="mt-auto border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-600">
-          Нэрийн арын QR кодыг уншуулснаар тухайн ажилтан болон менежерийн баталгаажсан мэдээлэл, тоон гарын үсгийн хэсэг харагдана.
+        <div className="mt-auto pt-10">
+          <div className="mb-4 flex items-start gap-3 border-l-[3px] border-[#0F766E] bg-slate-50 px-4 py-3 text-xs leading-5 text-slate-600">
+            <HiKey size={16} className="mt-0.5 shrink-0 text-[#0F766E]" />
+            <p>
+              Тоон гарын үсгийг системээс олгосон нууц үгээр баталгаажуулсан. QR кодыг уншуулж тухайн ажилтны нэр, албан
+              тушаал, холбоо барих мэдээллийг системээс шалгана уу.
+            </p>
+          </div>
+          <DocumentFooter page={2} pages={2} />
         </div>
       </section>
 

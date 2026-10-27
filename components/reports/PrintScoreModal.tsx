@@ -6,8 +6,21 @@ import { HiPrinter, HiX } from 'react-icons/hi';
 type Criterion = { id: string; name: string; maxScore: number };
 type Evaluation = {
   evaluatorName: string;
+  evaluatorPosition: string | null;
+  evaluatorQrUrl: string | null;
+  signatureId: string | null;
+  signedAt: string | null;
   totalScore: number;
   scores: { criterionId: string; score: number; note?: string | null }[];
+};
+
+// The manager's digital-signature approval, printed under the evaluators.
+type Approval = {
+  name: string;
+  position: string | null;
+  qrUrl: string | null;
+  signatureId: string | null;
+  approvedAt: string;
 };
 
 type Props = {
@@ -19,6 +32,7 @@ type Props = {
   locationLabel: string;
   criteria: Criterion[];
   evaluations: Evaluation[];
+  approval: Approval | null;
   onClose: () => void;
 };
 
@@ -34,13 +48,14 @@ export default function PrintScoreModal({
   locationLabel,
   criteria,
   evaluations,
+  approval,
   onClose,
 }: Props) {
   const maxTotal = criteria.reduce((sum, c) => sum + c.maxScore, 0);
 
   return createPortal(
     <div className="print-portal fixed inset-0 z-[1000] flex items-center justify-center bg-slate-900/60 p-4 print:static print:bg-transparent print:p-0">
-      <div className="flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden bg-white shadow-2xl print:max-h-none print:w-auto print:max-w-none print:overflow-visible print:rounded-none print:shadow-none">
+      <div className="theme-light flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden bg-white shadow-2xl print:max-h-none print:w-auto print:max-w-none print:overflow-visible print:rounded-none print:shadow-none">
         <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 print:hidden">
           <h2 className="text-base font-semibold text-slate-900">Хэвлэх урьдчилан харах</h2>
           <div className="flex items-center gap-2">
@@ -156,15 +171,58 @@ export default function PrintScoreModal({
               </tbody>
             </table>
 
-            {/* Signatures — below the table, one short line per evaluator,
-                stacked one under another (matching the paper form's layout). */}
-            <div className="mt-10 space-y-3 break-inside-avoid">
+            {/* Signatures — one block per evaluator under the table: full name,
+                position, the digital signature they applied, and a QR code that
+                opens their profile on this site (name, position, contact). */}
+            <div className="mt-10 grid grid-cols-2 gap-x-10 gap-y-6 break-inside-avoid sm:grid-cols-3 print:grid-cols-3">
               {evaluations.map((ev, i) => (
-                <div key={i} className="flex items-end gap-2">
-                  <span className="shrink-0 text-sm text-slate-700">{ev.evaluatorName}:</span>
-                  <span className="w-32 border-b border-slate-500" />
+                <div key={i} className="flex items-start gap-3 break-inside-avoid">
+                  {ev.evaluatorQrUrl && (
+                    <img src={ev.evaluatorQrUrl} alt={`${ev.evaluatorName} QR`} className="h-[84px] w-[84px] shrink-0 border border-slate-300 bg-white" />
+                  )}
+                  <div className="min-w-0 text-[11px] leading-snug">
+                    <p className="text-slate-500">Үнэлгээний ажилтан</p>
+                    <p className="text-sm font-bold text-slate-900">{ev.evaluatorName}</p>
+                    {ev.evaluatorPosition && <p className="text-slate-700">{ev.evaluatorPosition}</p>}
+                    {ev.signatureId && (
+                      <p className="mt-1 text-slate-600">
+                        Тоон гарын үсэг: <span className="font-semibold text-slate-800">{ev.signatureId}</span>
+                      </p>
+                    )}
+                    {ev.signedAt && (
+                      <p className="text-slate-600">
+                        Огноо: {new Date(ev.signedAt).toLocaleString('mn-MN', { dateStyle: 'short', timeStyle: 'short' })}
+                      </p>
+                    )}
+                  </div>
                 </div>
               ))}
+            </div>
+
+            {/* The manager's sign-off over every evaluator's signed scores. */}
+            <div className="mt-8 flex items-start gap-3 border-t border-slate-300 pt-5 break-inside-avoid">
+              {approval?.qrUrl && (
+                <img src={approval.qrUrl} alt={`${approval.name} QR`} className="h-[84px] w-[84px] shrink-0 border border-slate-300 bg-white" />
+              )}
+              <div className="min-w-0 text-[11px] leading-snug">
+                <p className="text-slate-500">Хянаж, баталгаажуулсан менежер</p>
+                {approval ? (
+                  <>
+                    <p className="text-sm font-bold text-slate-900">{approval.name}</p>
+                    {approval.position && <p className="text-slate-700">{approval.position}</p>}
+                    {approval.signatureId && (
+                      <p className="mt-1 text-slate-600">
+                        Тоон гарын үсэг: <span className="font-semibold text-slate-800">{approval.signatureId}</span>
+                      </p>
+                    )}
+                    <p className="text-slate-600">
+                      Огноо: {new Date(approval.approvedAt).toLocaleString('mn-MN', { dateStyle: 'short', timeStyle: 'short' })}
+                    </p>
+                  </>
+                ) : (
+                  <p className="mt-1 font-semibold text-amber-700">Баталгаажуулаагүй</p>
+                )}
+              </div>
             </div>
 
             <p className="mt-10 text-[11px] text-slate-400 print:mt-12">

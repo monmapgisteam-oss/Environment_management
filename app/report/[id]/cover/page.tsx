@@ -35,7 +35,7 @@ async function personWithQr(user: { id: string; name: string; position: string |
     name: user.name,
     roleLabel: user.role === 'review_manager' ? 'Хянах менежер' : 'Үнэлгээний ажилтан',
     position: user.position || (user.role === 'review_manager' ? 'Хянах менежер' : 'Үнэлгээний ажилтан'),
-    qrUrl: createQrImageUrl(await getPublicProfileQrUrl(user.id), 180),
+    qrUrl: await createQrImageUrl(await getPublicProfileQrUrl(user.id), 180),
   };
 }
 

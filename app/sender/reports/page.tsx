@@ -5,6 +5,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { fetchSurveyReports } from '@/lib/survey/reports';
 import { attachEffectiveSenderCompanies } from '@/lib/reports/companies';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
+import { scoresReleased, senderStatus } from '@/lib/reports/scoreRelease';
 
 async function fetchSenderReports(companyId: string) {
   const reports = await dataStore.report.findMany({
@@ -37,8 +38,8 @@ export default async function SenderReportsPage() {
       reportType: report.reportType,
       title: report.title,
       submittedAt: report.submittedAt?.toISOString() || null,
-      status: report.status,
-      finalScore: report.signedScanUrl ? report.finalScore : null,
+      status: senderStatus(report),
+      finalScore: scoresReleased(report) ? report.finalScore : null,
       senderCompany: report.senderCompany,
       location: report.location,
       source: report.reportNumber?.startsWith('S123-') ? 'survey123' as const : 'web' as const,

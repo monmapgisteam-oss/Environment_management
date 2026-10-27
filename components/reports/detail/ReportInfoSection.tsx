@@ -1,5 +1,6 @@
 import StatusBadge from '@/components/ui/StatusBadge';
 import { formatDate } from '@/lib/utils';
+import { senderStatus } from '@/lib/reports/scoreRelease';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
 import type { ReportDetail } from './types';
 
@@ -18,6 +19,8 @@ export default function ReportInfoSection({ report, isConclusion, isSenderView }
   // "return_requested" is an internal staff→manager step; the sender should still
   // see the report as under review until the manager actually returns it.
   if (isSenderView && report.status === 'return_requested') displayStatus = 'in_review';
+  // Until the manager signs the scores off, the sender still sees "under review".
+  if (isSenderView && senderStatus(report) === 'in_review') displayStatus = 'in_review';
 
   return (
     <div className="bg-white border border-slate-200 p-6">

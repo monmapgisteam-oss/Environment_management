@@ -15,6 +15,40 @@
   --color-text: #0F172A;
   --color-muted: #64748B;
   --color-border: #E2E8F0;
+  --color-card: #FFFFFF;
+  --color-scrollbar: #E2E8F0;
+}
+
+/* Dark theme: `.dark` on <html> (components/ui/ThemeToggle.tsx). Tailwind
+   colors switch through lib/theme/darkPalette.ts; these cover the hand-written
+   classes below. Screen only, so printing always comes out light. */
+@media screen {
+  .dark {
+    color-scheme: dark;
+    --color-bg: #0B1120;
+    --color-text: #F1F5F9;
+    --color-muted: #94A3B8;
+    --color-border: #263247;
+    --color-card: #0F172A;
+    --color-scrollbar: #334155;
+  }
+
+  .dark .badge-gray   { background: #1E293B; color: #CBD5E1; box-shadow: inset 0 0 0 1px #334155; }
+  .dark .badge-blue   { background: #172554; color: #93C5FD; box-shadow: inset 0 0 0 1px #1E3A8A; }
+  .dark .badge-cyan   { background: #083344; color: #67E8F9; box-shadow: inset 0 0 0 1px #155E75; }
+  .dark .badge-yellow { background: #2D2410; color: #FCD34D; box-shadow: inset 0 0 0 1px #713F12; }
+  .dark .badge-orange { background: #2E1A10; color: #FDBA74; box-shadow: inset 0 0 0 1px #7C2D12; }
+  .dark .badge-purple { background: #2E1065; color: #C4B5FD; box-shadow: inset 0 0 0 1px #5B21B6; }
+  .dark .badge-green  { background: #052E1F; color: #6EE7B7; box-shadow: inset 0 0 0 1px #065F46; }
+  .dark .badge-red    { background: #2D1215; color: #FCA5A5; box-shadow: inset 0 0 0 1px #7F1D1D; }
+
+  .dark .theme-light {
+    color-scheme: light;
+    --color-text: #0F172A;
+    --color-muted: #64748B;
+    --color-border: #E2E8F0;
+    --color-card: #FFFFFF;
+  }
 }
 
 html {
@@ -60,8 +94,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 }
 
 .card-surface {
-  background: #FFFFFF;
-  border: 1px solid #E2E8F0;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 10px 30px rgba(15, 23, 42, 0.05);
 }
 
@@ -79,7 +113,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
 /* Thin, unobtrusive scrollbar for the sidebar */
 .sidebar-scroll::-webkit-scrollbar { width: 6px; }
-.sidebar-scroll::-webkit-scrollbar-thumb { background: #E2E8F0; }
+.sidebar-scroll::-webkit-scrollbar-thumb { background: var(--color-scrollbar); }
 .sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
 
 /* Branded Leaflet markers + popups — see lib/mapMarkers.ts */

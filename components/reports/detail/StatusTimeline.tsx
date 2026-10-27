@@ -6,17 +6,18 @@ type Props = {
   submittedAt: Date | null;
   assignedCount: number;
   scoredCount: number;
-  signedScanAt: Date | null;
-  // Senders see the outcome only once the manager has sent the signed scan.
-  isSenderView: boolean;
+  // The manager signed the scores off (lib/reports/scoreRelease.ts), and when.
+  released: boolean;
+  releasedAt: Date | null;
 };
 
 type Step = { label: string; detail?: string; state: 'done' | 'current' | 'todo' };
 
-// Where the report is in the review flow: sent → assigned → scored → concluded.
-// Returned and rejected reports show that outcome as the last step instead.
-export default function StatusTimeline({ status, submittedAt, assignedCount, scoredCount, signedScanAt, isSenderView }: Props) {
-  const concluded = ['completed', 'approved'].includes(status) && (!isSenderView || !!signedScanAt);
+// Where the report is in the review flow: sent → assigned → scored and signed
+// by each evaluator → signed off by the manager. Returned and rejected reports
+// show that outcome as the last step instead.
+export default function StatusTimeline({ status, submittedAt, assignedCount, scoredCount, released, releasedAt }: Props) {
+  const concluded = released;
   const scored = concluded || (assignedCount > 0 && scoredCount >= assignedCount) || status === 'in_review';
   const assigned = scored || assignedCount > 0 || ['assigned', 'in_review'].includes(status);
   const returned = status === 'needs_revision';
@@ -32,7 +33,7 @@ export default function StatusTimeline({ status, submittedAt, assignedCount, sco
     },
     {
       label: 'Үнэлгээ',
-      detail: assignedCount ? `${scoredCount} / ${assignedCount} гишүүн үнэлсэн` : undefined,
+      detail: assignedCount ? `${scoredCount} / ${assignedCount} гишүүн гарын үсгээр үнэлсэн` : undefined,
       state: state(scored, assigned && !scored),
     },
   ];
@@ -42,8 +43,8 @@ export default function StatusTimeline({ status, submittedAt, assignedCount, sco
     steps.push({ label: 'Татгалзсан', state: 'current' });
   } else {
     steps.push({
-      label: 'Дүгнэлт гарсан',
-      detail: concluded ? (signedScanAt ? formatDate(signedScanAt) : undefined) : 'Хүлээгдэж байна',
+      label: 'Менежер баталгаажуулсан',
+      detail: concluded ? (releasedAt ? formatDate(releasedAt) : undefined) : 'Хүлээгдэж байна',
       state: state(concluded, scored && !concluded),
     });
   }

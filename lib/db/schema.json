@@ -380,6 +380,25 @@
         "type": "date",
         "nullable": true
       },
+      "scoresApprovedAt": {
+        "type": "date",
+        "nullable": true
+      },
+      "scoresApprovedById": {
+        "type": "string",
+        "nullable": true,
+        "length": 128
+      },
+      "scoresApprovalSignatureId": {
+        "type": "string",
+        "nullable": true,
+        "length": 128
+      },
+      "scoresApprovalDocumentHash": {
+        "type": "string",
+        "nullable": true,
+        "length": 128
+      },
       "createdAt": {
         "type": "date",
         "nullable": false,

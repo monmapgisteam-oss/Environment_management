@@ -1,6 +1,11 @@
 import type { Config } from "tailwindcss";
+import plugin from "tailwindcss/plugin";
+import { backgroundColor, borderColor, semanticColors, textColor, themeBase } from "./lib/theme/darkPalette";
 
 const config: Config = {
+  // `.dark` on <html> (set by components/ui/ThemeToggle.tsx) switches the
+  // palette variables in lib/theme/darkPalette.ts; `dark:` works for one-offs.
+  darkMode: "class",
   content: [
     "./src/**/*.{js,ts,jsx,tsx}",
     "./app/**/*.{js,ts,jsx,tsx}",
@@ -23,9 +28,9 @@ const config: Config = {
     },
     extend: {
       colors: {
-        // Surfaces
-        background: "#F8FAFC",
-        text: "#0F172A",
+        // Surfaces, legacy aliases and other theme-aware colors (light and
+        // dark values live in lib/theme/darkPalette.ts).
+        ...semanticColors,
 
         // Brand / primary (teal)
         primary: "#0F766E",
@@ -37,15 +42,8 @@ const config: Config = {
 
         // Legacy aliases kept so existing class names keep working,
         // re-pointed at the new teal palette.
-        "color-bg": "#F8FAFC",
-        "color-card": "#FFFFFF",
         "color-primary": "#0F766E",
         "color-primary-dark": "#115E59",
-        "color-text-main": "#0F172A",
-        "color-text-muted": "#64748B",
-        "color-border": "#E2E8F0",
-        "color-input-bg": "#FFFFFF",
-        "color-soft-blue": "#F0FDFA",
         "color-danger": "#EF4444",
 
         // Semantic accents
@@ -66,6 +64,11 @@ const config: Config = {
           "sans-serif",
         ],
       },
+      backgroundColor,
+      textColor,
+      borderColor,
+      ringColor: borderColor,
+      placeholderColor: textColor,
       boxShadow: {
         soft: "0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 16px rgba(15, 23, 42, 0.05)",
         card: "0 1px 3px rgba(15, 23, 42, 0.06), 0 10px 30px rgba(15, 23, 42, 0.05)",
@@ -74,7 +77,7 @@ const config: Config = {
       },
     },
   },
-  plugins: [],
+  plugins: [plugin(({ addBase }) => addBase(themeBase))],
 };
 
 export default config;

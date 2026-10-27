@@ -66,6 +66,12 @@ export type Report = {
   signedScanUrl: string | null;
   signedScanName: string | null;
   signedScanUploadedAt: Date | null;
+  // The manager's digital signature over every evaluator's signed scores; the
+  // sender sees the scores only after it (lib/reports/scoreRelease.ts).
+  scoresApprovedAt: Date | null;
+  scoresApprovedById: string | null;
+  scoresApprovalSignatureId: string | null;
+  scoresApprovalDocumentHash: string | null;
   createdAt: Date;
   updatedAt: Date;
 };

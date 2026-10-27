@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { LuClipboardCheck, LuMapPinned, LuShieldCheck } from 'react-icons/lu';
+import ThemeToggle from '@/components/ui/ThemeToggle';
 
 const POINTS = [
   { icon: <LuClipboardCheck size={20} />, title: 'Цахим тайлан', text: 'Жилийн төлөвлөгөө, биелэлтийн тайланг цахимаар илгээж, явцыг нь хянана.' },
@@ -63,14 +64,16 @@ export default function AuthLayout({ children, size = 'md' }: Props) {
           className="pointer-events-none absolute inset-0 opacity-[0.35]"
           style={{
             backgroundImage:
-              'linear-gradient(to right, #E2E8F0 1px, transparent 1px), linear-gradient(to bottom, #E2E8F0 1px, transparent 1px)',
+              'linear-gradient(to right, var(--color-border) 1px, transparent 1px), linear-gradient(to bottom, var(--color-border) 1px, transparent 1px)',
             backgroundSize: '40px 40px',
           }}
         />
         <header className="relative flex items-center gap-3 border-b border-slate-200 bg-white px-6 py-4 lg:hidden">
           <img src="/logo.svg" alt="" width={36} height={36} className="h-9 w-9" />
-          <span className="text-sm font-semibold text-slate-900">Байгаль орчны менежментийн төлөвлөгөөний систем</span>
+          <span className="flex-1 text-sm font-semibold text-slate-900">Байгаль орчны менежментийн төлөвлөгөөний систем</span>
+          <ThemeToggle />
         </header>
+        <ThemeToggle className="absolute right-6 top-6 z-10 hidden lg:flex" />
         <main className="relative flex min-h-full flex-1 items-center justify-center px-6 py-8">
           <div className={`w-full ${width} border border-slate-200 bg-white p-7 shadow-card sm:p-9`}>{children}</div>
         </main>

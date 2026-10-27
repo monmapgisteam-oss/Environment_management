@@ -18,7 +18,7 @@ export default async function ProfilePage() {
   const homeHref = ROLE_HOME[user.role];
   const showQrCode = user.role === 'review_manager' || user.role === 'evaluator';
   const qrProfileUrl = await getPublicProfileQrUrl(user.id);
-  const qrUrl = createQrImageUrl(qrProfileUrl);
+  const qrUrl = await createQrImageUrl(qrProfileUrl);
 
   return (
     <main className="w-full px-5 py-8 sm:px-6 lg:px-8">
@@ -80,7 +80,7 @@ export default async function ProfilePage() {
                     className="h-[220px] w-[220px] border border-slate-200 bg-white p-3 shadow-sm"
                   />
                   <p className="text-sm leading-6 text-slate-500">
-                    QR код нь нэр, албан тушаал, ажлын газар, утасны дугаарыг агуулна.
+                    QR код нь нэр, албан тушаал, ажлын газар, утасны дугаар бүхий хуудас руу холбоно.
                   </p>
                 </div>
               </div>

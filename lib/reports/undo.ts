@@ -40,8 +40,6 @@ export type UndoAction =
       assignmentId: string;
       // The manager path may create the assignment along with the score.
       assignmentCreated: boolean;
-      // A first signature enrolls the signer's PIN; undo clears it again.
-      pinEnrolled: boolean;
       notificationIds: string[];
       prev: {
         assignmentStatus: ReportAssignment['status'];
@@ -170,9 +168,6 @@ export async function undoAction(token: unknown, userId: string): Promise<string
             submittedAt: action.prev.assignmentSubmittedAt == null ? null : new Date(action.prev.assignmentSubmittedAt),
           },
         });
-      }
-      if (action.pinEnrolled) {
-        await dataStore.user.update({ where: { id: userId }, data: { signaturePinHash: null } });
       }
       await dataStore.report.update({
         where: { id: report.id },

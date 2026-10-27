@@ -6,7 +6,8 @@ import { createNotifications, createUndoToken } from '@/lib/reports/undo';
 
 // Manager uploads the scanned, physically-signed score sheet (after printing
 // the evaluation table and getting every evaluator's signature on paper) and
-// it's attached to the report for the sender to download.
+// it's attached to the report for the sender to download. The scores must be
+// approved with the manager's digital signature first.
 export async function POST(request: Request, props: { params: Promise<{ id: string }> }) {
   const user = await getApiUser('review_manager');
   if (!user) return unauthorized();
@@ -21,6 +22,9 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
     const before = await dataStore.report.findUnique({ where: { id: params.id } });
     if (!before) {
       return NextResponse.json({ error: 'Тайлан олдсонгүй' }, { status: 404 });
+    }
+    if (!before.scoresApprovedAt) {
+      return NextResponse.json({ error: 'Эхлээд үнэлгээг тоон гарын үсгээр баталгаажуулна уу.' }, { status: 400 });
     }
 
     const report = await dataStore.report.update({

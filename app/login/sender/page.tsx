@@ -4,7 +4,7 @@ import { SENDER_ACCOUNTS, SENDER_ROLES } from '@/lib/constants';
 export default function SenderLoginPage() {
   return (
     <AuthForm
-      title="Тайлан илгээх байгууллага"
+      title="БОМТ илгээх байгууллага"
       subtitle="Имэйл, нууц үгээ оруулж нэвтэрнэ үү."
       allowedRoles={SENDER_ROLES}
       exampleEmail={SENDER_ACCOUNTS[0].email}
