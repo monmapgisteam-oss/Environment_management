@@ -49,7 +49,8 @@ export default function MapPicker({ lat, lng, hasMarker, onMapClick, showSurveyL
       zoomControl: true,
     });
 
-    const baseLayer = addBasemap(map);
+    // With the survey overlay, one control lists both basemaps and overlay.
+    const baseLayers = addBasemap(map, { control: !showSurveyLayer });
 
     let cancelled = false;
     if (showSurveyLayer) {
@@ -76,7 +77,7 @@ export default function MapPicker({ lat, lng, hasMarker, onMapClick, showSurveyL
 
       L.control
         .layers(
-          { 'Газрын зураг': baseLayer },
+          baseLayers,
           { 'Судалгааны цэгүүд': surveyLayer },
           { collapsed: false },
         )
