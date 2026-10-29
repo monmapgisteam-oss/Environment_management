@@ -1,7 +1,8 @@
-import schemaJson from '../lib/db/schema.json';
+import schemaJson from './schema.json';
 
-// Prisma-style repository engine over the application schema. It runs inside
-// Convex queries and mutations, so every write batch is one transaction.
+// Prisma-style repository engine over the application schema. The store
+// buffers the inserts, patches and removes of one write call and sends them
+// in `commit`, so every write batch is one transaction.
 // Dates travel and are stored as epoch milliseconds.
 
 export type Field = { type: string; nullable: boolean; unique?: boolean; default?: unknown; updatedAt?: boolean; length?: number; values?: string[] };
@@ -19,6 +20,8 @@ export interface Store {
   insert(model: string, row: Row): Promise<void>;
   patch(model: string, docId: string, row: Row): Promise<void>;
   remove(model: string, docId: string): Promise<void>;
+  // Applies the buffered changes of one write call together, all or none.
+  commit?(): Promise<void>;
 }
 
 export function indexedFields(model: string): string[] {
@@ -281,6 +284,7 @@ async function persist(store: Store, pending: PendingEdit[]) {
     if (edit.existing) await store.patch(edit.model, edit.existing.docId, edit.changes);
     else await store.insert(edit.model, edit.row);
   }
+  await store.commit?.();
 }
 
 function requireUniqueKey(model: string, args: Args) {
@@ -344,6 +348,7 @@ export async function write(store: Store, model: string, op: string, args: Args 
         }
       }
       for (const { docId } of rows) await store.remove(model, docId);
+      await store.commit?.();
       return { count: rows.length };
     }
     default:

@@ -5,26 +5,12 @@
 //
 //   npm run fix:signatures -- --dry-run
 //   npm run fix:signatures
-import { ConvexHttpClient } from 'convex/browser';
-import { anyApi } from 'convex/server';
+import store from './data-store.cjs';
 
 const dryRun = process.argv.includes('--dry-run');
-const secret = process.env.CONVEX_SERVER_SECRET;
-if (!process.env.CONVEX_URL || !secret) throw new Error('Set CONVEX_URL and CONVEX_SERVER_SECRET.');
-const convex = new ConvexHttpClient(process.env.CONVEX_URL);
 
-const rows = await convex.query(anyApi.data.read, {
-  secret,
-  model: 'evaluation',
-  op: 'findMany',
-  args: { where: { signature: { not: null } }, select: { id: true } },
-});
+const rows = await store.read('evaluation', 'findMany', { where: { signature: { not: null } }, select: { id: true } });
 if (!dryRun && rows.length > 0) {
-  await convex.mutation(anyApi.data.write, {
-    secret,
-    model: 'evaluation',
-    op: 'updateMany',
-    args: { where: { signature: { not: null } }, data: { signature: null } },
-  });
+  await store.write('evaluation', 'updateMany', { where: { signature: { not: null } }, data: { signature: null } });
 }
 console.log(`${rows.length} evaluations ${dryRun ? 'hold a plaintext PIN' : 'scrubbed'}.`);

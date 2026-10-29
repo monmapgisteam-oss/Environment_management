@@ -1,6 +1,6 @@
 {
   "company": {
-    "name": "company",
+    "name": "tailan_company",
     "fields": {
       "id": {
         "type": "string",
@@ -69,7 +69,7 @@
     }
   },
   "user": {
-    "name": "user",
+    "name": "tailan_user",
     "fields": {
       "id": {
         "type": "string",
@@ -183,7 +183,7 @@
     }
   },
   "reportType": {
-    "name": "reportType",
+    "name": "tailan_reportType",
     "fields": {
       "id": {
         "type": "string",
@@ -230,7 +230,7 @@
     }
   },
   "report": {
-    "name": "report",
+    "name": "tailan_report",
     "fields": {
       "id": {
         "type": "string",
@@ -463,7 +463,7 @@
     }
   },
   "reportLocation": {
-    "name": "reportLocation",
+    "name": "tailan_reportLocation",
     "fields": {
       "id": {
         "type": "string",
@@ -538,7 +538,7 @@
     }
   },
   "evaluationCriterion": {
-    "name": "evaluationCriterion",
+    "name": "tailan_evaluationCriterion",
     "fields": {
       "id": {
         "type": "string",
@@ -607,7 +607,7 @@
     }
   },
   "reportAssignment": {
-    "name": "reportAssignment",
+    "name": "tailan_reportAssignment",
     "fields": {
       "id": {
         "type": "string",
@@ -687,7 +687,7 @@
     }
   },
   "evaluation": {
-    "name": "evaluation",
+    "name": "tailan_evaluation",
     "fields": {
       "id": {
         "type": "string",
@@ -798,7 +798,7 @@
     }
   },
   "evaluationScore": {
-    "name": "evaluationScore",
+    "name": "tailan_evaluationScore",
     "fields": {
       "id": {
         "type": "string",
@@ -845,7 +845,7 @@
     }
   },
   "notification": {
-    "name": "notification",
+    "name": "tailan_notification",
     "fields": {
       "id": {
         "type": "string",
@@ -908,7 +908,7 @@
     }
   },
   "activityLog": {
-    "name": "activityLog",
+    "name": "tailan_activityLog",
     "fields": {
       "id": {
         "type": "string",
@@ -961,7 +961,7 @@
     }
   },
   "upload": {
-    "name": "upload",
+    "name": "tailan_upload",
     "fields": {
       "id": {
         "type": "string",
@@ -994,7 +994,7 @@
     "attachments": true
   },
   "broadcast": {
-    "name": "broadcast",
+    "name": "tailan_broadcast",
     "fields": {
       "id": {
         "type": "string",
@@ -1048,7 +1048,7 @@
     "relations": {}
   },
   "reportComment": {
-    "name": "reportComment",
+    "name": "tailan_reportComment",
     "fields": {
       "id": {
         "type": "string",

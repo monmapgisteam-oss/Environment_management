@@ -6,8 +6,7 @@
 //   SEED_PASSWORD=... npm run seed:evaluators -- --dry-run
 //   SEED_PASSWORD=... npm run seed:evaluators
 import { randomBytes, scryptSync } from 'crypto';
-import { ConvexHttpClient } from 'convex/browser';
-import { anyApi } from 'convex/server';
+import store from './data-store.cjs';
 
 const COUNT = 10;
 
@@ -19,13 +18,10 @@ function hashPassword(password) {
 
 const dryRun = process.argv.includes('--dry-run');
 const password = process.env.SEED_PASSWORD;
-const secret = process.env.CONVEX_SERVER_SECRET;
-if (!process.env.CONVEX_URL || !secret) throw new Error('Set CONVEX_URL and CONVEX_SERVER_SECRET.');
 if (!password || password.length < 8) throw new Error('Set SEED_PASSWORD (8+ characters).');
-const convex = new ConvexHttpClient(process.env.CONVEX_URL);
-const read = (model, op, args) => convex.query(anyApi.data.read, { secret, model, op, args });
+const read = (model, op, args) => store.read(model, op, args);
 const write = (model, op, args) =>
-  dryRun ? Promise.resolve() : convex.mutation(anyApi.data.write, { secret, model, op, args });
+  dryRun ? Promise.resolve() : store.write(model, op, args);
 
 const company = await read('company', 'findFirst', { where: { type: 'reviewer' } });
 if (!company) throw new Error('No reviewer company found.');

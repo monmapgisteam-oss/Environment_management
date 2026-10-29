@@ -5,20 +5,16 @@
 //
 //   npm run fix:locations -- --dry-run
 //   npm run fix:locations
-const { ConvexHttpClient } = require('convex/browser');
-const { anyApi } = require('convex/server');
+const store = require('./data-store.cjs');
 const { resolveAdministrativeLocation } = require('../lib/map/locationResolver.ts');
 
 const UNKNOWN = 'Тодорхойгүй';
 
 async function main() {
   const dryRun = process.argv.includes('--dry-run');
-  const secret = process.env.CONVEX_SERVER_SECRET;
-  if (!process.env.CONVEX_URL || !secret) throw new Error('Set CONVEX_URL and CONVEX_SERVER_SECRET.');
-  const convex = new ConvexHttpClient(process.env.CONVEX_URL);
-  const read = (model, op, args) => convex.query(anyApi.data.read, { secret, model, op, args });
+  const read = (model, op, args) => store.read(model, op, args);
   const write = (model, op, args) =>
-    dryRun ? Promise.resolve() : convex.mutation(anyApi.data.write, { secret, model, op, args });
+    dryRun ? Promise.resolve() : store.write(model, op, args);
 
   const rows = await read('reportLocation', 'findMany', {});
   let fixed = 0;

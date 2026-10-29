@@ -36,8 +36,29 @@ async function fetchStaffWorkload() {
   });
   return staff.map((member) => {
     const open = member.evaluatorAssignments.filter((a) => a.status !== 'submitted');
-    return { id: member.id, name: member.name, open: new Set(open.map((a) => a.reportId)).size, total: member.evaluatorAssignments.length };
+    const done = member.evaluatorAssignments.filter((a) => a.status === 'submitted');
+    return {
+      id: member.id,
+      name: member.name,
+      open: new Set(open.map((a) => a.reportId)).size,
+      done: new Set(done.map((a) => a.reportId)).size,
+    };
   });
+}
+
+// A staff member with nothing waiting: one quiet line, opens their page.
+function IdleMemberRow({ member }: { member: { id: string; name: string; done: number } }) {
+  return (
+    <li>
+      <Link href={`/reviewer/staff/${member.id}`} className="flex items-center gap-3 px-5 py-2 transition hover:bg-slate-50">
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center bg-slate-100 text-[11px] font-bold text-slate-500">
+          {member.name.trim().charAt(0).toUpperCase() || '?'}
+        </span>
+        <span className="min-w-0 flex-1 truncate text-sm text-slate-700">{member.name}</span>
+        <span className="shrink-0 text-[11px] tabular-nums text-slate-400">{member.done} үнэлсэн</span>
+      </Link>
+    </li>
+  );
 }
 
 export default async function ReviewerDashboard() {
@@ -51,10 +72,12 @@ export default async function ReviewerDashboard() {
   // them and sign them off before the sender sees anything.
   const awaitingApproval = reports.filter((r) => r.status === 'completed' && !scoresReleased(r));
   const busiest = Math.max(1, ...staff.map((s) => s.open));
-  // Members with reports waiting for their score, busiest first; the rest are
-  // listed in one line so the panel stays short.
+  // Members with reports waiting for their score, busiest first; the free
+  // ones are listed as small chips so the panel stays short.
   const busy = staff.filter((member) => member.open > 0).sort((a, b) => b.open - a.open);
   const idle = staff.filter((member) => member.open === 0);
+  const openTotal = staff.reduce((sum, member) => sum + member.open, 0);
+  const IDLE_SHOWN = 4;
 
   return (
     <main className="flex-1 min-w-0 space-y-6 px-6 py-7 lg:px-8">
@@ -162,31 +185,81 @@ export default async function ReviewerDashboard() {
               <PanelEmpty>Бүртгэлтэй гишүүн алга.</PanelEmpty>
             ) : (
               <>
+                <div className="grid grid-cols-3 divide-x divide-slate-100 border-b border-slate-100">
+                  {[
+                    { label: 'Ажилтай', value: busy.length, tone: 'text-teal-700' },
+                    { label: 'Сул', value: idle.length, tone: 'text-slate-900' },
+                    { label: 'Хүлээгдэж буй', value: openTotal, tone: openTotal ? 'text-amber-600' : 'text-slate-900' },
+                  ].map((stat) => (
+                    <div key={stat.label} className="px-4 py-3 text-center">
+                      <p className={`text-xl font-bold tabular-nums ${stat.tone}`}>{stat.value}</p>
+                      <p className="mt-0.5 text-[11px] text-slate-500">{stat.label}</p>
+                    </div>
+                  ))}
+                </div>
+
                 {busy.length === 0 ? (
                   <PanelEmpty>Үнэлгээ хүлээгдэж буй тайлан алга.</PanelEmpty>
                 ) : (
                   <ul className="divide-y divide-slate-100">
-                    {busy.map((member) => (
-                      <li key={member.id} className="px-5 py-3">
-                        <div className="flex items-center justify-between gap-3">
-                          <Link href={`/reviewer/staff/${member.id}`} className="truncate text-sm font-medium text-slate-800 hover:text-teal-700">
-                            {member.name}
+                    {busy.map((member) => {
+                      const heavy = member.open >= 3;
+                      return (
+                        <li key={member.id}>
+                          <Link
+                            href={`/reviewer/staff/${member.id}`}
+                            className="flex items-center gap-3 px-5 py-3 transition hover:bg-slate-50"
+                          >
+                            <span className="flex h-9 w-9 shrink-0 items-center justify-center bg-teal-50 text-xs font-bold text-teal-700">
+                              {member.name.trim().charAt(0).toUpperCase() || '?'}
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="flex items-baseline justify-between gap-2">
+                                <span className="truncate text-sm font-medium text-slate-800">{member.name}</span>
+                                <span className={`shrink-0 text-xs font-semibold tabular-nums ${heavy ? 'text-amber-600' : 'text-slate-700'}`}>
+                                  {member.open} хүлээгдэж буй
+                                </span>
+                              </span>
+                              <span className="mt-1.5 block h-1.5 bg-slate-100">
+                                <span
+                                  className={`block h-full ${heavy ? 'bg-amber-500' : 'bg-teal-600'}`}
+                                  style={{ width: `${(member.open / busiest) * 100}%` }}
+                                />
+                              </span>
+                              <span className="mt-1 block text-[11px] text-slate-400">{member.done} тайлан үнэлсэн</span>
+                            </span>
                           </Link>
-                          <span className="shrink-0 text-xs text-slate-500">
-                            <span className="font-semibold text-slate-900">{member.open}</span> хүлээгдэж буй
-                          </span>
-                        </div>
-                        <div className="mt-1.5 h-1.5 bg-slate-100">
-                          <div className="h-full bg-teal-600" style={{ width: `${(member.open / busiest) * 100}%` }} />
-                        </div>
-                      </li>
-                    ))}
+                        </li>
+                      );
+                    })}
                   </ul>
                 )}
+
                 {idle.length > 0 && (
-                  <p className="border-t border-slate-100 px-5 py-3 text-xs text-slate-500">
-                    {idle.length} гишүүнд одоогоор ажил алга: {idle.map((member) => member.name).join(', ')}
-                  </p>
+                  <div className="border-t border-slate-200">
+                    <p className="flex items-center justify-between bg-slate-50 px-5 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                      Сул гишүүд
+                      <span className="tabular-nums text-slate-400">{idle.length}</span>
+                    </p>
+                    <ul className="divide-y divide-slate-100">
+                      {idle.slice(0, IDLE_SHOWN).map((member) => (
+                        <IdleMemberRow key={member.id} member={member} />
+                      ))}
+                    </ul>
+                    {idle.length > IDLE_SHOWN && (
+                      <details className="group">
+                        <summary className="cursor-pointer list-none border-t border-slate-100 px-5 py-2.5 text-xs font-semibold text-teal-700 hover:bg-slate-50 [&::-webkit-details-marker]:hidden">
+                          <span className="group-open:hidden">Бусад {idle.length - IDLE_SHOWN} гишүүн</span>
+                          <span className="hidden group-open:inline">Хураах</span>
+                        </summary>
+                        <ul className="divide-y divide-slate-100 border-t border-slate-100">
+                          {idle.slice(IDLE_SHOWN).map((member) => (
+                            <IdleMemberRow key={member.id} member={member} />
+                          ))}
+                        </ul>
+                      </details>
+                    )}
+                  </div>
                 )}
               </>
             )}

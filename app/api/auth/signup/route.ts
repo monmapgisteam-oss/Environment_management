@@ -13,7 +13,7 @@ const PERFORMANCE_REPORT_TYPE = 'Биелэлтийн тайлан';
 // Owner of the conclusion upload until the user record exists.
 const PENDING_UPLOAD_OWNER = 'signup-pending';
 
-// Upload record id inside a "convex-upload:<id>" reference.
+// Upload record id inside an "upload:<id>" reference.
 function uploadId(reference: string) {
   return reference.slice(reference.indexOf(':') + 1);
 }

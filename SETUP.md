@@ -1,56 +1,55 @@
-# Convex setup
+# ArcGIS setup
 
-The application stores all operational data, uploaded files, and the copied Survey123 records in a [Convex](https://convex.dev) deployment. Next.js talks to Convex only from the server, and every Convex function checks a shared secret, so records never reach the browser directly.
+The application stores all operational data and uploaded files in a private ArcGIS feature service (`Hosted/Tailan` on `environment.ub.gov.mn`). Each model in `lib/db/schema.json` is one table named `tailan_<model>` whose fields carry an `app_` prefix; report locations are a point layer. Uploaded files are attachments of `tailan_upload` records. Next.js talks to the service only from the server with an OAuth application credential, so records and the token never reach the browser.
 
 ## 1. Install
 
 Use Node.js 20.12 or later and run `npm install`.
 
-## 2. Link a Convex deployment
+## 2. Configure
 
-```bash
-npx convex dev --once
-```
-
-The first run asks you to log in and choose a project, then writes `CONVEX_DEPLOYMENT` and the deployment URLs to `.env.local`. It also pushes the functions in `convex/` and the schema generated from `lib/db/schema.json`.
-
-Add the server values to `.env.local`:
+Add the server values to `.env.local` (see `.env.example`):
 
 ```env
 JWT_SECRET="<random string>"
-CONVEX_URL="https://<deployment>.convex.cloud"
-CONVEX_SERVER_SECRET="<random string, 32+ characters>"
+ARCGIS_PORTAL_URL="https://environment.ub.gov.mn/gis"
+ARCGIS_DATA_SERVICE_URL="https://environment.ub.gov.mn/hosting/rest/services/Hosted/Tailan/FeatureServer"
+ARCGIS_CLIENT_ID="<OAuth application client ID>"
+ARCGIS_CLIENT_SECRET="<OAuth application client secret>"
+ARCGIS_HTTP_REFERER="<app URL, if the credential is referrer-restricted>"
 ```
 
-Set the same secret on the Convex deployment:
+The service item must stay private and the OAuth application needs edit access to it.
+
+## 3. Schema changes
+
+Fields and relationships are defined in `lib/db/schema.json`, and `lib/db/models.ts` holds the matching TypeScript types. After editing the schema, update `models.ts` and add the new tables and fields to the service:
 
 ```bash
-npx convex env set CONVEX_SERVER_SECRET "<same value>"
+npm run arcgis:provision -- --dry-run   # lists what is missing
+npm run arcgis:provision                # adds missing tables, fields and indexes
 ```
 
-## 3. Copy data from ArcGIS (one time)
+Provisioning only adds; it never removes or changes existing fields or records. It needs `ARCGIS_ADMIN_TOKEN`, a token of the service owner (the OAuth application credential cannot change the service definition). Generate one at `https://environment.ub.gov.mn/gis/sharing/rest/generateToken` with referer set to the value of `ARCGIS_HTTP_REFERER`.
 
-The data previously lived in a private ArcGIS Feature Service. To copy it, run the script from a machine that can reach the ArcGIS portal, with the old `ARCGIS_*` values still in `.env.local`:
+## 4. Copy data from Convex (one time)
+
+From 2026-10-15 the data lived in Convex. To move it back, provision the service first, then run, with `CONVEX_URL` and `CONVEX_SERVER_SECRET` still in `.env.local`:
 
 ```bash
-npm run migrate:arcgis -- --dry-run   # read only: prints what would be copied
-npm run migrate:arcgis                # copies tables, survey records and files
+npm run migrate:convex -- --dry-run   # read only: record counts on both sides
+npm run migrate:convex -- --replace   # back up, clear and refill the ArcGIS tables
 ```
 
-The script refuses to run if any Convex table already has data. It keeps record IDs, converts dates to epoch milliseconds, moves upload files and Survey123 photos into Convex storage, and rewrites `arcgis-attachment:` file references to `convex-upload:` references. Survey layer 0 stays layer 0; the `repeat_1` table becomes layer 1.
-
-After a successful copy you can delete the `ARCGIS_*` values.
-
-## 4. Schema changes
-
-Fields and relationships are defined in `lib/db/schema.json`. `convex/schema.ts` builds the Convex tables and indexes from it, and `lib/db/models.ts` holds the matching TypeScript types. After editing the schema, update `models.ts` and run `npx convex dev --once` (or `npm run convex:deploy` for a production deployment).
+Without `--replace` the script refuses to run while any `tailan_` table has records. With it, the current ArcGIS records are saved to `backups/arcgis-<time>.json` first. Record IDs and timestamps are kept, files are copied into attachments, and `convex-upload:` file references become `upload:` references. Afterwards delete the `CONVEX_*` values.
 
 ## 5. Deploying (Vercel or any Node host)
 
 Set these environment variables for every environment that runs the app (Production and Preview on Vercel):
 
 - `JWT_SECRET`
-- `CONVEX_URL`
-- `CONVEX_SERVER_SECRET`
-
-Push Convex function changes before deploying the app that depends on them.
+- `ARCGIS_PORTAL_URL`
+- `ARCGIS_DATA_SERVICE_URL`
+- `ARCGIS_CLIENT_ID`
+- `ARCGIS_CLIENT_SECRET`
+- `ARCGIS_HTTP_REFERER` (if the credential is referrer-restricted)

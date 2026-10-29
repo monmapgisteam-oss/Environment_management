@@ -1,13 +1,12 @@
 import jwt from 'jsonwebtoken';
-import type { Id } from '@/convex/_generated/dataModel';
-import { api } from '@/convex/_generated/api';
 import type { Attachment } from '@/lib/reports/attachments';
-import { convex, serverSecret } from './convex';
+import { arcgisFetch, arcgisUpload, layerInfo, queryFeatures, sqlString, storedFieldName } from './arcgis';
 import dataStore from './index';
 
 export const SIGNED_URL_TTL = 60 * 60;
 // Stored file references point at an upload record, never at a storage URL.
-const REFERENCE = /^convex-upload:([0-9a-f-]{36})$/i;
+// The file itself is the ArcGIS attachment of that record.
+const REFERENCE = /^upload:([0-9a-f-]{36})$/i;
 
 // True for a reference to a file uploaded through /api/upload.
 export function isUploadReference(value: unknown): value is string {
@@ -20,21 +19,28 @@ function signingSecret() {
   return secret;
 }
 
+// The upload dataset and the ArcGIS object ID of one upload record.
+async function uploadFeature(id: string) {
+  const layer = await layerInfo('tailan_upload');
+  const [feature] = await queryFeatures(layer, `${storedFieldName(layer, 'id')} = ${sqlString(id)}`);
+  if (!feature) throw new Error('Attachment not found.');
+  return { layer, objectId: feature.attributes[layer.objectIdField] as number, storageId: feature.attributes[storedFieldName(layer, 'storageId')] };
+}
+
 export async function uploadAttachment(file: File, ownerUserId: string): Promise<Attachment> {
-  const uploadUrl = await convex().mutation(api.files.generateUploadUrl, { secret: serverSecret() });
-  const response = await fetch(uploadUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': file.type || 'application/octet-stream' },
-    body: file,
-    signal: AbortSignal.timeout(60_000),
-  });
-  if (!response.ok) throw new Error(`Convex upload failed (HTTP ${response.status}).`);
-  const { storageId } = await response.json() as { storageId: string };
+  const upload = await dataStore.upload.create({ data: { ownerUserId, name: file.name } });
   try {
-    const upload = await dataStore.upload.create({ data: { ownerUserId, name: file.name, storageId } });
-    return { url: `convex-upload:${upload.id}`, name: file.name };
+    const { layer, objectId } = await uploadFeature(upload.id);
+    const form = new FormData();
+    form.set('attachment', file, file.name);
+    const result = await arcgisUpload<{ addAttachmentResult?: { success?: boolean; objectId?: number } }>(`${layer.id}/${objectId}/addAttachment`, form);
+    const attachmentId = result.addAttachmentResult?.objectId;
+    if (!result.addAttachmentResult?.success || !Number.isInteger(attachmentId)) throw new Error('ArcGIS attachment upload failed.');
+    await dataStore.upload.update({ where: { id: upload.id }, data: { storageId: String(attachmentId) } });
+    return { url: `upload:${upload.id}`, name: file.name };
   } catch (error) {
-    await convex().mutation(api.files.remove, { secret: serverSecret(), storageId: storageId as Id<'_storage'> }).catch(() => undefined);
+    // Deleting the record also deletes any attachment already added to it.
+    await dataStore.upload.deleteMany({ where: { id: upload.id } }).catch(() => undefined);
     throw error;
   }
 }
@@ -64,33 +70,24 @@ export async function signAttachments(attachments: Attachment[]): Promise<Attach
 export async function fetchAttachment(reference: string) {
   const match = REFERENCE.exec(reference);
   if (!match) throw new Error('Invalid attachment reference.');
-  const upload = await dataStore.upload.findUnique({ where: { id: match[1] } });
-  if (!upload?.storageId) throw new Error('Attachment not found.');
-  const url = await convex().query(api.files.url, { secret: serverSecret(), storageId: upload.storageId as Id<'_storage'> });
-  if (!url) throw new Error('Attachment file is missing.');
-  // The storage URL stays on the server; clients receive only file bytes.
-  const response = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(60_000) });
-  if (!response.ok) throw new Error('Attachment download failed.');
+  const { layer, objectId, storageId } = await uploadFeature(match[1]);
+  if (!storageId) throw new Error('Attachment file is missing.');
+  // The service URL and token stay on the server; clients receive only file bytes.
+  const response = await arcgisFetch(`${layer.id}/${objectId}/attachments/${storageId}`);
+  if (!response.ok || response.headers.get('content-type')?.includes('application/json')) throw new Error('Attachment download failed.');
   return response;
 }
 
 // Permanently removes uploaded files that a report no longer uses (a file the
-// sender replaced or removed while fixing it). Only "convex-upload:" references
-// are touched; anything else is left alone. A failure is logged, not thrown,
-// since the report itself is already saved.
+// sender replaced or removed while fixing it). Only "upload:" references are
+// touched; anything else is left alone. Deleting an upload record also deletes
+// its attachment. A failure is logged, not thrown, since the report itself is
+// already saved.
 export async function deleteUploads(references: string[]) {
   const ids = references.map((reference) => REFERENCE.exec(reference)?.[1]).filter((id): id is string => !!id);
   if (ids.length === 0) return;
   try {
-    const uploads = await dataStore.upload.findMany({ where: { id: { in: ids } } });
-    for (const upload of uploads) {
-      if (upload.storageId) {
-        await convex()
-          .mutation(api.files.remove, { secret: serverSecret(), storageId: upload.storageId as Id<'_storage'> })
-          .catch((error) => console.error('[storage] file removal failed:', error));
-      }
-    }
-    await dataStore.upload.deleteMany({ where: { id: { in: uploads.map((upload) => upload.id) } } });
+    await dataStore.upload.deleteMany({ where: { id: { in: ids } } });
   } catch (error) {
     console.error('[storage] deleteUploads failed:', error);
   }

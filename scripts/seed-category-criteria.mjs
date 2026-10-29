@@ -5,8 +5,7 @@
 //
 //   npm run seed:criteria -- --dry-run
 //   npm run seed:criteria
-import { ConvexHttpClient } from 'convex/browser';
-import { anyApi } from 'convex/server';
+import store from './data-store.cjs';
 
 const SHEETS = {
   // б. Уул уурхайн олборлолт, газрын тос ... хайгуулын төсөл
@@ -48,12 +47,9 @@ const SHEETS = {
 const UNTAGGED_CATEGORY = 'Үйлдвэрлэл';
 
 const dryRun = process.argv.includes('--dry-run');
-const secret = process.env.CONVEX_SERVER_SECRET;
-if (!process.env.CONVEX_URL || !secret) throw new Error('Set CONVEX_URL and CONVEX_SERVER_SECRET.');
-const convex = new ConvexHttpClient(process.env.CONVEX_URL);
-const read = (op, args) => convex.query(anyApi.data.read, { secret, model: 'evaluationCriterion', op, args });
+const read = (op, args) => store.read('evaluationCriterion', op, args);
 const write = (op, args) =>
-  dryRun ? Promise.resolve() : convex.mutation(anyApi.data.write, { secret, model: 'evaluationCriterion', op, args });
+  dryRun ? Promise.resolve() : store.write('evaluationCriterion', op, args);
 
 for (const [category, rows] of Object.entries(SHEETS)) {
   const total = rows.reduce((sum, [, maxScore]) => sum + maxScore, 0);

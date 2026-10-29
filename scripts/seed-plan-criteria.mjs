@@ -6,8 +6,7 @@
 //
 //   npm run seed:plan-criteria -- --dry-run
 //   npm run seed:plan-criteria
-import { ConvexHttpClient } from 'convex/browser';
-import { anyApi } from 'convex/server';
+import store from './data-store.cjs';
 
 const CATEGORIES = ['Уул уурхай, газрын тос', 'Дэд бүтэц, барилга, ШТС', 'Аялал жуулчлал, үйлчилгээ', 'Үйлдвэрлэл'];
 
@@ -20,12 +19,9 @@ export function planName(name) {
 }
 
 const dryRun = process.argv.includes('--dry-run');
-const secret = process.env.CONVEX_SERVER_SECRET;
-if (!process.env.CONVEX_URL || !secret) throw new Error('Set CONVEX_URL and CONVEX_SERVER_SECRET.');
-const convex = new ConvexHttpClient(process.env.CONVEX_URL);
-const read = (op, args) => convex.query(anyApi.data.read, { secret, model: 'evaluationCriterion', op, args });
+const read = (op, args) => store.read('evaluationCriterion', op, args);
 const write = (op, args) =>
-  dryRun ? Promise.resolve() : convex.mutation(anyApi.data.write, { secret, model: 'evaluationCriterion', op, args });
+  dryRun ? Promise.resolve() : store.write('evaluationCriterion', op, args);
 
 for (const category of CATEGORIES) {
   const rows = await read('findMany', { where: { category }, orderBy: { sortOrder: 'asc' } });

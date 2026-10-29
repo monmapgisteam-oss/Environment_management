@@ -3,7 +3,7 @@ import { uploadAttachment } from '@/lib/db/storage';
 import { getCurrentUser } from '@/lib/auth';
 import { isPdfName } from '@/lib/reports/attachments';
 
-// Files live in Convex storage; upload ownership records in the upload table.
+// Files are ArcGIS attachments of upload records, which also record the owner.
 export async function POST(request: Request) {
   try {
     const current = await getCurrentUser();

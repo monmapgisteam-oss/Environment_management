@@ -22,15 +22,15 @@ test('every response carries the security headers and image optimisation accepts
 });
 
 test('signed scan references must point at an app upload, never an outside address', () => {
-  assert.equal(isUploadReference('convex-upload:51b63a99-ae48-4f02-996a-986197559089'), true);
+  assert.equal(isUploadReference('upload:51b63a99-ae48-4f02-996a-986197559089'), true);
   assert.equal(isUploadReference('https://example.com/scan.pdf'), false);
   assert.equal(isUploadReference('javascript:alert(1)'), false);
-  assert.equal(isUploadReference('convex-upload:../etc/passwd'), false);
+  assert.equal(isUploadReference('upload:../etc/passwd'), false);
   assert.equal(isUploadReference(null), false);
 });
 
 test('attachment tokens are rejected when forged, expired or issued for another purpose', () => {
-  const reference = 'convex-upload:51b63a99-ae48-4f02-996a-986197559089';
+  const reference = 'upload:51b63a99-ae48-4f02-996a-986197559089';
   const good = jwt.sign({ reference }, process.env.JWT_SECRET, { expiresIn: 60, audience: 'tailan-attachment' });
   assert.equal(verifyAttachmentToken(good), reference);
   const wrongSecret = jwt.sign({ reference }, 'other', { expiresIn: 60, audience: 'tailan-attachment' });
@@ -63,7 +63,7 @@ test('no signature PIN is hardcoded, stored in plaintext or shown on the public 
 test('login sets a secure cookie in production and notifications are scoped to the caller', () => {
   assert.match(read('lib/auth/session.ts'), /secure:\s*process\.env\.NODE_ENV === 'production'/);
   assert.match(read('app/api/auth/login/route.ts'), /sessionCookieOptions\(\)/);
-  // Attempts are counted in the shared (Convex) store, not per server.
+  // Attempts are counted in the shared (ArcGIS) store, not per server.
   assert.match(read('app/api/auth/login/route.ts'), /limitRequest\(/);
   const notifications = read('app/api/notifications/route.ts');
   const patch = notifications.slice(notifications.indexOf('export async function PATCH'), notifications.indexOf('export async function GET'));

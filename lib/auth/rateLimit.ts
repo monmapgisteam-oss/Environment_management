@@ -1,6 +1,7 @@
-// Fixed-window request limiter. `limitRequest` counts in Convex, so the limit
-// holds across restarts and several server instances; if Convex cannot be
-// reached it falls back to `rateLimit`, which counts in this process only.
+// Fixed-window request limiter. `limitRequest` counts in the ArcGIS service,
+// so the limit holds across restarts and several server instances; if the
+// service cannot be reached it falls back to `rateLimit`, which counts in this
+// process only.
 
 type Window = { count: number; resetAt: number };
 
@@ -40,13 +41,14 @@ export function clientIp(request: Request): string {
   return first || request.headers.get('x-real-ip')?.trim() || 'unknown';
 }
 
-// Shared counter in Convex (convex/rateLimit.ts), with the in-process counter
-// as a fallback so a Convex outage does not lock everyone out of login.
+// Shared counter in the ArcGIS service (lib/db/rateLimit.ts), with the
+// in-process counter as a fallback so a service outage does not lock everyone
+// out of login.
 export async function limitRequest(key: string, limit: number, windowMs: number): Promise<RateLimitResult> {
   try {
     // Loaded on use, so tests of the in-process counter need no database client.
-    const [{ convex, serverSecret }, { api }] = await Promise.all([import('@/lib/db/convex'), import('@/convex/_generated/api')]);
-    return await convex().mutation(api.rateLimit.hit, { secret: serverSecret(), key, limit, windowMs });
+    const { hit } = await import('@/lib/db/rateLimit');
+    return await hit(key, limit, windowMs);
   } catch (error) {
     console.error('[rateLimit] shared counter unavailable, using local one:', error);
     return rateLimit(key, limit, windowMs);

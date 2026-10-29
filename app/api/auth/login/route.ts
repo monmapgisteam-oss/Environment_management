@@ -34,7 +34,7 @@ export async function POST(request: Request) {
       include: { company: true },
     });
   } catch (error) {
-    // Usually a missing CONVEX_URL or CONVEX_SERVER_SECRET in the deployment.
+    // Usually missing ARCGIS_* settings in the deployment or an unreachable service.
     console.error('[auth/login] user lookup failed:', error);
     return NextResponse.json({ error: 'Login service unavailable.' }, { status: 503 });
   }

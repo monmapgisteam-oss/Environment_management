@@ -6,8 +6,7 @@
 //
 //   npm run seed:report-types -- --dry-run
 //   npm run seed:report-types
-import { ConvexHttpClient } from 'convex/browser';
-import { anyApi } from 'convex/server';
+import store from './data-store.cjs';
 
 const CORE_TYPES = [
   { slug: 'type-1', name: 'Жилийн төлөвлөгөө', surveyName: 'Төлөвлөгөө' },
@@ -15,12 +14,9 @@ const CORE_TYPES = [
 ];
 
 const dryRun = process.argv.includes('--dry-run');
-const secret = process.env.CONVEX_SERVER_SECRET;
-if (!process.env.CONVEX_URL || !secret) throw new Error('Set CONVEX_URL and CONVEX_SERVER_SECRET.');
-const convex = new ConvexHttpClient(process.env.CONVEX_URL);
-const read = (model, op, args) => convex.query(anyApi.data.read, { secret, model, op, args });
+const read = (model, op, args) => store.read(model, op, args);
 const write = (model, op, args) =>
-  dryRun ? Promise.resolve({ id: '(dry run)' }) : convex.mutation(anyApi.data.write, { secret, model, op, args });
+  dryRun ? Promise.resolve({ id: '(dry run)' }) : store.write(model, op, args);
 
 const types = await read('reportType', 'findMany', {});
 
