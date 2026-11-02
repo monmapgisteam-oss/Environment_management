@@ -1,14 +1,18 @@
 import { NextResponse } from 'next/server';
 import dataStore from '@/lib/db';
 import { createToken, isRole, REGISTRATION_PATH, ROLE_HOME, SESSION_COOKIE, sessionCookieOptions } from '@/lib/auth/session';
-import { verifyPassword } from '@/lib/auth/password';
+import { passwordVersion, verifyDummyPassword, verifyPassword } from '@/lib/auth/password';
 import { clientIp, limitRequest } from '@/lib/auth/rateLimit';
 import { isActiveUser, isCompanyApproved } from '@/lib/auth/accounts';
 
-// Brute-force guard: a handful of attempts per account and per address.
+// Brute-force guard: attempts per address, and failed attempts per account
+// (a successful login never counts, so others can't lock a user out by
+// logging in correctly; only repeated wrong passwords do).
 const ATTEMPT_WINDOW_MS = 15 * 60 * 1000;
 const ATTEMPTS_PER_EMAIL = 10;
 const ATTEMPTS_PER_ADDRESS = 30;
+
+const emailKey = (email: string) => `login:email:${email.trim().toLowerCase()}`;
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
@@ -18,7 +22,7 @@ export async function POST(request: Request) {
   }
   const [byAddress, byEmail] = await Promise.all([
     limitRequest(`login:ip:${clientIp(request)}`, ATTEMPTS_PER_ADDRESS, ATTEMPT_WINDOW_MS),
-    limitRequest(`login:email:${email.trim().toLowerCase()}`, ATTEMPTS_PER_EMAIL, ATTEMPT_WINDOW_MS),
+    limitRequest(emailKey(email), ATTEMPTS_PER_EMAIL, ATTEMPT_WINDOW_MS, { count: false }),
   ]);
   if (!byAddress.ok || !byEmail.ok) {
     const retryAfter = Math.max(byAddress.retryAfterSeconds, byEmail.retryAfterSeconds);
@@ -39,7 +43,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Нэвтрэх үйлчилгээ түр ажиллахгүй байна. Дахин оролдоно уу.' }, { status: 503 });
   }
 
-  if (!user || !verifyPassword(password, user.password) || !isRole(user.role)) {
+  const passwordOk = user ? verifyPassword(password, user.password) : verifyDummyPassword(password);
+  if (!user || !passwordOk || !isRole(user.role)) {
+    await limitRequest(emailKey(email), ATTEMPTS_PER_EMAIL, ATTEMPT_WINDOW_MS);
     return NextResponse.json({ error: 'Имэйл эсвэл нууц үг буруу.' }, { status: 401 });
   }
   if (!isActiveUser(user)) {
@@ -58,6 +64,7 @@ export async function POST(request: Request) {
     role: user.role,
     companyId: user.companyId || undefined,
     companyType: user.company?.type || undefined,
+    pv: passwordVersion(user.password),
   });
 
   const response = NextResponse.json({

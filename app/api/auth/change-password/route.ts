@@ -2,8 +2,9 @@ import { NextResponse } from 'next/server';
 import dataStore from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
 import { parseNewPassword } from '@/lib/auth/accounts';
-import { hashPassword, verifyPassword } from '@/lib/auth/password';
-import { clientIp, limitRequest } from '@/lib/auth/rateLimit';
+import { hashPassword, passwordVersion, verifyPassword } from '@/lib/auth/password';
+import { createToken, SESSION_COOKIE, sessionCookieOptions } from '@/lib/auth/session';
+import { limitRequest } from '@/lib/auth/rateLimit';
 
 // Replaces the signed-in user's password. After an admin set a temporary
 // password the user picks their own without retyping the old one; otherwise
@@ -11,7 +12,7 @@ import { clientIp, limitRequest } from '@/lib/auth/rateLimit';
 export async function POST(request: Request) {
   const user = await getCurrentUser({ allowPendingPassword: true });
   if (!user) return NextResponse.json({ error: 'Нэвтрээгүй байна.' }, { status: 401 });
-  if (!(await limitRequest(`change-password:${user.id}:${clientIp(request)}`, 10, 15 * 60 * 1000)).ok) {
+  if (!(await limitRequest(`change-password:${user.id}`, 10, 15 * 60 * 1000)).ok) {
     return NextResponse.json({ error: 'Хэт олон оролдлого. Түр хүлээгээд дахин оролдоно уу.' }, { status: 429 });
   }
 
@@ -25,9 +26,24 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Шинэ нууц үг өмнөхөөсөө өөр байх ёстой.' }, { status: 400 });
   }
 
+  const password = hashPassword(parsed.password);
   await dataStore.user.update({
     where: { id: user.id },
-    data: { password: hashPassword(parsed.password), mustChangePassword: false },
+    data: { password, mustChangePassword: false },
   });
-  return NextResponse.json({ success: true });
+  // Every other session of this account ends with the old password; this one
+  // gets a fresh token so the user stays signed in.
+  const response = NextResponse.json({ success: true });
+  response.cookies.set(
+    SESSION_COOKIE,
+    createToken({
+      userId: user.id,
+      role: user.role,
+      companyId: user.companyId || undefined,
+      companyType: user.company?.type || undefined,
+      pv: passwordVersion(password),
+    }),
+    sessionCookieOptions(),
+  );
+  return response;
 }

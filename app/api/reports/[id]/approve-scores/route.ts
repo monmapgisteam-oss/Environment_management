@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import dataStore from '@/lib/db';
 import { senderRecipientIds } from '@/lib/reports/companies';
 import { getApiUser, unauthorized } from '@/lib/auth';
-import { computeDocumentHash, generateSignatureId, verifyPin } from '@/lib/auth/signature';
+import { checkPinWithLimit, computeDocumentHash, generateSignatureId } from '@/lib/auth/signature';
 import { uniqueAssignmentsByEvaluator } from '@/lib/reports/assignments';
 import { createNotifications } from '@/lib/reports/undo';
 import { formatScore } from '@/lib/utils';
@@ -64,9 +64,8 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
         { status: 400 },
       );
     }
-    if (!verifyPin(pin, manager.signaturePinHash)) {
-      return NextResponse.json({ error: 'Гарын үсгийн нууц үг буруу байна.' }, { status: 400 });
-    }
+    const pinError = await checkPinWithLimit(manager.id, pin, manager.signaturePinHash);
+    if (pinError) return NextResponse.json({ error: pinError }, { status: 400 });
 
     const approvedAt = new Date();
     const signatureId = await nextApprovalId(approvedAt);

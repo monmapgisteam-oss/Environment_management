@@ -1,68 +1,43 @@
 import { NextResponse } from 'next/server';
 import { uploadAttachment } from '@/lib/db/storage';
 import { getCurrentUser } from '@/lib/auth';
-import { isPdfName } from '@/lib/reports/attachments';
+import { CONTENT_TYPE, detectFileKind, MAX_FILE_BYTES, tooLargeRequest } from '@/lib/reports/fileType';
 
 // Files are ArcGIS attachments of upload records, which also record the owner.
+// Every file is identified by its first bytes: senders upload PDF only; review
+// staff may also upload a PNG or JPEG (a scanned, signed score sheet). The
+// stored type comes from those bytes, never from what the browser claims.
 export async function POST(request: Request) {
   try {
     const current = await getCurrentUser();
     if (!current) return NextResponse.json({ error: 'Нэвтрэх хугацаа дууссан байна. Дахин нэвтэрнэ үү.' }, { status: 401 });
+    // Refused before the body is read into memory.
+    if (tooLargeRequest(request)) {
+      return NextResponse.json({ error: 'Файлын хэмжээ 25MB-аас ихгүй байна.' }, { status: 413 });
+    }
     const formData = await request.formData();
     const file = formData.get('file');
-
     if (!file || typeof file === 'string') {
       return NextResponse.json({ error: 'Файл сонгоогүй байна.' }, { status: 400 });
     }
-
-    const purpose = formData.get('purpose');
-    // Senders attach PDF only. The name, the type and the first bytes must all
-    // say PDF, so a renamed file of another kind is refused.
-    if (current.role === 'sender') {
-      const header = await file.slice(0, 5).text();
-      if (!isPdfName(file.name) || (file.type && file.type !== 'application/pdf') || header !== '%PDF-') {
-        return NextResponse.json({ error: 'Зөвхөн PDF файл хавсаргана уу.' }, { status: 400 });
-      }
-    }
-    if (file.size > 25 * 1024 * 1024) {
+    if (file.size === 0 || file.size > MAX_FILE_BYTES) {
       return NextResponse.json({ error: 'Файлын хэмжээ 25MB-аас ихгүй байна.' }, { status: 400 });
     }
-    const isAllowedDocument =
-      file.type === 'application/pdf' ||
-      file.type === 'application/msword' ||
-      file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-      file.type === 'application/vnd.oasis.opendocument.text' ||
-      /\.(pdf|docx?|odt)$/i.test(file.name.toLowerCase());
 
-    if (purpose === 'report-photo') {
-      if (!file.type.startsWith('image/')) {
-        return NextResponse.json({ error: 'Зөвхөн зураг хавсаргана уу.' }, { status: 400 });
-      }
-      if (file.size > 10 * 1024 * 1024) {
-        return NextResponse.json({ error: 'Зургийн хэмжээ 10MB-аас ихгүй байна.' }, { status: 400 });
-      }
+    const kind = await detectFileKind(file);
+    const allowed = current.role === 'sender' ? ['pdf'] : ['pdf', 'png', 'jpeg'];
+    if (!kind || !allowed.includes(kind)) {
+      return NextResponse.json(
+        { error: current.role === 'sender' ? 'Зөвхөн PDF файл хавсаргана уу.' : 'PDF, PNG эсвэл JPG файл хавсаргана уу.' },
+        { status: 400 },
+      );
     }
-    if (purpose === 'report-attachment') {
-      if (!file.type.startsWith('image/') && !isAllowedDocument) {
-        return NextResponse.json({ error: 'Зураг, PDF эсвэл Word файл хавсаргана уу.' }, { status: 400 });
-      }
-      if (file.type.startsWith('image/') && file.size > 10 * 1024 * 1024) {
-        return NextResponse.json({ error: 'Зургийн хэмжээ 10MB-аас ихгүй байна.' }, { status: 400 });
-      }
-      if (isAllowedDocument && file.size > 25 * 1024 * 1024) {
-        return NextResponse.json({ error: 'Файлын хэмжээ 25MB-аас ихгүй байна.' }, { status: 400 });
-      }
-    }
-    if (purpose === 'report-document') {
-      if (!isAllowedDocument) {
-        return NextResponse.json({ error: 'PDF эсвэл Word файл хавсаргана уу.' }, { status: 400 });
-      }
-      if (file.size > 25 * 1024 * 1024) {
-        return NextResponse.json({ error: 'Файлын хэмжээ 25MB-аас ихгүй байна.' }, { status: 400 });
-      }
+    if (kind === 'pdf' && !/\.pdf$/i.test(file.name)) {
+      return NextResponse.json({ error: 'Зөвхөн PDF файл хавсаргана уу.' }, { status: 400 });
     }
 
-    return NextResponse.json(await uploadAttachment(file, current.id), { status: 201 });
+    const stored = new File([file], file.name, { type: CONTENT_TYPE[kind] });
+    return NextResponse.json(await uploadAttachment(stored, current.id), { status: 201 });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: 'Файл хуулахад алдаа гарлаа. Дахин оролдоно уу.' }, { status: 500 });

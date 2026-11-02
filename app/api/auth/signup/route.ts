@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
+import { detectFileKind } from '@/lib/reports/fileType';
 import dataStore from '@/lib/db';
-import { hashPassword } from '@/lib/auth/password';
+import { hashPassword, passwordVersion } from '@/lib/auth/password';
 import { createToken, REGISTRATION_PATH, SESSION_COOKIE, sessionCookieOptions } from '@/lib/auth/session';
 import { clientIp, limitRequest } from '@/lib/auth/rateLimit';
 import { conclusionFileError, parseConclusion, parseSignup, type SignupInput } from '@/lib/auth/signup';
@@ -19,15 +20,16 @@ function uploadId(reference: string) {
 }
 
 // Email and register number must both be new: a register number already in
-// the system cannot be claimed again; the admin adds further users to it.
+// the system cannot be claimed again; the admin adds further users to it. One
+// answer covers both, so the form can't be used to find out which emails or
+// companies are registered.
 async function accountConflict(input: SignupInput) {
-  if (await dataStore.user.findUnique({ where: { email: input.email }, select: { id: true } })) {
-    return 'Энэ имэйл хаягаар бүртгэл үүссэн байна. Нэвтэрнэ үү.';
-  }
-  if (await findSenderCompanyByRegister(input.registerNumber)) {
-    return 'Энэ регистрийн дугаартай байгууллага бүртгэлтэй байна. Нэвтрэх эрх авахын тулд системийн админд хандана уу.';
-  }
-  return null;
+  const taken =
+    !!(await dataStore.user.findUnique({ where: { email: input.email }, select: { id: true } })) ||
+    !!(await findSenderCompanyByRegister(input.registerNumber));
+  return taken
+    ? 'Энэ имэйл эсвэл регистрийн дугаараар бүртгэл үүссэн байна. Нэвтэрнэ үү, эсвэл хянах байгууллагад хандана уу.'
+    : null;
 }
 
 // Sign-up has two steps. The first posts the account fields as JSON and is only
@@ -67,7 +69,9 @@ export async function POST(request: Request) {
   if (isFinal) {
     const parsedConclusion = parseConclusion(body);
     if ('error' in parsedConclusion) return NextResponse.json({ error: parsedConclusion.error, step: 2 }, { status: 400 });
-    const fileError = conclusionFileError(file);
+    // The first bytes must say PDF too, not only the name.
+    const fileError =
+      conclusionFileError(file) ?? (file && (await detectFileKind(file)) === 'pdf' ? null : 'Дүгнэлтийг PDF файлаар хавсаргана уу.');
     if (fileError) return NextResponse.json({ error: fileError, step: 2 }, { status: 400 });
     conclusion = parsedConclusion.input;
   }
@@ -154,7 +158,7 @@ export async function POST(request: Request) {
     const response = NextResponse.json({ success: true, pending: true, redirect: REGISTRATION_PATH }, { status: 201 });
     response.cookies.set(
       SESSION_COOKIE,
-      createToken({ userId, role: 'sender', companyId: company.id, companyType: 'sender' }),
+      createToken({ userId, role: 'sender', companyId: company.id, companyType: 'sender', pv: passwordVersion(user.password) }),
       sessionCookieOptions(),
     );
     return response;

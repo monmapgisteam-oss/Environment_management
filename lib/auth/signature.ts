@@ -41,3 +41,22 @@ export function generateSignatureId(sequence: number, at: Date = new Date(), pre
   const seq = String(sequence).padStart(5, '0');
   return `${prefix}-${y}${m}${d}-${seq}`;
 }
+
+// Checks a signature PIN with an attempt limit: 5 wrong PINs in 15 minutes
+// lock signing for the rest of that window, so the 6-digit PIN can't be
+// guessed even by someone holding the session. Returns the error to show, or
+// null when the PIN is right. Only wrong PINs count.
+export async function checkPinWithLimit(userId: string, pin: string, pinHash: string): Promise<string | null> {
+  const { limitRequest } = await import('@/lib/auth/rateLimit');
+  const key = `pin:${userId}`;
+  const window = 15 * 60 * 1000;
+  const state = await limitRequest(key, 5, window, { count: false });
+  if (!state.ok) {
+    return `Гарын үсгийн нууц үгийг олон удаа буруу оруулсан тул түр хаагдлаа. ${Math.ceil(state.retryAfterSeconds / 60)} минутын дараа дахин оролдоно уу.`;
+  }
+  if (verifyPin(pin, pinHash)) return null;
+  const after = await limitRequest(key, 5, window);
+  return after.remaining > 0
+    ? `Гарын үсгийн нууц үг буруу байна. ${after.remaining} оролдлого үлдлээ.`
+    : 'Гарын үсгийн нууц үгийг олон удаа буруу оруулсан тул 15 минут хаагдлаа.';
+}

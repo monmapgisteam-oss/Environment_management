@@ -35,7 +35,9 @@ export async function GET() {
 
     const notifications = await dataStore.notification.findMany({
       where: { userId: user.id },
-      include: { report: true },
+      // Only what the bell shows: the full report row would hand a sender
+      // scores and internal state before the manager releases them.
+      include: { report: { select: { id: true, reportNumber: true, title: true } } },
       orderBy: { createdAt: 'desc' },
       take: 20,
     });

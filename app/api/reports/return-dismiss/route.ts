@@ -41,8 +41,13 @@ export async function POST(request: Request) {
     // The evaluator who asked learns the report stays in review.
     if (before.returnRequestedBy) {
       try {
+        // Only one of this report's own evaluators can be the one who asked.
         const requester = await dataStore.user.findFirst({
-          where: { name: before.returnRequestedBy, role: 'evaluator' },
+          where: {
+            name: before.returnRequestedBy,
+            role: 'evaluator',
+            id: { in: before.assignments.map((assignment) => assignment.evaluatorUserId) },
+          },
           select: { id: true },
         });
         if (requester) {

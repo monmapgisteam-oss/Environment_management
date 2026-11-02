@@ -20,9 +20,19 @@ test('keys are independent', () => {
   assert.equal(rateLimit('b', 2, 60_000, 0).ok, true);
 });
 
-test('client address comes from the first forwarded hop, else unknown', () => {
+test('client address comes from the hop our proxy appended, not the client-set start', () => {
   const req = (headers) => new Request('http://x', { headers });
-  assert.equal(clientIp(req({ 'x-forwarded-for': '203.0.113.9, 10.0.0.1' })), '203.0.113.9');
+  // A client can prepend any address; the last entry is what our proxy saw.
+  assert.equal(clientIp(req({ 'x-forwarded-for': '1.2.3.4, 203.0.113.9' })), '203.0.113.9');
+  assert.equal(clientIp(req({ 'x-forwarded-for': '203.0.113.9' })), '203.0.113.9');
   assert.equal(clientIp(req({ 'x-real-ip': '198.51.100.2' })), '198.51.100.2');
   assert.equal(clientIp(req({})), 'unknown');
+});
+
+test('a check without counting does not use up attempts', () => {
+  resetRateLimits();
+  for (let i = 0; i < 5; i++) assert.equal(rateLimit('peek', 2, 60_000, 0, { count: false }).ok, true);
+  rateLimit('peek', 2, 60_000, 0);
+  rateLimit('peek', 2, 60_000, 0);
+  assert.equal(rateLimit('peek', 2, 60_000, 0, { count: false }).ok, false);
 });

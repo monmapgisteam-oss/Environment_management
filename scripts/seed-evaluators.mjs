@@ -44,6 +44,8 @@ for (let n = 1; n <= COUNT; n++) {
       role: 'evaluator',
       companyId: company.id,
       position: 'Үнэлгээний гишүүн',
+      // The shared seed password is temporary: each member sets their own on first sign-in.
+      mustChangePassword: true,
     },
   });
   console.log(`${dryRun ? 'Would create' : 'Created'} ${email} in "${company.name}".`);

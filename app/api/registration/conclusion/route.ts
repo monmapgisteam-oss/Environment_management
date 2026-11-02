@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { detectFileKind } from '@/lib/reports/fileType';
 import dataStore from '@/lib/db';
 import { getRegistrationApiUser, unauthorized } from '@/lib/auth';
 import { conclusionFileError, parseConclusion } from '@/lib/auth/signup';
@@ -27,7 +28,7 @@ export async function POST(request: Request) {
   const parsed = parseConclusion(body);
   if ('error' in parsed) return NextResponse.json({ error: parsed.error }, { status: 400 });
   if (file) {
-    const fileError = conclusionFileError(file);
+    const fileError = conclusionFileError(file) ?? ((await detectFileKind(file)) === 'pdf' ? null : 'Дүгнэлтийг PDF файлаар хавсаргана уу.');
     if (fileError) return NextResponse.json({ error: fileError }, { status: 400 });
   }
   const conclusion = parsed.input;

@@ -4,6 +4,7 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import { formatDate } from '@/lib/utils';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
 import { createQrImageUrl, getPublicProfileQrUrl } from '@/lib/auth/profileQr';
+import { requireUser } from '@/lib/auth';
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -27,6 +28,8 @@ async function fetchStaffMember(id: string) {
 }
 
 export default async function StaffProfilePage(props: Props) {
+  // Checked here too, not only in the layout: a soft navigation can skip it.
+  await requireUser('review_manager');
   const params = await props.params;
   const member = await fetchStaffMember(params.id);
   const staffWorkplace = member?.company?.name || 'Ажлын газар бүртгэгдээгүй';

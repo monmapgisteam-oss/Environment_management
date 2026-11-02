@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import dataStore from '@/lib/db';
 import { canAccessReport, getApiUser, unauthorized } from '@/lib/auth';
-import { deleteUploads, droppedReferences, isUploadReference } from '@/lib/db/storage';
-import { isPdfName, parseAttachments, type Attachment } from '@/lib/reports/attachments';
+import { deleteUploads, droppedReferences } from '@/lib/db/storage';
+import { parseAttachments, type Attachment } from '@/lib/reports/attachments';
 import { applySectionFixes, filesOfSection, parseRevisionItems } from '@/lib/reports/revisions';
 import { notifyReportResubmitted } from '@/lib/reports/resubmitNotifications';
+import { attachmentError } from '@/lib/reports/attachmentOwnership';
 import { ANNEX, MAIN_DOCUMENT_ID } from '@/lib/reports/materials';
 import { statusFromEvaluations } from '@/lib/reports/transitions';
 
@@ -48,19 +49,11 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
     const fixes = readFixes(body?.fixes).filter((fix) => documentKeys.includes(fix.key));
     const attachments = parseAttachments(report.fileUrl);
 
-    // New files must be uploads this sender made through the app.
+    // New files must be PDF uploads made through the app by this company,
+    // the same rule as the full form (lib/reports/attachmentOwnership.ts).
     const added = fixes.flatMap((fix) => fix.added);
-    if (added.some((file) => !isUploadReference(file.url))) {
-      return NextResponse.json({ error: 'Файл буруу байна.' }, { status: 400 });
-    }
-    if (added.some((file) => !isPdfName(file.name))) {
-      return NextResponse.json({ error: 'Зөвхөн PDF файл хавсаргана уу.' }, { status: 400 });
-    }
-    const uploadIds = added.map((file) => file.url.slice(file.url.indexOf(':') + 1));
-    if (uploadIds.length) {
-      const owned = await dataStore.upload.count({ where: { id: { in: uploadIds }, ownerUserId: user.id } });
-      if (owned !== uploadIds.length) return NextResponse.json({ error: 'Файл буруу байна.' }, { status: 400 });
-    }
+    const fileError = await attachmentError(JSON.stringify(added), user);
+    if (fileError) return NextResponse.json({ error: fileError }, { status: 400 });
 
     // Something must actually change.
     const changed = fixes.some((fix) => {

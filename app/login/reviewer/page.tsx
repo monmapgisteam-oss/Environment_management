@@ -2,6 +2,8 @@ import AuthForm from '@/components/auth/AuthForm';
 import { signedInSummary } from '@/lib/auth';
 import { REVIEWER_ACCOUNTS, REVIEWER_ROLES } from '@/lib/constants';
 
+const DEV = process.env.NODE_ENV !== 'production';
+
 export default async function ReviewerLoginPage() {
   const signedInAs = await signedInSummary();
   return (
@@ -10,8 +12,9 @@ export default async function ReviewerLoginPage() {
       subtitle="Имэйл, нууц үгээ оруулж нэвтэрнэ үү."
       signedInAs={signedInAs}
       allowedRoles={REVIEWER_ROLES}
-      exampleEmail={REVIEWER_ACCOUNTS[0].email}
-      examplePassword={REVIEWER_ACCOUNTS[0].password}
+      // Test accounts reach the browser only in development.
+      exampleEmail={DEV ? REVIEWER_ACCOUNTS[0].email : ''}
+      examplePassword={DEV ? REVIEWER_ACCOUNTS[0].password : ''}
     />
   );
 }

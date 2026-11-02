@@ -1,7 +1,7 @@
 import dataStore from '@/lib/db';
 import { NextResponse } from 'next/server';
 import { getApiUser, unauthorized } from '@/lib/auth';
-import { computeDocumentHash, generateSignatureId, verifyPin } from '@/lib/auth/signature';
+import { checkPinWithLimit, computeDocumentHash, generateSignatureId } from '@/lib/auth/signature';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
 import { uniqueAssignmentsByEvaluator } from '@/lib/reports/assignments';
 import { fetchCriteriaForReport } from '@/lib/reports/criteria';
@@ -44,6 +44,10 @@ async function nextSignatureId(signedAt: Date) {
 // locked — re-submitting is rejected once status is SIGNED.
 export async function POST(request: Request) {
   try {
+    // Who is calling comes first, so an anonymous caller learns nothing about report ids.
+    const current = await getApiUser('evaluator', 'review_manager');
+    if (!current) return unauthorized();
+
     const data = await request.json();
     const { reportId, scores, notes, comment, signature } = data;
 
@@ -80,8 +84,6 @@ export async function POST(request: Request) {
 
     const totalScore = scoreEntries.reduce((sum, s) => sum + s.score, 0);
 
-    const current = await getApiUser('evaluator', 'review_manager');
-    if (!current) return unauthorized();
     // A returned report (or one already scored) can't be signed: signing would
     // silently undo the return. A manager may also score a report nobody was
     // assigned to yet.
@@ -163,9 +165,8 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
-    if (!verifyPin(numericSignature, current.signaturePinHash)) {
-      return NextResponse.json({ error: 'Гарын үсгийн нууц үг буруу байна.' }, { status: 400 });
-    }
+    const pinError = await checkPinWithLimit(current.id, numericSignature, current.signaturePinHash);
+    if (pinError) return NextResponse.json({ error: pinError }, { status: 400 });
 
     const signedAt = new Date();
     const signatureId = await nextSignatureId(signedAt);

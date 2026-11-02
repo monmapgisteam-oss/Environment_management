@@ -26,6 +26,11 @@ export async function getPublicProfileQrUrl(userId: string) {
     return `${configuredBaseUrl}/qr/profile/${userId}`;
   }
 
+  // Printed QR codes should point at the real site, not at a host taken from
+  // request headers (a misconfigured proxy could change it): set APP_URL.
+  if (process.env.NODE_ENV === 'production') {
+    console.error('[profileQr] APP_URL is not set; QR codes use the request host.');
+  }
   const headerStore = await headers();
   const host = headerStore.get('x-forwarded-host') || headerStore.get('host') || 'localhost:3000';
   const protocol =

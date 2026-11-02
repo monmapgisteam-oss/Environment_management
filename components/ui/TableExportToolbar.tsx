@@ -13,8 +13,12 @@ const pdfPage = {
   height: 595.28,
 };
 
+// A cell starting with = + - @ (or a tab / CR) would run as a formula when the
+// export is opened in Excel; a leading apostrophe keeps it plain text.
 function csvCell(value: string | number | null | undefined) {
-  return `"${String(value ?? '').replace(/"/g, '""')}"`;
+  let text = String(value ?? '');
+  if (typeof value === 'string' && /^[=+\-@\t\r]/.test(text)) text = `'${text}`;
+  return `"${text.replace(/"/g, '""')}"`;
 }
 
 function dataUrlBytes(dataUrl: string) {

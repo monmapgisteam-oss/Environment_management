@@ -17,8 +17,11 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
     const { url, name } = await request.json();
     // Only a file uploaded through the app, never an outside address.
     if (!isUploadReference(url)) {
-      return NextResponse.json({ error: 'url required' }, { status: 400 });
+      return NextResponse.json({ error: 'Файл сонгоогүй байна.' }, { status: 400 });
     }
+    // Only a file this manager uploaded, never someone else's private upload.
+    const owned = await dataStore.upload.count({ where: { id: url.slice(url.indexOf(':') + 1), ownerUserId: user.id } });
+    if (owned !== 1) return NextResponse.json({ error: 'Файл буруу байна.' }, { status: 400 });
 
     const before = await dataStore.report.findUnique({ where: { id: params.id } });
     if (!before) {

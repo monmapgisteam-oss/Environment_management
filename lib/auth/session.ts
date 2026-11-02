@@ -44,6 +44,8 @@ export type SessionPayload = {
   role: Role;
   companyId?: string;
   companyType?: string;
+  // Fingerprint of the password the session was issued for (lib/auth/password).
+  pv?: string;
 };
 
 function sessionSecret() {
@@ -69,6 +71,24 @@ export function isRole(value: unknown): value is Role {
 
 export function createToken(payload: SessionPayload) {
   return jwt.sign(payload, sessionSecret(), { expiresIn: '8h', audience: 'tailan-session' });
+}
+
+// Sliding session: a token older than this is reissued (same user, role and
+// password version) on the next page or API request, so someone who keeps
+// working stays signed in; 8 hours without any request still signs them out.
+export const SESSION_RENEW_AFTER_SECONDS = 30 * 60;
+
+export function renewedToken(token: string): string | null {
+  try {
+    const payload = jwt.verify(token, sessionSecret(), { audience: 'tailan-session' });
+    if (typeof payload === 'string' || typeof payload.iat !== 'number') return null;
+    if (Date.now() / 1000 - payload.iat < SESSION_RENEW_AFTER_SECONDS) return null;
+    if (typeof payload.userId !== 'string' || !isRole(payload.role)) return null;
+    const { userId, role, companyId, companyType, pv } = payload as SessionPayload;
+    return createToken({ userId, role, companyId, companyType, pv });
+  } catch {
+    return null;
+  }
 }
 
 export function verifyToken(token: string) {

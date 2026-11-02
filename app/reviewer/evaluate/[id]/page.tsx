@@ -9,6 +9,7 @@ import { signAttachments } from '@/lib/db/storage';
 import { attachEffectiveSenderCompanies } from '@/lib/reports/companies';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
 import { scoringAttachmentsFor } from '@/lib/reports/scoringAttachments';
+import { requireUser } from '@/lib/auth';
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -34,6 +35,8 @@ async function fetchReport(id: string) {
 }
 
 export default async function ReviewerEvaluatePage(props: Props) {
+  // Checked here too, not only in the layout: a soft navigation can skip it.
+  await requireUser('review_manager');
   const params = await props.params;
   const report = await fetchReport(params.id);
 

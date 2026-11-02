@@ -3,7 +3,8 @@ import type { Attachment } from '@/lib/reports/attachments';
 import { arcgisFetch, arcgisUpload, layerInfo, queryFeatures, sqlString, storedFieldName } from './arcgis';
 import dataStore from './index';
 
-export const SIGNED_URL_TTL = 60 * 60;
+// File links are bearer links, so they live 30 minutes; pages make new ones on load.
+export const SIGNED_URL_TTL = 30 * 60;
 // Stored file references point at an upload record, never at a storage URL.
 // The file itself is the ArcGIS attachment of that record.
 const REFERENCE = /^upload:([0-9a-f-]{36})$/i;

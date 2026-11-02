@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { HiBadgeCheck, HiBriefcase, HiExclamation, HiOfficeBuilding, HiPhone } from 'react-icons/hi';
+import { HiBadgeCheck, HiBriefcase, HiExclamation, HiOfficeBuilding } from 'react-icons/hi';
 import dataStore from '@/lib/db';
 
 type Props = {
@@ -13,9 +13,13 @@ const ROLE_LABEL: Record<string, string> = {
   evaluator: 'Үнэлгээний ажилтан',
 };
 
+// Signer cards are reached from printed QR codes only, never from search.
+export const metadata = { robots: { index: false, follow: false } };
+
 // Public card opened from the QR code on printed evaluations and covers: name,
-// role, workplace and work phone. Anyone can open it, so the email and the
-// signature PIN are never read here; only whether a signature is registered.
+// role and workplace, enough to confirm who signed. Anyone can open it (the
+// evaluated company included), so no contact details are shown: not the
+// phone, not the email; of the signature PIN only whether one is registered.
 async function fetchQrProfile(id: string) {
   const profile = await dataStore.user.findFirst({
     where: {
@@ -25,7 +29,6 @@ async function fetchQrProfile(id: string) {
     select: {
       name: true,
       role: true,
-      phone: true,
       position: true,
       isActive: true,
       signaturePinHash: true,
@@ -131,26 +134,7 @@ export default async function QrProfilePage(props: Props) {
             <DetailRow icon={<HiOfficeBuilding size={18} />} label="Ажлын газар">
               {workplace}
             </DetailRow>
-            {profile.phone && (
-              <DetailRow icon={<HiPhone size={18} />} label="Утасны дугаар">
-                <a href={`tel:${profile.phone}`} className="hover:text-teal-700">
-                  {profile.phone}
-                </a>
-              </DetailRow>
-            )}
           </div>
-
-          {/* One-tap call from the phone that scanned the code */}
-          {profile.phone && (
-            <div className="border-t border-slate-200 bg-slate-50 p-4">
-              <a
-                href={`tel:${profile.phone}`}
-                className="inline-flex h-11 w-full items-center justify-center gap-2 bg-[#0F766E] text-sm font-semibold text-white transition hover:bg-[#115E59]"
-              >
-                <HiPhone size={16} /> Залгах
-              </a>
-            </div>
-          )}
         </section>
 
         <p className="mt-4 px-1 text-center text-[11px] leading-5 text-slate-500">

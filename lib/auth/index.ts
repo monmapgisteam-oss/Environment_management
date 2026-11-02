@@ -6,6 +6,7 @@ import { attachEffectiveSenderCompanies } from '@/lib/reports/companies';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
 import { LOGIN_PATH, REGISTRATION_PATH, ROLE_HOME, SESSION_COOKIE, verifyToken, type Role } from './session';
 import { isActiveUser, isCompanyApproved } from './accounts';
+import { passwordVersion } from './password';
 
 export * from './session';
 
@@ -24,8 +25,10 @@ export async function getCurrentUser({ allowPendingPassword = false, allowUnappr
     where: { id: payload.userId },
     include: { company: true },
   });
-  // A deactivated account loses its open sessions on the next request.
+  // A deactivated account loses its open sessions on the next request, and a
+  // changed or reset password ends every session issued before it.
   if (!user || !isActiveUser(user)) return null;
+  if (payload.pv !== passwordVersion(user.password)) return null;
   if (user.role === 'sender' && !isCompanyApproved(user.company) && !allowUnapprovedCompany) return null;
   if (user.mustChangePassword && !allowPendingPassword) return null;
   return { ...user, company: user.company };
