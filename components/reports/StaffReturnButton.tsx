@@ -23,10 +23,11 @@ export default function StaffReturnButton({ reportId, sections }: { reportId: st
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast(data.error || 'Хүсэлт илгээхэд алдаа гарлаа.', 'error');
+        toast(data.error || 'Буцаахад алдаа гарлаа.', 'error');
         return false;
       }
-      offerUndo('Буцаах хүсэлт менежерт илгээгдлээ.', data.undoToken, () => {
+      if (data.warning) toast(data.warning, 'error');
+      offerUndo('Илгээгчид засуулахаар буцаалаа.', data.undoToken, () => {
         router.push(`/evaluator/evaluate/${reportId}`);
         router.refresh();
       });
@@ -34,7 +35,7 @@ export default function StaffReturnButton({ reportId, sections }: { reportId: st
       router.refresh();
       return true;
     } catch {
-      toast('Хүсэлт илгээхэд алдаа гарлаа.', 'error');
+      toast('Буцаахад алдаа гарлаа.', 'error');
       return false;
     }
   };
@@ -51,10 +52,10 @@ export default function StaffReturnButton({ reportId, sections }: { reportId: st
 
       {open && (
         <ReturnDialog
-          title="Тайланг буцаах хүсэлт"
-          description="Буруу эсвэл дутуу хэсгүүдийг сонгоод тус бүрт тайлбар бичнэ үү. Менежер шалгаад илгээгч рүү буцаана; илгээгч зөвхөн эдгээр хэсгийг засна."
+          title="Илгээгчид буцаах"
+          description="Шаардлага хангаагүй шалгууруудыг сонгоод тус бүрт тайлбар бичнэ үү. Илгээгч эдгээр тайлбарын дагуу тайлан, хавсралтаа засаж дахин илгээнэ."
           sections={sections}
-          submitLabel="Хүсэлт илгээх"
+          submitLabel="Илгээгчид буцаах"
           onSubmit={submit}
           onClose={() => setOpen(false)}
         />

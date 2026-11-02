@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import dataStore from '@/lib/db';
+import { senderRecipientIds } from '@/lib/reports/companies';
 import { getApiUser, unauthorized } from '@/lib/auth';
 import { isUploadReference } from '@/lib/db/storage';
 import { createNotifications, createUndoToken } from '@/lib/reports/undo';
@@ -40,8 +41,8 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
     let notificationIds: string[] = [];
     try {
       notificationIds = await createNotifications(
-        report.senderCompany.users.map((u) => ({
-          userId: u.id,
+        (await senderRecipientIds(report)).map((userId) => ({
+          userId,
           reportId: report.id,
           title: 'Гарын үсэгтэй тайлан ирлээ',
           message: `"${report.title}" тайлангийн гарын үсэгтэй хуулбар ирлээ.`,

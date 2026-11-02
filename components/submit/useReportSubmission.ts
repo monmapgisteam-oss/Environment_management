@@ -2,14 +2,10 @@ import { useState, useEffect, type ChangeEvent, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { isDocumentAttachment, isReportAttachment, parseAttachments, type Attachment } from "@/lib/reports/attachments";
 import { materialsFor, type ReportMaterial } from "@/lib/reports/materials";
+import { formWordForReportType, PERFORMANCE_TYPE_SLUG, PLAN_TYPE_SLUG, reportKind } from "@/lib/reports/terms";
+import { parseRevisionItems, type RevisionItem } from "@/lib/reports/revisions";
 import { toast } from "@/lib/toast";
-
-export type Criterion = {
-  id: string;
-  name: string;
-  maxScore: number;
-  sortOrder: number;
-};
+import { uploadErrorMessage, uploadReportFile } from "@/lib/reports/uploadFile";
 
 export type SubmitLocation = {
   lat?: number;
@@ -40,8 +36,11 @@ type ReportStatus = "submitted" | "draft";
 
 // Shape of the fields read from `/api/reports/${editId}` when editing.
 type EditableReport = {
+  status?: string | null;
+  returnReason?: string | null;
+  revisionItems?: string | null;
   title?: string | null;
-  reportType?: { name?: string | null } | null;
+  reportType?: { name?: string | null; slug?: string | null } | null;
   reportCategory?: string | null;
   reportNumber?: string | null;
   approvedDate?: string | number | null;
@@ -71,16 +70,8 @@ const SUBMIT_TYPES: SubmitType[] = [
 ];
 
 // Upload one file and return the stored { url, name } entry.
-async function uploadFile(file: File, purpose: string, errorMessage: string): Promise<UploadedFile> {
-  const body = new FormData();
-  body.append("file", file);
-  body.append("purpose", purpose);
-  const res = await fetch("/api/upload", { method: "POST", body });
-  if (!res.ok) {
-    throw new Error(errorMessage);
-  }
-  const data = (await res.json()) as UploadedFile;
-  return { url: data.url, name: data.name };
+async function uploadFile(file: File, purpose: string): Promise<UploadedFile> {
+  return uploadReportFile(file, purpose);
 }
 
 export function useReportSubmission() {
@@ -94,7 +85,6 @@ export function useReportSubmission() {
   const [editSubmitType, setEditSubmitType] = useState<SubmitTypeSlug | null>(null);
   const selectedSubmitType = activeType?.slug || editSubmitType;
   const isGeneralEvaluation = selectedSubmitType === "general-evaluation";
-  const pageTitle = isEdit ? "Тайлан засах" : activeType?.label || "Тайлан илгээх";
 
   const [submitted, setSubmitted] = useState(false);
   // Number the server assigned to the report that was just sent.
@@ -102,8 +92,6 @@ export function useReportSubmission() {
   const [submitting, setSubmitting] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [documentFiles, setDocumentFiles] = useState<File[]>([]);
-  const [criteria, setCriteria] = useState<Criterion[]>([]);
-  const [criterionFiles, setCriterionFiles] = useState<Record<string, File[]>>({});
   const [submitError, setSubmitError] = useState("");
   // Attachments already saved on the report being edited (kept unless removed).
   const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
@@ -112,6 +100,9 @@ export function useReportSubmission() {
   const [existingMaterialAttachments, setExistingMaterialAttachments] = useState<Record<string, Attachment[]>>({});
   const [initialLocation, setInitialLocation] = useState<SubmitLocation | null>(null);
   const [location, setLocation] = useState<SubmitLocation | null>(null);
+  // Status of the report being edited, and why it was returned (if it was).
+  const [editStatus, setEditStatus] = useState<string | null>(null);
+  const [returnInfo, setReturnInfo] = useState<{ reason: string | null; items: RevisionItem[] } | null>(null);
   const [formData, setFormData] = useState<ReportFormData>({
     reportType: activeType?.label || "",
     reportCategory: "",
@@ -123,10 +114,10 @@ export function useReportSubmission() {
     treeCount: "",
     spentAmount: "",
   });
-  // The regulation's scoring sheets are for performance reports only. Plans and
-  // performance reports attach the document and its "Хавсралт"
+  // Plans and performance reports attach the document and its "Хавсралт"
   // (lib/reports/materials.ts); the general evaluation attaches documents only.
-  const isPerformanceReport = !isGeneralEvaluation && formData.reportType === PERFORMANCE_REPORT_LABEL;
+  const word = formWordForReportType(formData.reportType);
+  const pageTitle = isEdit ? `${word.capital} засах` : activeType?.label || `${word.capital} илгээх`;
   const listedMaterials = isGeneralEvaluation ? [] : materialsFor(formData.reportType, formData.reportCategory);
   // Files a saved report keeps under rows of an older document list get their
   // own rows, so the sender can see and remove them.
@@ -142,26 +133,6 @@ export function useReportSubmission() {
       router.replace("/sender/submit");
     }
   }, [router, typeSlug]);
-
-  // Evidence rows follow the scoring sheet of the chosen "Төслийн ангилал", so
-  // they load once the sender picks it and reload when it changes.
-  const reportCategory = formData.reportCategory;
-  useEffect(() => {
-    if (!isPerformanceReport || !reportCategory) {
-      setCriteria([]);
-      return;
-    }
-    let cancelled = false;
-    (async () => {
-      const res = await fetch(`/api/criteria?${new URLSearchParams({ category: reportCategory })}`);
-      if (!res.ok || cancelled) return;
-      const data = (await res.json()) as Criterion[];
-      if (!cancelled) setCriteria(data);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [isPerformanceReport, reportCategory]);
 
   // Keep report type locked to the selected sidebar type (create mode only).
   useEffect(() => {
@@ -183,8 +154,16 @@ export function useReportSubmission() {
     if (!editId) return;
     (async () => {
       const res = await fetch(`/api/reports/${editId}`);
-      if (!res.ok) return;
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        setSubmitError(body?.error || "Тайланг ачаалж чадсангүй. Хуудсыг дахин ачаална уу.");
+        return;
+      }
       const r = (await res.json()) as EditableReport;
+      setEditStatus(r.status || null);
+      if (r.status === "needs_revision") {
+        setReturnInfo({ reason: r.returnReason || null, items: parseRevisionItems(r.revisionItems) });
+      }
       const savedAttachments = parseAttachments(r.fileUrl);
       const isSavedGeneralEvaluation = r.title === GENERAL_EVALUATION_LABEL;
       if (isSavedGeneralEvaluation) {
@@ -193,7 +172,14 @@ export function useReportSubmission() {
       }
       setEditSubmitType(null);
       setFormData({
-        reportType: r.reportType?.name || "",
+        // The form works with its own labels; the saved type is read by slug,
+        // so a type the admin renamed still opens as a plan or report.
+        reportType:
+          reportKind(r.reportType) === "plan"
+            ? SUBMIT_TYPES[0].label
+            : reportKind(r.reportType) === "performance"
+            ? PERFORMANCE_REPORT_LABEL
+            : r.reportType?.name || "",
         reportCategory: r.reportCategory || "",
         reportNumber: r.reportNumber || "",
         title: r.title || "",
@@ -255,14 +241,6 @@ export function useReportSubmission() {
     setSubmitError("");
   };
 
-  const handleCriterionFilesChange = (criterionId: string, files: File[]) => {
-    setCriterionFiles((prev) => ({ ...prev, [criterionId]: files }));
-  };
-
-  const handleExistingCriterionFilesChange = (criterionId: string, files: Attachment[]) => {
-    setExistingCriterionAttachments((prev) => ({ ...prev, [criterionId]: files }));
-  };
-
   const handleMaterialFilesChange = (materialId: string, files: File[]) => {
     setMaterialFiles((prev) => ({ ...prev, [materialId]: files }));
   };
@@ -275,21 +253,6 @@ export function useReportSubmission() {
     setExistingAttachments((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const criterionIds = new Set(criteria.map((criterion) => criterion.id));
-
-  const uploadCriterionAttachments = async () => {
-    const uploaded: Attachment[] = [];
-    for (const [criterionId, files] of Object.entries(criterionFiles)) {
-      // Files picked for another category's sheet before it changed are dropped.
-      if (!criterionIds.has(criterionId)) continue;
-      for (const file of files) {
-        const data = await uploadFile(file, "report-attachment", "Criterion attachment upload failed");
-        uploaded.push({ url: data.url, name: data.name, criterionId });
-      }
-    }
-    return uploaded;
-  };
-
   // Only the current category's materials are kept, in case the sender switched
   // "Төслийн ангилал" after picking files.
   const uploadMaterialAttachments = async () => {
@@ -297,7 +260,7 @@ export function useReportSubmission() {
     for (const [materialId, files] of Object.entries(materialFiles)) {
       if (!materialIds.has(materialId)) continue;
       for (const file of files) {
-        const data = await uploadFile(file, "report-attachment", "Material attachment upload failed");
+        const data = await uploadFile(file, "report-attachment");
         uploaded.push({ url: data.url, name: data.name, materialId });
       }
     }
@@ -307,7 +270,7 @@ export function useReportSubmission() {
   const uploadDocuments = async () => {
     const uploaded: UploadedFile[] = [];
     for (const file of documentFiles) {
-      uploaded.push(await uploadFile(file, "report-document", "Document upload failed"));
+      uploaded.push(await uploadFile(file, "report-document"));
     }
     return uploaded;
   };
@@ -317,16 +280,12 @@ export function useReportSubmission() {
   // editing, while letting them add more.
   const buildFileUrl = async () => {
     const uploaded = isGeneralEvaluation ? await uploadDocuments() : [];
-    const uploadedCriterionFiles = isGeneralEvaluation ? [] : await uploadCriterionAttachments();
     const keptAttachments = existingAttachments.filter(
       isGeneralEvaluation ? isDocumentAttachment : isReportAttachment,
     );
-    // Plans no longer show evidence rows, but evidence saved on older plans is kept.
-    const keptCriterionAttachments = isGeneralEvaluation
-      ? []
-      : Object.entries(existingCriterionAttachments)
-          .filter(([criterionId]) => !isPerformanceReport || criterionIds.has(criterionId))
-          .flatMap(([, files]) => files);
+    // The form no longer asks for evidence per criterion; evidence saved on
+    // older reports is kept.
+    const keptCriterionAttachments = isGeneralEvaluation ? [] : Object.values(existingCriterionAttachments).flat();
     const uploadedMaterialFiles = await uploadMaterialAttachments();
     const keptMaterialAttachments = Object.entries(existingMaterialAttachments)
       .filter(([materialId]) => materialIds.has(materialId))
@@ -336,7 +295,6 @@ export function useReportSubmission() {
       ...keptCriterionAttachments,
       ...keptMaterialAttachments,
       ...uploaded,
-      ...uploadedCriterionFiles,
       ...uploadedMaterialFiles,
     ];
     return combined.length ? JSON.stringify(combined) : "";
@@ -369,6 +327,8 @@ export function useReportSubmission() {
         ...formData,
         ...(isGeneralEvaluation ? {} : locationData()),
         reportType: isGeneralEvaluation ? PERFORMANCE_REPORT_LABEL : formData.reportType,
+        reportTypeSlug:
+          !isGeneralEvaluation && reportKind(formData.reportType) === "plan" ? PLAN_TYPE_SLUG : PERFORMANCE_TYPE_SLUG,
         title: isGeneralEvaluation ? GENERAL_EVALUATION_LABEL : formData.title,
         hasGreenery: "",
         treeCount: "",
@@ -377,27 +337,6 @@ export function useReportSubmission() {
         attachmentKind: isGeneralEvaluation ? "document" : "report",
         status,
       }),
-    });
-  };
-
-  const handleReset = () => {
-    setSubmitted(false);
-    setDocumentFiles([]);
-    setCriterionFiles({});
-    setExistingCriterionAttachments({});
-    setMaterialFiles({});
-    setExistingMaterialAttachments({});
-    setSubmitError("");
-    setFormData({
-      reportType: isGeneralEvaluation ? PERFORMANCE_REPORT_LABEL : activeType?.label || "",
-      reportCategory: "",
-      reportNumber: "",
-      title: isGeneralEvaluation ? GENERAL_EVALUATION_LABEL : "",
-      approvedDate: "",
-      description: "",
-      hasGreenery: "",
-      treeCount: "",
-      spentAmount: "",
     });
   };
 
@@ -425,9 +364,9 @@ export function useReportSubmission() {
         setSubmitError(body?.error || "Илгээх үед алдаа гарлаа. Дахин оролдоно уу.");
         toast(body?.error || "Илгээх үед алдаа гарлаа.", "error");
       }
-    } catch {
-      setSubmitError("Файл хуулах үед алдаа гарлаа. Дахин оролдоно уу.");
-      toast("Файл хуулах үед алдаа гарлаа.", "error");
+    } catch (error) {
+      setSubmitError(uploadErrorMessage(error));
+      toast(uploadErrorMessage(error), "error");
     } finally {
       setSubmitting(false);
     }
@@ -445,33 +384,35 @@ export function useReportSubmission() {
         toast("Ноорог хадгалагдлаа.");
         router.push("/sender/drafts");
       } else {
-        setSubmitError("Хадгалах үед алдаа гарлаа. Дахин оролдоно уу.");
-        toast("Хадгалах үед алдаа гарлаа.", "error");
+        const body = (await response.json().catch(() => null)) as { error?: string } | null;
+        setSubmitError(body?.error || "Хадгалах үед алдаа гарлаа. Дахин оролдоно уу.");
+        toast(body?.error || "Хадгалах үед алдаа гарлаа.", "error");
       }
-    } catch {
-      setSubmitError("Файл хуулах үед алдаа гарлаа. Дахин оролдоно уу.");
-      toast("Файл хуулах үед алдаа гарлаа.", "error");
+    } catch (error) {
+      setSubmitError(uploadErrorMessage(error));
+      toast(uploadErrorMessage(error), "error");
     } finally {
       setSavingDraft(false);
     }
   };
 
   return {
-    isPerformanceReport,
     activeType,
     isEdit,
     isGeneralEvaluation,
     pageTitle,
+    word,
+    location,
+    setSubmitError,
+    editStatus,
+    returnInfo,
     submitted,
     submittedNumber,
     submitting,
     savingDraft,
     documentFiles,
-    criteria,
-    criterionFiles,
     submitError,
     existingAttachments,
-    existingCriterionAttachments,
     materials,
     materialFiles,
     existingMaterialAttachments,
@@ -480,12 +421,9 @@ export function useReportSubmission() {
     setLocation,
     handleChange,
     handleDocumentChange,
-    handleCriterionFilesChange,
-    handleExistingCriterionFilesChange,
     handleMaterialFilesChange,
     handleExistingMaterialFilesChange,
     handleRemoveExistingAttachment,
-    handleReset,
     handleBackToReports,
     handleSubmit,
     handleSaveDraft,

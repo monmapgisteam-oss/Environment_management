@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server';
 import dataStore from '@/lib/db';
-import { getCurrentUser } from '@/lib/auth';
+import { getApiUser, unauthorized } from '@/lib/auth';
 import { serializeDocumentAttachments, serializeReportAttachments } from '@/lib/reports/attachments';
 import { attachmentError } from '@/lib/reports/attachmentOwnership';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
 import { REPORT_CATEGORIES } from '@/lib/constants';
 import { withNextReportNumber } from '@/lib/reports/reportNumber';
 import { resolveAdministrativeLocation } from '@/lib/map/locationResolver';
+import { submissionError } from '@/lib/reports/submitValidation';
+import { findSubmitReportType, MISSING_TYPE_ERROR } from '@/lib/reports/reportTypes';
 
 export async function POST(request: Request) {
   try {
@@ -15,33 +17,28 @@ export async function POST(request: Request) {
     // Attach the report to the logged-in sender's own company — not just
     // "whichever sender company happens to be first in the table", which
     // silently misfiled every submission once a second sender company existed.
-    const currentUser = await getCurrentUser();
-    if (!currentUser || currentUser.role !== 'sender' || !currentUser.companyId) {
-      return NextResponse.json({ error: 'Not authenticated as a sender' }, { status: 401 });
-    }
+    const currentUser = await getApiUser('sender');
+    if (!currentUser || !currentUser.companyId) return unauthorized();
     if ((data.title || '').trim() === GENERAL_EVALUATION_CONCLUSION_TITLE) {
       return NextResponse.json({ error: 'Ерөнхий үнэлгээний дүгнэлт илгээх хэсэг хаагдсан.' }, { status: 400 });
     }
     const fileError = await attachmentError(data.fileUrl, currentUser);
     if (fileError) return NextResponse.json({ error: fileError }, { status: 400 });
+    // A draft may be incomplete; a report that is sent may not.
+    if (data.status !== 'draft') {
+      const missing = submissionError(data);
+      if (missing) return NextResponse.json({ error: missing }, { status: 400 });
+    }
 
     // The sender's own company is the project implementer; the form does not ask for it.
     const senderCompany = currentUser.company;
     if (!senderCompany) {
-      return NextResponse.json({ error: 'No sender company found' }, { status: 400 });
+      return NextResponse.json({ error: 'Байгууллагын мэдээлэл олдсонгүй.' }, { status: 400 });
     }
 
-    const typeValue = data.reportType?.trim() || '';
-    let reportType = typeValue
-      ? await dataStore.reportType.findFirst({
-          where: { OR: [{ id: typeValue }, { slug: typeValue }, { name: typeValue }] },
-        })
-      : null;
+    const reportType = await findSubmitReportType(data);
     if (!reportType) {
-      reportType = await dataStore.reportType.findFirst({ where: { isActive: true } });
-    }
-    if (!reportType) {
-      return NextResponse.json({ error: 'No report type found' }, { status: 400 });
+      return NextResponse.json({ error: MISSING_TYPE_ERROR }, { status: 400 });
     }
     const reportTypeId = reportType.id;
 
@@ -120,6 +117,6 @@ export async function POST(request: Request) {
     return NextResponse.json(report, { status: 201 });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: 'Failed to create report' }, { status: 500 });
+    return NextResponse.json({ error: 'Тайлан хадгалахад алдаа гарлаа. Дахин оролдоно уу.' }, { status: 500 });
   }
 }

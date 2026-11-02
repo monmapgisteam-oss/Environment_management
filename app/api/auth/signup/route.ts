@@ -8,8 +8,8 @@ import { findSenderCompanyByRegister } from '@/lib/reports/companies';
 import { CONCLUSION_PROVINCE, GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
 import { withNextReportNumber } from '@/lib/reports/reportNumber';
 import { uploadAttachment } from '@/lib/db/storage';
+import { findReportTypeByKind, MISSING_TYPE_ERROR } from '@/lib/reports/reportTypes';
 
-const PERFORMANCE_REPORT_TYPE = 'Биелэлтийн тайлан';
 // Owner of the conclusion upload until the user record exists.
 const PENDING_UPLOAD_OWNER = 'signup-pending';
 
@@ -77,10 +77,8 @@ export async function POST(request: Request) {
     if (conflict) return NextResponse.json({ error: conflict, step: 1 }, { status: 409 });
     if (!conclusion || !file) return NextResponse.json({ success: true });
 
-    const reportType =
-      (await dataStore.reportType.findFirst({ where: { name: PERFORMANCE_REPORT_TYPE } })) ??
-      (await dataStore.reportType.findFirst({ where: { isActive: true } }));
-    if (!reportType) throw new Error('No report type found.');
+    const reportType = await findReportTypeByKind('performance');
+    if (!reportType) return NextResponse.json({ error: MISSING_TYPE_ERROR, step: 2 }, { status: 503 });
 
     // The file goes up first: it is the step most likely to fail, and nothing
     // is created yet when it does.
@@ -112,7 +110,7 @@ export async function POST(request: Request) {
           title: GENERAL_EVALUATION_CONCLUSION_TITLE,
           projectName: conclusion.projectName,
           // Conclusions keep their type in the description.
-          description: conclusion.conclusionType,
+          description: conclusion.conclusionType || null,
           fileUrl: JSON.stringify([attachment]),
           implementerName: conclusion.implementerName,
           implementerRegister: input.registerNumber,
@@ -126,8 +124,8 @@ export async function POST(request: Request) {
       }),
     );
 
-    // The admins approve the new company; the admins and review managers both
-    // check its conclusion and can comment on it right away. A notification
+    // The review managers check the conclusion and approve the new company;
+    // the admins are informed. A notification
     // failure must not fail the sign-up.
     try {
       const reviewers = await dataStore.user.findMany({
@@ -141,9 +139,9 @@ export async function POST(request: Request) {
             reportId: report.id,
             title: 'Шинэ байгууллага бүртгүүллээ',
             message:
-              reviewer.role === 'admin'
+              reviewer.role === 'review_manager'
                 ? `${company.name} (РД ${company.registerNumber}) бүртгүүлж, ерөнхий үнэлгээний дүгнэлтээ илгээлээ. Дүгнэлтийг шалгаад байгууллагыг баталгаажуулна уу.`
-                : `${company.name} (РД ${company.registerNumber}) "${conclusion.projectName}" төслийн ерөнхий үнэлгээний дүгнэлт илгээлээ. Шалгаад тайлбар үлдээх боломжтой.`,
+                : `${company.name} (РД ${company.registerNumber}) бүртгүүллээ. Хянах менежер баталгаажуулна.`,
           })),
         });
       }

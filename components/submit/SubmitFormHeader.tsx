@@ -1,9 +1,12 @@
+import type { FormWord } from "@/lib/reports/terms";
+
 type SubmitFormHeaderProps = {
   title: string;
   isGeneralEvaluation: boolean;
+  word: FormWord;
 };
 
-export default function SubmitFormHeader({ title, isGeneralEvaluation }: SubmitFormHeaderProps) {
+export default function SubmitFormHeader({ title, isGeneralEvaluation, word }: SubmitFormHeaderProps) {
   return (
     <div className="px-6 sm:px-8 py-6 border-b border-slate-200">
       <div className="flex items-center justify-between">
@@ -32,7 +35,7 @@ export default function SubmitFormHeader({ title, isGeneralEvaluation }: SubmitF
             <p className="text-sm text-color-text-muted mt-0.5">
               {isGeneralEvaluation
                 ? "Ерөнхий үнэлгээний дүгнэлтийн PDF эсвэл Word файлыг хавсаргана уу."
-                : "Тайлангийн мэдээлэл болон байршлын хаягийг оруулна уу."}
+                : `${word.of} мэдээлэл болон байршлын хаягийг оруулна уу.`}
             </p>
           </div>
         </div>

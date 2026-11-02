@@ -11,7 +11,7 @@ export async function GET(request: Request) {
     return NextResponse.json(await fetchCriteriaFor(category));
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: 'Failed to fetch criteria' }, { status: 500 });
+    return NextResponse.json({ error: 'Шалгуур ачаалахад алдаа гарлаа.' }, { status: 500 });
   }
 }
 

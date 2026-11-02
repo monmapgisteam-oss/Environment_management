@@ -15,7 +15,8 @@
     "fix:locations": "node --env-file=.env.local --require ./scripts/register-typescript.cjs scripts/backfill-locations.cjs",
     "seed:report-types": "node --env-file=.env.local scripts/seed-report-types.mjs",
     "seed:evaluators": "node --env-file=.env.local scripts/seed-evaluators.mjs",
-    "seed:plan-criteria": "node --env-file=.env.local scripts/seed-plan-criteria.mjs"
+    "seed:plan-criteria": "node --env-file=.env.local scripts/seed-plan-criteria.mjs",
+    "setup": "npm run seed:report-types && npm run seed:criteria && npm run seed:plan-criteria"
   },
   "dependencies": {
     "@types/leaflet": "^1.9.21",

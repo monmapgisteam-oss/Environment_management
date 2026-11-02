@@ -9,6 +9,7 @@ import { CONFIRM_EVENT, type ConfirmRequest } from '@/lib/confirm';
 export default function ConfirmDialog() {
   const [request, setRequest] = useState<ConfirmRequest | null>(null);
   const confirmRef = useRef<HTMLButtonElement>(null);
+  const [text, setText] = useState('');
 
   useEffect(() => {
     const onConfirm = (event: Event) => {
@@ -23,13 +24,15 @@ export default function ConfirmDialog() {
   }, []);
 
   const answer = (ok: boolean) => {
-    request?.resolve(ok);
+    if (ok && request?.input && !text.trim()) return;
+    request?.resolve(ok, text.trim());
     setRequest(null);
+    setText('');
   };
 
   useEffect(() => {
     if (!request) return;
-    confirmRef.current?.focus();
+    if (!request.input) confirmRef.current?.focus();
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') answer(false);
     };
@@ -68,6 +71,20 @@ export default function ConfirmDialog() {
           </div>
         </div>
 
+        {request.input && (
+          <label className="mt-4 block">
+            <span className="text-xs font-medium text-slate-700">{request.input.label}</span>
+            <textarea
+              autoFocus
+              rows={3}
+              value={text}
+              onChange={(event) => setText(event.target.value)}
+              placeholder={request.input.placeholder}
+              className="mt-1.5 w-full border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-100"
+            />
+          </label>
+        )}
+
         <div className="mt-6 flex gap-3">
           <button
             type="button"
@@ -80,7 +97,8 @@ export default function ConfirmDialog() {
             ref={confirmRef}
             type="button"
             onClick={() => answer(true)}
-            className={`flex-1 px-4 py-2.5 text-sm font-semibold text-white transition ${
+            disabled={!!request.input && !text.trim()}
+            className={`flex-1 px-4 py-2.5 text-sm font-semibold text-white transition disabled:opacity-50 ${
               danger ? 'bg-rose-600 hover:bg-rose-700' : 'bg-color-primary hover:opacity-90'
             }`}
           >

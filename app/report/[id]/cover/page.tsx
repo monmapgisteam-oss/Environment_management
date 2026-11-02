@@ -1,6 +1,6 @@
 import ReportCoverTemplate from '@/components/reports/ReportCoverTemplate';
 import dataStore from '@/lib/db';
-import { requireUser } from '@/lib/auth';
+import { canAccessReport, requireUser } from '@/lib/auth';
 import { createQrImageUrl, getPublicProfileQrUrl } from '@/lib/auth/profileQr';
 import { formatDate, formatScore } from '@/lib/utils';
 import { uniqueAssignmentsByEvaluator } from '@/lib/reports/assignments';
@@ -8,8 +8,6 @@ import { uniqueAssignmentsByEvaluator } from '@/lib/reports/assignments';
 type Props = {
   params: Promise<{ id: string }>;
 };
-
-type ViewerRole = 'manager' | 'staff';
 
 async function fetchReport(reportId: string) {
   return dataStore.report.findUnique({
@@ -29,8 +27,9 @@ async function fetchReport(reportId: string) {
   });
 }
 
-async function personWithQr(user: { id: string; name: string; position: string | null; role: string }) {
+async function personWithQr(user: { id: string; name: string; position: string | null; role: string }, signedAt: Date | null) {
   return {
+    signedAt: signedAt ? signedAt.toISOString() : null,
     id: user.id,
     name: user.name,
     roleLabel: user.role === 'review_manager' ? 'Хянах менежер' : 'Үнэлгээний ажилтан',
@@ -42,36 +41,34 @@ async function personWithQr(user: { id: string; name: string; position: string |
 export default async function ReportCoverPage(props: Props) {
   const params = await props.params;
   const currentUser = await requireUser();
-  const viewerRole: ViewerRole | null =
-    currentUser.role === 'review_manager' ? 'manager' : currentUser.role === 'evaluator' ? 'staff' : null;
-
-  if (!viewerRole) {
+  if (currentUser.role !== 'review_manager' && currentUser.role !== 'evaluator') {
     return <div className="p-8 text-center text-slate-500">Тайлангийн нүүр зөвхөн хүлээн авагч талд харагдана.</div>;
   }
 
-  const [report, managerUser, coverSignatureLogs] = await Promise.all([
-    fetchReport(params.id),
-    dataStore.user.findFirst({ where: { role: 'review_manager' } }),
-    dataStore.activityLog.findMany({
-      where: { reportId: params.id, action: 'cover_signature_verified' },
-      select: { userId: true, createdAt: true },
-    }),
-  ]);
-
-  if (!report) {
+  const report = await fetchReport(params.id);
+  if (!report || !(await canAccessReport(currentUser, report))) {
     return <div className="p-8 text-center text-slate-500">Тайлан олдсонгүй.</div>;
   }
 
-  const uniqueAssignments = uniqueAssignmentsByEvaluator(report.assignments);
-  const staffUsers = uniqueAssignments.map((assignment) => assignment.evaluator).filter(Boolean);
+  // Signatures come from the workflow itself: each evaluator's signed scores
+  // and the manager who approved them.
+  const uniqueAssignments = uniqueAssignmentsByEvaluator(report.assignments).filter((assignment) => assignment.evaluator);
+  const approver = report.scoresApprovedById
+    ? await dataStore.user.findUnique({ where: { id: report.scoresApprovedById } })
+    : null;
   const [staff, manager] = await Promise.all([
-    Promise.all(staffUsers.map(personWithQr)),
-    managerUser ? personWithQr(managerUser) : Promise.resolve(null),
+    Promise.all(
+      uniqueAssignments.map((assignment) =>
+        personWithQr(
+          assignment.evaluator,
+          assignment.evaluation?.status === 'SIGNED' && assignment.evaluation.signatureStatus === 'VERIFIED'
+            ? assignment.evaluation.signedAt
+            : null,
+        ),
+      ),
+    ),
+    approver && report.scoresApprovedAt ? personWithQr(approver, report.scoresApprovedAt) : Promise.resolve(null),
   ]);
-  const verifiedSignatures = coverSignatureLogs.map((log) => ({
-    userId: log.userId,
-    verifiedAt: log.createdAt.toISOString(),
-  }));
 
   const locationLabel = [
     report.location?.province,
@@ -98,15 +95,7 @@ export default async function ReportCoverPage(props: Props) {
 
   return (
     <div className="cover-main">
-      <ReportCoverTemplate
-        reportId={report.id}
-        info={info}
-        staff={staff}
-        manager={manager}
-        viewerRole={viewerRole}
-        currentUserId={currentUser.id}
-        initialVerifiedSignatures={verifiedSignatures}
-      />
+      <ReportCoverTemplate info={info} staff={staff} manager={manager} />
     </div>
   );
 }

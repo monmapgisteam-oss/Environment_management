@@ -39,7 +39,7 @@ export default async function ReviewerReportsPage(props: { searchParams: Promise
     : undefined;
   const reports = await fetchAllReports(searchParams.type);
 
-  const noun = selectedType ? nounForReportType(selectedType.name) : REPORT_NOUN;
+  const noun = selectedType ? nounForReportType(selectedType) : REPORT_NOUN;
   const tableReports = reports.map((report) => ({
     id: report.id,
     reportNumber: report.reportNumber,
@@ -55,7 +55,7 @@ export default async function ReviewerReportsPage(props: { searchParams: Promise
   return (
     <main className="flex-1 min-w-0 space-y-6 px-6 py-7 lg:px-8">
       <PageHeader
-        title={`Ирсэн ${listTitleNoun(selectedType?.name)}`}
+        title={`Ирсэн ${listTitleNoun(selectedType)}`}
         subtitle={
           selectedType
             ? `${selectedType.name} төрлийн ${noun.many}`

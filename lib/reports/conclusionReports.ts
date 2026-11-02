@@ -2,7 +2,6 @@ import dataStore from '@/lib/db';
 import { isCompanyApproved } from '@/lib/auth/accounts';
 import { isDocumentAttachment, parseAttachments } from '@/lib/reports/attachments';
 import {
-  CONCLUSION_TYPES,
   GENERAL_EVALUATION_CONCLUSION_TITLE,
   filterConclusions,
   type ConclusionRow,
@@ -47,7 +46,7 @@ export async function fetchConclusionRows(search: ConclusionSearchParams = {}, {
         senderCompanyName: report.senderCompany?.name || '-',
         implementerName: report.implementerName,
         district: report.location?.district || null,
-        conclusionType: report.description || CONCLUSION_TYPES[0],
+        conclusionType: report.description || '',
         status: report.status,
         companyPending: !isCompanyApproved(report.senderCompany),
         attachments: await signAttachments(documents),

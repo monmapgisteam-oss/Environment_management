@@ -189,7 +189,7 @@ export default function ConclusionSearchResults({ rows, search, role }: Props) {
                     </td>
                     <td className="border-r border-slate-100 px-3 py-4">{row.district || '-'}</td>
                     <td className="border-r border-slate-100 px-3 py-4">{row.implementerName || row.senderCompanyName || '-'}</td>
-                    <td className="border-r border-slate-100 px-3 py-4">{row.conclusionType}</td>
+                    <td className="border-r border-slate-100 px-3 py-4">{row.conclusionType || '-'}</td>
                     <td className="px-3 py-4 text-right">
                       <Link
                         href={`/report/${row.id}?role=${detailRole}`}

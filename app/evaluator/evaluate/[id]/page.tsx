@@ -1,5 +1,5 @@
 import dataStore from "@/lib/db";
-import { fetchCriteriaFor, fetchCriteriaForReport } from "@/lib/reports/criteria";
+import { fetchCriteriaForReport } from "@/lib/reports/criteria";
 import { requireUser } from "@/lib/auth";
 import EvaluationTable from "@/components/evaluation/EvaluationTable";
 import AttachmentList from "@/components/reports/AttachmentList";
@@ -12,8 +12,9 @@ import { formatDate } from "@/lib/utils";
 import { attachEffectiveSenderCompanies } from "@/lib/reports/companies";
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from "@/lib/reports/conclusions";
 import { scoringAttachmentsFor } from "@/lib/reports/scoringAttachments";
-import { reportSections } from "@/lib/reports/revisions";
+import { criteriaSections } from "@/lib/reports/revisions";
 import { signSections } from "@/lib/reports/reportSections";
+import { canTransition } from "@/lib/reports/transitions";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -76,17 +77,19 @@ export default async function StaffEvaluatePage(props: Props) {
       {},
     ) || null;
   const signedAttachments = await signAttachments(parseAttachments(report.fileUrl));
-  // Upload sections the staff member can flag when asking for a return.
-  const sections = await signSections(
-    reportSections({
-      reportType: report.reportType.name,
-      reportCategory: report.reportCategory,
-      // Evidence rows of the submit form follow the performance sheet.
-      criteria: await fetchCriteriaFor(report.reportCategory, 'performance'),
-      attachments: parseAttachments(report.fileUrl),
-    }),
-  );
+  // The criteria the evaluator can point at when returning the report.
+  const sections = await signSections(criteriaSections(tableCriteria));
   const { criterionAttachments, reportAttachments } = scoringAttachmentsFor(signedAttachments, tableCriteria);
+  const signed = assignment.evaluation?.status === 'SIGNED';
+  // A report that went back to the sender (or awaits the manager's decision on
+  // a return) can't be scored until it comes back; signed scores never change.
+  const scorable = canTransition(report.status, 'evaluate');
+  const pausedNotice =
+    report.status === 'needs_revision'
+      ? 'Тайланг илгээгчид засуулахаар буцаасан. Засварласны дараа дахин үнэлнэ.'
+      : report.status === 'return_requested'
+      ? 'Буцаах хүсэлтийг менежер шийдвэрлэж байна. Шийдвэр гарсны дараа үргэлжлүүлнэ.'
+      : null;
   const locationMap =
     report.location?.latitude != null && report.location?.longitude != null
       ? { lat: report.location.latitude, lng: report.location.longitude }
@@ -225,7 +228,11 @@ export default async function StaffEvaluatePage(props: Props) {
           attachments={reportAttachments}
         />
       )}
-      <MaterialAttachmentList attachments={signedAttachments} reportType={report.reportType.name} reportCategory={report.reportCategory} />
+      <MaterialAttachmentList attachments={signedAttachments} reportType={{ name: report.reportType.name, slug: report.reportType.slug }} reportCategory={report.reportCategory} />
+
+      {!signed && pausedNotice && (
+        <div className="border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-medium text-amber-800">{pausedNotice}</div>
+      )}
 
       {/* Scoring — staff see only their own column, never other evaluators'. */}
       <EvaluationTable
@@ -234,7 +241,7 @@ export default async function StaffEvaluatePage(props: Props) {
         savedScores={savedScores}
         savedNotes={Object.fromEntries((assignment.evaluation?.scores || []).map((s) => [s.criterionId, s.note || '']))}
         savedComment={assignment.evaluation?.comment || null}
-        locked={assignment.evaluation?.status === 'SIGNED'}
+        locked={signed || !scorable}
         signatureStatus={assignment.evaluation?.signatureStatus || null}
         signedAt={assignment.evaluation?.signedAt ? assignment.evaluation.signedAt.toISOString() : null}
         signatureId={assignment.evaluation?.signatureId || null}
@@ -243,12 +250,14 @@ export default async function StaffEvaluatePage(props: Props) {
         redirectTo="/evaluator"
         selfName={user.name}
         leftAction={
+          !signed && scorable && (
           <div className="flex flex-col items-start gap-1">
             <StaffReturnButton reportId={report.id} sections={sections} />
             <p className="text-sm text-slate-500">
-              Менежерт буцаах хүсэлт илгээнэ үү.
+              Дутуу бол илгээгчид засуулахаар буцаана.
             </p>
           </div>
+          )
         }
       />
     </main>

@@ -14,7 +14,7 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const { email, password, allowedRoles } = body ?? {};
   if (typeof email !== 'string' || !email.trim() || typeof password !== 'string') {
-    return NextResponse.json({ error: 'Email and password are required.' }, { status: 400 });
+    return NextResponse.json({ error: 'Имэйл болон нууц үгээ оруулна уу.' }, { status: 400 });
   }
   const [byAddress, byEmail] = await Promise.all([
     limitRequest(`login:ip:${clientIp(request)}`, ATTEMPTS_PER_ADDRESS, ATTEMPT_WINDOW_MS),
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
   } catch (error) {
     // Usually missing ARCGIS_* settings in the deployment or an unreachable service.
     console.error('[auth/login] user lookup failed:', error);
-    return NextResponse.json({ error: 'Login service unavailable.' }, { status: 503 });
+    return NextResponse.json({ error: 'Нэвтрэх үйлчилгээ түр ажиллахгүй байна. Дахин оролдоно уу.' }, { status: 503 });
   }
 
   if (!user || !verifyPassword(password, user.password) || !isRole(user.role)) {

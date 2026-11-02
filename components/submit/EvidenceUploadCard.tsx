@@ -1,5 +1,6 @@
 import type { Attachment } from "@/lib/reports/attachments";
 import { toast } from "@/lib/toast";
+import { MAX_UPLOAD_BYTES } from "@/lib/reports/uploadFile";
 
 // One upload slot per row: the scoring criteria, or a category's required
 // supporting materials.
@@ -60,7 +61,7 @@ function SampleIcon() {
 }
 
 function validFiles(files: File[]) {
-  return files.filter((file) => allowedPattern.test(file.name));
+  return files.filter((file) => allowedPattern.test(file.name) && file.size <= MAX_UPLOAD_BYTES);
 }
 
 export default function EvidenceUploadCard({
@@ -134,7 +135,7 @@ export default function EvidenceUploadCard({
                   onChange={(event) => {
                     const picked = Array.from(event.target.files || []);
                     const nextFiles = validFiles(picked);
-                    if (nextFiles.length < picked.length) toast("Зөвхөн PDF файл хавсаргана уу.", "error");
+                    if (nextFiles.length < picked.length) toast("Зөвхөн 25MB хүртэлх PDF файл хавсаргана уу.", "error");
                     onFilesChange(row.id, [...pickedFiles, ...nextFiles]);
                     event.currentTarget.value = "";
                   }}

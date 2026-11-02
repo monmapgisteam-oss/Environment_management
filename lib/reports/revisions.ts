@@ -1,13 +1,15 @@
+import type { ReportTypeRef } from '@/lib/reports/terms';
 import type { Attachment } from '@/lib/reports/attachments';
 import { materialsFor, materialsTitle } from '@/lib/reports/materials';
 
-// When a report goes back to the sender, the reviewer can point at the exact
-// upload sections that need fixing, each with its own comment. The sender then
-// fixes only those sections (/sender/revise/<id>) instead of the whole form.
+// When a report goes back to the sender, the reviewer picks the scoring
+// criteria that fall short, each with its own comment (`score:<id>` items).
+// The sender reads them and sends a corrected report and Хавсралт
+// (/sender/revise/<id>).
 //
-// A section is one upload row of the submit form:
-//   criterion:<id>  evidence for a scoring criterion
-//   material:<id>   a required document (lib/reports/materials.ts)
+// File sections, used when the sender replaces files:
+//   criterion:<id>  evidence for a scoring criterion (older reports)
+//   material:<id>   a document (lib/reports/materials.ts)
 //   general         the other attached files
 
 export type RevisionItem = { key: string; label: string; comment: string };
@@ -25,10 +27,6 @@ type CriterionLike = { id: string; name: string };
 const GENERAL_KEY = 'general';
 const MAX_COMMENT = 1000;
 
-export function isPerformanceReportType(reportTypeName: string | null | undefined) {
-  return !!reportTypeName?.includes('Биелэлт');
-}
-
 // Files stored under a section, by the ids the submit form saved on them.
 export function filesOfSection(attachments: Attachment[], key: string): Attachment[] {
   if (key === GENERAL_KEY) return attachments.filter((file) => !file.criterionId && !file.materialId);
@@ -38,23 +36,33 @@ export function filesOfSection(attachments: Attachment[], key: string): Attachme
   return [];
 }
 
+// What a reviewer can point at when returning a report: the criteria of the
+// sheet it is scored on.
+export function criteriaSections(criteria: CriterionLike[]): ReportSection[] {
+  return criteria.map((criterion) => ({
+    key: `score:${criterion.id}`,
+    label: criterion.name,
+    group: 'Үнэлгээний шалгуур',
+    files: [],
+  }));
+}
+
 function splitKey(key: string): [string, string] {
   const at = key.indexOf(':');
   return at < 0 ? [key, ''] : [key.slice(0, at), key.slice(at + 1)];
 }
 
-// Every upload section of a report, in the order of the submit form (the
-// documents, then the criteria), with the files currently in it. Criteria show for performance reports, and for older
-// plans that still carry criterion files.
+// Every upload section of a report, in the order of the submit form, with the
+// files currently in it. The form no longer asks for evidence per criterion, so
+// a criterion shows only when an older report still carries files under it.
 export function reportSections(params: {
-  reportType: string | null | undefined;
+  reportType: ReportTypeRef;
   reportCategory: string | null | undefined;
   criteria: CriterionLike[];
   attachments: Attachment[];
 }): ReportSection[] {
   const { reportType, reportCategory, criteria, attachments } = params;
   const sections: ReportSection[] = [];
-  const performance = isPerformanceReportType(reportType);
   const materialGroup = materialsTitle(reportType);
   for (const material of materialsFor(reportType, reportCategory)) {
     const key = `material:${material.id}`;
@@ -63,7 +71,7 @@ export function reportSections(params: {
   for (const criterion of criteria) {
     const key = `criterion:${criterion.id}`;
     const files = filesOfSection(attachments, key);
-    if (performance || files.length > 0) {
+    if (files.length > 0) {
       sections.push({ key, label: criterion.name, group: 'Үнэлгээний шалгуурын нотлох файл', files });
     }
   }

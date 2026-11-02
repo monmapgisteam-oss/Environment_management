@@ -118,17 +118,16 @@ export default function ReturnDialog({
                         >
                           {section.label}
                         </button>
+                        {section.files.length > 0 && (
                         <button
                           type="button"
                           onClick={() => setOpen(expanded ? null : section.key)}
-                          disabled={section.files.length === 0}
                           className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-slate-500 hover:text-teal-700 disabled:cursor-default disabled:hover:text-slate-500"
                         >
-                          {section.files.length ? `${section.files.length} файл` : 'Файлгүй'}
-                          {section.files.length > 0 && (
-                            <HiChevronDown size={14} className={`transition-transform ${expanded ? 'rotate-180' : ''}`} />
-                          )}
+                          {`${section.files.length} файл`}
+                          <HiChevronDown size={14} className={`transition-transform ${expanded ? 'rotate-180' : ''}`} />
                         </button>
+                        )}
                       </div>
                       {expanded && (
                         <ul className="mx-4 mb-3 space-y-1 border-l-2 border-slate-200 pl-3">
@@ -177,7 +176,7 @@ export default function ReturnDialog({
               id="return-dialog-reason"
               value={reason}
               onChange={(event) => setReason(event.target.value)}
-              placeholder="Тодорхой хэсэгт хамаарахгүй тайлбар..."
+              placeholder="Шалгуурт хамаарахгүй ерөнхий тайлбар..."
               rows={2}
               className="w-full resize-y border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-100"
             />
@@ -186,9 +185,9 @@ export default function ReturnDialog({
 
         <div className="flex flex-col-reverse gap-3 border-t border-slate-200 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs text-slate-500">
-            {flagged.length ? `${flagged.length} хэсэг засуулахаар сонгосон` : 'Засуулах хэсгээ сонгоно уу'}
+            {flagged.length ? `${flagged.length} шалгуур сонгосон` : 'Шаардлага хангаагүй шалгуураа сонгоно уу'}
             {showErrors && flagged.length === 0 && !reason.trim() && (
-              <span className="ml-1 text-rose-600">— хэсэг сонгох эсвэл тайлбар бичнэ үү.</span>
+              <span className="ml-1 text-rose-600">— шалгуур сонгох эсвэл тайлбар бичнэ үү.</span>
             )}
           </p>
           <div className="flex gap-3">

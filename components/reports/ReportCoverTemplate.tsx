@@ -1,7 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { HiCheckCircle, HiClock, HiKey, HiPrinter, HiX } from 'react-icons/hi';
+import { HiCheckCircle, HiClock, HiKey, HiPrinter } from 'react-icons/hi';
 import { formatDate } from '@/lib/utils';
 
 type CoverInfo = {
@@ -24,16 +23,16 @@ type Person = {
   roleLabel: string;
   position: string;
   qrUrl: string;
+  // When this person signed: an evaluator's signed scores, the manager's
+  // approval. Null while it waits.
+  signedAt: string | null;
 };
 
 type Props = {
-  reportId: string;
   info: CoverInfo;
   staff: Person[];
+  // The manager who approved the scores, or null while they wait.
   manager: Person | null;
-  viewerRole: 'manager' | 'staff';
-  currentUserId: null | string;
-  initialVerifiedSignatures: Array<{ userId: string; verifiedAt: string }>;
 };
 
 const ORGANIZATION = 'Нийслэлийн Байгаль орчны газар';
@@ -147,66 +146,12 @@ function SignerRow({ index, role, person, verifiedAt }: { index: number; role: s
   );
 }
 
-export default function ReportCoverTemplate({
-  reportId,
-  info,
-  staff,
-  manager,
-  viewerRole,
-  currentUserId,
-  initialVerifiedSignatures,
-}: Props) {
-  const [signatureModalOpen, setSignatureModalOpen] = useState(false);
-  const [pendingSignature, setPendingSignature] = useState('');
-  const [signatureError, setSignatureError] = useState('');
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [verifiedSignatures, setVerifiedSignatures] = useState<Record<string, string>>(() =>
-    Object.fromEntries(initialVerifiedSignatures.map((signature) => [signature.userId, signature.verifiedAt])),
-  );
-  const staffRows = useMemo(() => (staff.length > 0 ? staff : []), [staff]);
-  const currentSigner =
-    viewerRole === 'manager'
-      ? manager
-      : staffRows.find((person) => person.id === currentUserId) || null;
-  const currentVerified = currentUserId ? Boolean(verifiedSignatures[currentUserId]) : false;
-  const managerVerifiedAt = manager ? verifiedSignatures[manager.id] || '' : '';
-
-  const openSignatureModal = () => {
-    setPendingSignature('');
-    setSignatureError('');
-    setSignatureModalOpen(true);
-  };
-
-  const confirmSignature = async () => {
-    if (!currentUserId || !pendingSignature.trim() || isVerifying) return;
-    setIsVerifying(true);
-    setSignatureError('');
-
-    try {
-      const response = await fetch(`/api/reports/${reportId}/cover-signature`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ signature: pendingSignature }),
-      });
-      const result = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        setSignatureError(result.error || 'Гарын үсэг баталгаажуулахад алдаа гарлаа.');
-        return;
-      }
-
-      setVerifiedSignatures((current) => ({
-        ...current,
-        [result.userId || currentUserId]: result.verifiedAt || new Date().toISOString(),
-      }));
-      setPendingSignature('');
-      setSignatureModalOpen(false);
-    } catch {
-      setSignatureError('Сүлжээний алдаа гарлаа. Дахин оролдоно уу.');
-    } finally {
-      setIsVerifying(false);
-    }
-  };
+// Printable cover. Nothing is signed here: each row shows the signature the
+// person already made in the workflow (evaluators when submitting their
+// scores, the manager when approving them).
+export default function ReportCoverTemplate({ info, staff, manager }: Props) {
+  const staffRows = staff;
+  const managerVerifiedAt = manager?.signedAt || '';
 
   return (
     <div className="min-h-screen bg-slate-100 px-5 py-6 text-slate-950">
@@ -218,7 +163,6 @@ export default function ReportCoverTemplate({
           .app-chrome { display: none !important; }
           .cover-main { padding: 0 !important; margin: 0 !important; }
           .cover-toolbar { display: none !important; }
-          .cover-signature-modal { display: none !important; }
           .cover-page {
             width: 210mm !important;
             min-height: 297mm !important;
@@ -234,27 +178,15 @@ export default function ReportCoverTemplate({
 
       <div className="cover-toolbar mx-auto mb-4 flex max-w-[210mm] flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-slate-900">Гарын үсгээр баталгаажуулах</h1>
-          <p className="mt-1 text-sm text-slate-500">Тайлангийн нүүрийг шалгаад тоон гарын үсгээр баталгаажуулж, хэвлэнэ.</p>
+          <h1 className="text-xl font-bold text-slate-900">Тайлангийн нүүр хуудас</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            {manager
+              ? 'Гишүүдийн болон менежерийн тоон гарын үсэгтэй нүүр хуудас. Шалгаад хэвлэнэ үү.'
+              : 'Үнэлгээ батлагдаагүй байна. Менежер баталсны дараа баталгаажуулалт энд гарна.'}
+          </p>
         </div>
 
         <div className="flex items-center gap-2">
-          {currentSigner && (
-            <button
-              type="button"
-              onClick={currentVerified ? undefined : openSignatureModal}
-              disabled={currentVerified}
-              className={`inline-flex h-10 items-center gap-2 px-4 text-sm font-semibold transition ${
-                currentVerified
-                  ? 'cursor-not-allowed bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'
-                  : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-              }`}
-            >
-              <HiKey size={18} />
-              {currentVerified ? 'Гарын үсгээр баталгаажсан' : 'Гарын үсгээр баталгаажуулах'}
-            </button>
-          )}
-
           <button
             type="button"
             onClick={() => window.print()}
@@ -340,7 +272,7 @@ export default function ReportCoverTemplate({
                   index={index + 1}
                   role={index === 0 ? 'Боловсруулсан' : 'Хамтран боловсруулсан'}
                   person={person}
-                  verifiedAt={verifiedSignatures[person.id] || null}
+                  verifiedAt={person.signedAt}
                 />
               ))
             ) : (
@@ -351,12 +283,7 @@ export default function ReportCoverTemplate({
               </tr>
             )}
             {manager && (
-              <SignerRow
-                index={staffRows.length + 1}
-                role={verifiedSignatures[manager.id] ? 'Хянаж, баталгаажуулсан' : 'Хянасан'}
-                person={manager}
-                verifiedAt={verifiedSignatures[manager.id] || null}
-              />
+              <SignerRow index={staffRows.length + 1} role="Хянаж, баталсан" person={manager} verifiedAt={manager.signedAt} />
             )}
           </tbody>
         </table>
@@ -383,65 +310,6 @@ export default function ReportCoverTemplate({
           <DocumentFooter page={2} pages={2} />
         </div>
       </section>
-
-      {signatureModalOpen && currentSigner && (
-        <div className="cover-signature-modal fixed inset-0 z-[1000] flex items-center justify-center bg-slate-950/50 px-4">
-          <div className="w-full max-w-sm bg-white p-5 shadow-2xl">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h2 className="text-base font-bold text-slate-950">Гарын үсгээр баталгаажуулах</h2>
-                <p className="mt-1 text-sm text-slate-500">{currentSigner.name}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSignatureModalOpen(false)}
-                className="flex h-9 w-9 items-center justify-center text-slate-500 transition hover:bg-slate-100"
-                aria-label="Хаах"
-              >
-                <HiX size={20} />
-              </button>
-            </div>
-
-            <label className="mt-5 block">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Тоон гарын үсгийн нууц үг
-              </span>
-              <input
-                type="password"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                value={pendingSignature}
-                onChange={(event) => setPendingSignature(event.target.value.replace(/\D/g, ''))}
-                placeholder="••••••"
-                className="mt-2 h-11 w-full border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 outline-none transition focus:border-[#0F766E] focus:ring-2 focus:ring-teal-100"
-              />
-            </label>
-            {signatureError && (
-              <p className="mt-3 bg-red-50 px-3 py-2 text-sm font-medium text-red-600">
-                {signatureError}
-              </p>
-            )}
-
-            <div className="mt-5 flex gap-3">
-              <button
-                type="button"
-                onClick={confirmSignature}
-                disabled={!pendingSignature.trim() || isVerifying}
-                className="flex-1 bg-[#0F766E] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#115E59] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {isVerifying ? 'Шалгаж байна...' : 'Гарын үсэг зурж баталгаажуулах'}
-              </button>
-              <button
-                type="button"
-                onClick={() => setSignatureModalOpen(false)}
-                className="flex-1 border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-              >
-                Болих
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

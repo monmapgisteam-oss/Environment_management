@@ -12,6 +12,7 @@ This is a private Next.js App Router project for a report submission and evaluat
 - `npm run start`: serve the production build locally.
 - `npm run lint`: type-check the project with `tsc --noEmit`.
 - `npm test`: run the repository engine tests in `tests/`.
+- `npm run setup`: create the core report types and every category's scoring sheets in a fresh ArcGIS service (safe to re-run; the admin dashboard lists anything still missing).
 - `npm run arcgis:provision`: add tables, fields, and indexes from `lib/db/schema.json` that the ArcGIS service lacks (`-- --dry-run` to list them).
 
 ## Coding Style & Naming Conventions

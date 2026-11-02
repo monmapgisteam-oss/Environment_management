@@ -50,7 +50,7 @@ const conclusion = {
   projectName: 'Талх нарийн боовны үйлдвэр',
   district: 'Хан-Уул',
   implementerName: 'Жишээ ХХК',
-  conclusionType: 'нөхцөл болзолтойгоор хэрэгжүүлэх боломжтой',
+  conclusionType: '',
 };
 const now = new Date('2026-10-23T00:00:00Z');
 

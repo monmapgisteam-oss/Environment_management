@@ -5,6 +5,8 @@ import { deleteUploads, droppedReferences, isUploadReference } from '@/lib/db/st
 import { isPdfName, parseAttachments, type Attachment } from '@/lib/reports/attachments';
 import { applySectionFixes, filesOfSection, parseRevisionItems } from '@/lib/reports/revisions';
 import { notifyReportResubmitted } from '@/lib/reports/resubmitNotifications';
+import { ANNEX, MAIN_DOCUMENT_ID } from '@/lib/reports/materials';
+import { statusFromEvaluations } from '@/lib/reports/transitions';
 
 type Fix = { key: string; keepUrls: string[]; added: Attachment[] };
 
@@ -21,27 +23,29 @@ function readFixes(input: unknown): Fix[] {
   }));
 }
 
-// The sender fixes only the sections the reviewer flagged (report.revisionItems):
-// each flagged section gets its kept files plus new uploads, every other file
-// stays, and the report goes back to the review organisation.
+// The sender answers a return: the reviewer's comments (report.revisionItems)
+// name the criteria that fell short, and the sender sends a corrected report
+// and/or Хавсралт. Other files stay; the report goes back to review.
 export async function POST(request: Request, props: { params: Promise<{ id: string }> }) {
   const user = await getApiUser('sender');
   if (!user) return unauthorized();
   const { id } = await props.params;
 
   try {
-    const report = await dataStore.report.findUnique({ where: { id }, include: { senderCompany: true } });
+    const report = await dataStore.report.findUnique({
+      where: { id },
+      include: { senderCompany: true, assignments: { include: { evaluation: true } } },
+    });
     if (!report || !(await canAccessReport(user, report))) return unauthorized();
     if (report.status !== 'needs_revision') {
       return NextResponse.json({ error: 'Энэ тайлан засвар шаардаагүй байна.' }, { status: 400 });
     }
     const items = parseRevisionItems(report.revisionItems);
-    if (items.length === 0) {
-      return NextResponse.json({ error: 'Засах хэсэг заагаагүй тайлан. Бүтэн маягтаар засна уу.' }, { status: 400 });
-    }
 
     const body = await request.json().catch(() => null);
-    const fixes = readFixes(body?.fixes).filter((fix) => items.some((item) => item.key === fix.key));
+    // Only the report and its Хавсралт are sent again.
+    const documentKeys = [`material:${MAIN_DOCUMENT_ID}`, `material:${ANNEX.id}`];
+    const fixes = readFixes(body?.fixes).filter((fix) => documentKeys.includes(fix.key));
     const attachments = parseAttachments(report.fileUrl);
 
     // New files must be uploads this sender made through the app.
@@ -58,22 +62,27 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
       if (owned !== uploadIds.length) return NextResponse.json({ error: 'Файл буруу байна.' }, { status: 400 });
     }
 
-    // Every flagged section must change: a new file or a removed one.
-    for (const item of items) {
-      const fix = fixes.find((candidate) => candidate.key === item.key);
-      const current = filesOfSection(attachments, item.key);
-      const removed = fix ? current.filter((file) => !fix.keepUrls.includes(file.url)).length : 0;
-      if (!fix || (fix.added.length === 0 && removed === 0)) {
-        return NextResponse.json({ error: `"${item.label}" хэсгийг засна уу.`, key: item.key }, { status: 400 });
-      }
+    // Something must actually change.
+    const changed = fixes.some((fix) => {
+      const current = filesOfSection(attachments, fix.key);
+      return fix.added.length > 0 || current.some((file) => !fix.keepUrls.includes(file.url));
+    });
+    if (!changed) {
+      return NextResponse.json({ error: 'Засварласан файлаа хавсаргана уу.' }, { status: 400 });
     }
 
     const fixedFiles = applySectionFixes(attachments, fixes);
+    // The main document can be replaced but not removed.
+    const isMain = (file: Attachment) => file.materialId === MAIN_DOCUMENT_ID;
+    if (!fixedFiles.some(isMain)) {
+      return NextResponse.json({ error: 'Үндсэн баримт бичгийг хавсаргана уу.' }, { status: 400 });
+    }
     const updated = await dataStore.report.update({
       where: { id },
       data: {
         fileUrl: JSON.stringify(fixedFiles),
-        status: 'submitted',
+        // Back to where scoring stood: evaluators already assigned carry on.
+        status: report.assignments.length ? statusFromEvaluations(report.assignments) : 'submitted',
         submittedAt: new Date(),
         returnReason: null,
         returnRequestedBy: null,

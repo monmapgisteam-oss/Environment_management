@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useState, type FormEvent } from 'react';
 import { LuArrowLeft, LuArrowRight, LuCheck, LuFileText, LuUpload } from 'react-icons/lu';
 import { CONCLUSION_MAX_FILE_BYTES, MIN_PASSWORD_LENGTH, conclusionFileError } from '@/lib/auth/signup';
-import { CONCLUSION_DISTRICTS, CONCLUSION_PROJECT_CATEGORIES, CONCLUSION_TYPES } from '@/lib/reports/conclusions';
+import { CONCLUSION_DISTRICTS, CONCLUSION_PROJECT_CATEGORIES } from '@/lib/reports/conclusions';
 
 const inputClass =
   'h-10 w-full border border-slate-300 bg-white px-3.5 text-sm text-slate-800 transition focus:border-teal-600 focus:outline-none focus:ring-4 focus:ring-teal-600/10';
@@ -326,16 +326,6 @@ export default function SignupForm() {
               </Field>
               <Field label="Дүгнэлтийн дугаар" required>
                 <input value={form.conclusionNumber} onChange={set('conclusionNumber')} required placeholder="ж: 04/1234" className={inputClass} />
-              </Field>
-              <Field label="Дүгнэлтийн төрөл" required className="sm:col-span-2">
-                <select value={form.conclusionType} onChange={set('conclusionType')} required className={inputClass}>
-                  <option value="">-- Сонгох --</option>
-                  {CONCLUSION_TYPES.map((type) => (
-                    <option key={type} value={type}>
-                      {type}
-                    </option>
-                  ))}
-                </select>
               </Field>
             </Section>
 

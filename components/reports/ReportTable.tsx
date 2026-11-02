@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { HiSearch } from 'react-icons/hi';
 import StatusBadge from '@/components/ui/StatusBadge';
 import AssignButton from '@/components/evaluation/AssignButton';
@@ -9,6 +10,8 @@ import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
 import { formatScore, formatShortDate } from '@/lib/utils';
 import RowActions, { type RowMenuItem } from '@/components/reports/RowActions';
 import { REPORT_NOUN, type ReportNoun } from '@/lib/reports/terms';
+import { confirmDialog } from '@/lib/confirm';
+import { toast } from '@/lib/toast';
 
 type Report = {
   id: string;
@@ -24,7 +27,8 @@ type Report = {
 
 type Props = {
   reports: Report[];
-  role?: 'sender' | 'reviewer' | 'staff';
+  // 'admin' sees real statuses like the reviewer, but only opens reports.
+  role?: 'sender' | 'reviewer' | 'staff' | 'admin';
   showStatusFilter?: boolean;
   // Wording for the rows; a list of plans says БОМТ instead of тайлан.
   noun?: ReportNoun;
@@ -35,6 +39,7 @@ type Props = {
 const allStatusOptions = [
   { value: '', label: 'Бүгд' },
   { value: 'submitted', label: 'Илгээгдсэн' },
+  { value: 'in_review', label: 'Хянагдаж байгаа' },
   { value: 'needs_revision', label: 'Засвар шаардсан' },
   { value: 'completed', label: 'Үнэлгээ дууссан' },
 ];
@@ -53,6 +58,7 @@ export default function ReportTable({ reports, role = 'sender', showStatusFilter
   const [typeFilter, setTypeFilter] = useState('');
   const [page, setPage] = useState(1);
   const pageSize = 10;
+  const router = useRouter();
 
   const statusOptions = useMemo(() => {
     if (role === 'sender') {
@@ -87,7 +93,8 @@ export default function ReportTable({ reports, role = 'sender', showStatusFilter
       const matchesSearch = [report.reportNumber, report.title, report.senderCompany?.name]
         .filter(Boolean)
         .some((value) => value?.toLowerCase().includes(search.trim().toLowerCase()));
-      const matchesStatus = statusFilter ? report.status === statusFilter : true;
+      // Filter on the status the row shows (an assigned report reads as sent for the sender).
+      const matchesStatus = statusFilter ? displayStatus(report.status) === statusFilter : true;
       const matchesType = typeFilter ? reportTypeLabel(report) === typeFilter : true;
       return matchesSearch && matchesStatus && matchesType;
     });
@@ -108,10 +115,25 @@ export default function ReportTable({ reports, role = 'sender', showStatusFilter
   // Only a report nobody is assigned to yet gets "Оноох" as its main action;
   // reassigning stays on the report page.
   const needsAssignment = (report: Report) => role === 'reviewer' && report.status === 'submitted';
-  const detailHref = (report: Report) => `/report/${report.id}?role=${role ?? 'sender'}`;
+  const detailHref = (report: Report) => `/report/${report.id}?role=${role === 'admin' ? 'reviewer' : role ?? 'sender'}`;
   const primaryAction = (report: Report) => {
     const buttonClass =
       'inline-flex h-9 items-center justify-center whitespace-nowrap bg-color-primary px-3.5 text-xs font-semibold text-white transition hover:bg-color-primary-dark';
+    // A sender's draft opens back in the form; a returned report opens the fix page.
+    if (role === 'sender' && report.status === 'draft') {
+      return (
+        <Link href={`/sender/submit?edit=${report.id}`} className={buttonClass}>
+          Үргэлжлүүлэх
+        </Link>
+      );
+    }
+    if (role === 'sender' && report.status === 'needs_revision') {
+      return (
+        <Link href={`/sender/revise/${report.id}`} className={buttonClass}>
+          Засах
+        </Link>
+      );
+    }
     if (needsAssignment(report)) {
       return (
         <AssignButton report={{ id: report.id, reportNumber: report.reportNumber, title: report.title }} className={buttonClass}>
@@ -135,8 +157,30 @@ export default function ReportTable({ reports, role = 'sender', showStatusFilter
       </Link>
     );
   };
+  const deleteDraft = async (report: Report) => {
+    const ok = await confirmDialog({
+      title: 'Ноорог устгах',
+      message: `"${report.title}" ноорог болон хавсаргасан файлууд устана.`,
+      confirmLabel: 'Устгах',
+      danger: true,
+    });
+    if (!ok) return;
+    const res = await fetch(`/api/reports/${report.id}`, { method: 'DELETE' });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      toast(body.error || 'Ноорог устгахад алдаа гарлаа.', 'error');
+      return;
+    }
+    toast('Ноорог устлаа.');
+    router.refresh();
+  };
   const menuItems = (report: Report): RowMenuItem[] => {
-    if (role === 'sender') return [];
+    if (role === 'sender') {
+      if (report.status === 'draft') return [{ label: 'Устгах', onSelect: () => deleteDraft(report), danger: true }];
+      if (report.status === 'needs_revision') return [{ label: 'Дэлгэрэнгүй', href: detailHref(report) }];
+      return [];
+    }
+    if (role === 'admin') return [];
     const primaryIsDetail = !(needsAssignment(report) || (role === 'staff' && report.status === 'in_review'));
     return [
       ...(primaryIsDetail ? [] : [{ label: 'Дэлгэрэнгүй', href: detailHref(report) }]),

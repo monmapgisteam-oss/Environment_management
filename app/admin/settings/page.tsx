@@ -14,7 +14,7 @@ export default async function AdminSettingsPage() {
 
   return (
     <main className="flex-1 min-w-0 space-y-6 px-6 py-7 lg:px-8">
-      <PageHeader title="Тохиргоо" subtitle="Тайлангийн төрөл нэмэх, засах, идэвхгүй болгох" />
+      <PageHeader title="Тайлангийн төрөл" subtitle="Жилийн төлөвлөгөө, Биелэлтийн тайлан нь үндсэн төрөл тул өөрчлөгдөхгүй." />
 
       <ReportTypesManager reportTypes={reportTypes} />
     </main>

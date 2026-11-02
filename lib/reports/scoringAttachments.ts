@@ -64,5 +64,7 @@ export function scoringAttachmentsFor(
     const files = material ? attachments.filter((file) => file.materialId === material) : [];
     if (files.length) criterionAttachments[criterion.id] = files;
   }
-  return { criterionAttachments, reportAttachments: attachments.filter((file) => !file.criterionId && !file.materialId) };
+  // Evidence an older plan carries per performance criterion has no row on the
+  // plan sheet; it stays visible with the report's other files.
+  return { criterionAttachments, reportAttachments: attachments.filter((file) => !file.materialId) };
 }

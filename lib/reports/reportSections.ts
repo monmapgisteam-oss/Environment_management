@@ -1,19 +1,13 @@
 import type { Report, ReportType } from '@/lib/db/models';
 import { createSignedUrl } from '@/lib/db/storage';
-import { parseAttachments, type Attachment } from '@/lib/reports/attachments';
-import { fetchCriteriaFor } from '@/lib/reports/criteria';
-import { reportSections, type ReportSection } from '@/lib/reports/revisions';
+import type { Attachment } from '@/lib/reports/attachments';
+import { fetchCriteriaFor, sheetForReportType } from '@/lib/reports/criteria';
+import { criteriaSections, type ReportSection } from '@/lib/reports/revisions';
 
-// Upload sections of a stored report with their files (server only).
-export async function loadReportSections(report: Pick<Report, 'reportCategory' | 'fileUrl'> & { reportType: Pick<ReportType, 'name'> | null }) {
-  // Evidence rows of the submit form follow the performance sheet.
-  const criteria = await fetchCriteriaFor(report.reportCategory, 'performance');
-  return reportSections({
-    reportType: report.reportType?.name,
-    reportCategory: report.reportCategory,
-    criteria,
-    attachments: parseAttachments(report.fileUrl),
-  });
+// What a reviewer can flag when returning a stored report: the criteria of
+// the sheet it is scored on (server only).
+export async function loadReturnSections(report: Pick<Report, 'reportCategory'> & { reportType: Pick<ReportType, 'name' | 'slug'> | null }) {
+  return criteriaSections(await fetchCriteriaFor(report.reportCategory, sheetForReportType(report.reportType)));
 }
 
 export type SignedSectionFile = Attachment & { viewUrl: string };

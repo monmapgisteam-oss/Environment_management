@@ -17,6 +17,20 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
     if (Object.keys(update).length === 0) {
       return NextResponse.json({ error: 'Өөрчлөлт алга' }, { status: 400 });
     }
+    // Signed score sheets show the criterion's name and maximum: once anyone
+    // has scored it, those stay as they were. Deactivate it and add a new one.
+    if ('name' in update || 'maxScore' in update) {
+      const current = await dataStore.evaluationCriterion.findUnique({ where: { id: params.id } });
+      const used = await dataStore.evaluationScore.count({ where: { criterionId: params.id } });
+      const changed =
+        ('name' in update && update.name !== current?.name) || ('maxScore' in update && update.maxScore !== current?.maxScore);
+      if (used > 0 && changed) {
+        return NextResponse.json(
+          { error: 'Энэ шалгуураар оноо өгсөн тул нэр, оноог өөрчлөх боломжгүй. Идэвхгүй болгоод шинэ шалгуур нэмнэ үү.' },
+          { status: 409 },
+        );
+      }
+    }
     const criterion = await dataStore.evaluationCriterion.update({ where: { id: params.id }, data: update });
     return NextResponse.json(criterion);
   } catch (error) {

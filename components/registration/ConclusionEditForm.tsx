@@ -4,7 +4,7 @@ import { useState, type ChangeEvent, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { LuFileText, LuPencil, LuUpload } from 'react-icons/lu';
 import { CONCLUSION_MAX_FILE_BYTES, conclusionFileError } from '@/lib/auth/signup';
-import { CONCLUSION_DISTRICTS, CONCLUSION_PROJECT_CATEGORIES, CONCLUSION_TYPES } from '@/lib/reports/conclusions';
+import { CONCLUSION_DISTRICTS, CONCLUSION_PROJECT_CATEGORIES } from '@/lib/reports/conclusions';
 import { toast } from '@/lib/toast';
 
 export type ConclusionValues = {
@@ -61,7 +61,7 @@ export default function ConclusionEditForm({ initial, file, rejected }: Props) {
         setError(data.error || 'Хадгалахад алдаа гарлаа.');
         return;
       }
-      toast(data.resubmitted ? 'Дүгнэлтээ засаж дахин илгээлээ. Админ дахин шалгана.' : 'Дүгнэлт шинэчлэгдлээ. Хянагчдад мэдэгдэл очлоо.');
+      toast(data.resubmitted ? 'Дүгнэлтээ засаж дахин илгээлээ. Хянах байгууллага дахин шалгана.' : 'Дүгнэлт шинэчлэгдлээ. Хянагчдад мэдэгдэл очлоо.');
       setEditing(false);
       setNewFile(null);
       router.refresh();
@@ -75,7 +75,6 @@ export default function ConclusionEditForm({ initial, file, rejected }: Props) {
   const details: [string, string][] = [
     ['Дүгнэлтийн дугаар', initial.conclusionNumber],
     ['Дүгнэлт гаргасан он', initial.conclusionYear],
-    ['Дүгнэлтийн төрөл', initial.conclusionType],
     ['Төслийн ангилал', initial.projectCategory],
     ['Төсөл хэрэгжих байршил', initial.district],
     ['Төсөл хэрэгжүүлэгч', initial.implementerName],
@@ -132,16 +131,6 @@ export default function ConclusionEditForm({ initial, file, rejected }: Props) {
             <div>
               <label className={labelClass}>Дүгнэлтийн дугаар</label>
               <input value={form.conclusionNumber} onChange={set('conclusionNumber')} required className={inputClass} />
-            </div>
-            <div className="sm:col-span-2">
-              <label className={labelClass}>Дүгнэлтийн төрөл</label>
-              <select value={form.conclusionType} onChange={set('conclusionType')} required className={inputClass}>
-                {CONCLUSION_TYPES.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
             </div>
             <div className="sm:col-span-2">
               <label className={labelClass}>Төслийн нэр</label>

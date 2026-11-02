@@ -45,7 +45,6 @@ test('attachment tokens are rejected when forged, expired or issued for another 
 
 test('no signature PIN is hardcoded, stored in plaintext or shown on the public card', () => {
   const sources = [
-    'app/api/reports/[id]/cover-signature/route.ts',
     'app/qr/profile/[id]/page.tsx',
     'app/api/evaluations/submit/route.ts',
     'app/api/reports/[id]/approve-scores/route.ts',

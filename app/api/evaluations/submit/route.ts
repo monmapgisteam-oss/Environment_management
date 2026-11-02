@@ -1,11 +1,12 @@
 import dataStore from '@/lib/db';
 import { NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth';
+import { getApiUser, unauthorized } from '@/lib/auth';
 import { computeDocumentHash, generateSignatureId, verifyPin } from '@/lib/auth/signature';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
 import { uniqueAssignmentsByEvaluator } from '@/lib/reports/assignments';
 import { fetchCriteriaForReport } from '@/lib/reports/criteria';
 import { createNotifications, createUndoToken } from '@/lib/reports/undo';
+import { canTransition, transitionError } from '@/lib/reports/transitions';
 
 async function findOpenAssignment(reportId: string, evaluatorUserId?: string) {
   const assignments = await dataStore.reportAssignment.findMany({
@@ -52,7 +53,7 @@ export async function POST(request: Request) {
 
     const targetReport = await dataStore.report.findUnique({
       where: { id: reportId },
-      select: { id: true, title: true, reportCategory: true, status: true, finalScore: true, reportType: { select: { name: true } } },
+      select: { id: true, title: true, reportCategory: true, status: true, finalScore: true, reportType: { select: { name: true, slug: true } } },
     });
     if (!targetReport || targetReport.title === GENERAL_EVALUATION_CONCLUSION_TITLE) {
       return NextResponse.json({ error: 'Ерөнхий үнэлгээний дүгнэлт нь үнэлэх тайлан биш.' }, { status: 400 });
@@ -79,16 +80,19 @@ export async function POST(request: Request) {
 
     const totalScore = scoreEntries.reduce((sum, s) => sum + s.score, 0);
 
-    const current = await getCurrentUser();
-    if (!current) {
-      return NextResponse.json({ error: 'Нэвтрээгүй байна.' }, { status: 401 });
-    }
-    if (current.role !== 'evaluator' && current.role !== 'review_manager') {
-      return NextResponse.json({ error: 'Үнэлгээ өгөх эрхгүй байна.' }, { status: 403 });
+    const current = await getApiUser('evaluator', 'review_manager');
+    if (!current) return unauthorized();
+    // A returned report (or one already scored) can't be signed: signing would
+    // silently undo the return. A manager may also score a report nobody was
+    // assigned to yet.
+    const scorable =
+      canTransition(targetReport.status, 'evaluate') || (current.role === 'review_manager' && targetReport.status === 'submitted');
+    if (!scorable) {
+      return NextResponse.json({ error: transitionError('evaluate') }, { status: 409 });
     }
 
-    // A staff member scores their own assignment; a manager falls back to any
-    // unevaluated assignment (creating one if needed).
+    // Everyone scores under their own assignment; a manager without one gets
+    // one created, so a manager's PIN never signs an evaluator's assignment.
     let assignment;
     let assignmentCreated = false;
     if (current.role === 'evaluator') {
@@ -108,18 +112,14 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Танд энэ тайлан оноогдоогүй байна.' }, { status: 403 });
       }
     } else {
-      assignment = await findOpenAssignment(reportId);
+      assignment = await findOpenAssignment(reportId, current.id);
       if (assignment?.evaluation?.status === 'SIGNED') assignment = null;
       if (!assignment) {
-        const manager = await dataStore.user.findFirst({ where: { role: 'review_manager' } });
-        if (!manager) {
-          return NextResponse.json({ error: 'No review manager found' }, { status: 500 });
-        }
         assignment = await dataStore.reportAssignment.create({
           data: {
             reportId,
-            evaluatorUserId: manager.id,
-            assignedByUserId: manager.id,
+            evaluatorUserId: current.id,
+            assignedByUserId: current.id,
             status: 'submitted',
           },
           include: { evaluation: true },
@@ -249,18 +249,23 @@ export async function POST(request: Request) {
     // Once every evaluator has signed, the managers are asked to check the
     // scores and sign them off. The sender hears nothing yet: scores reach
     // them only after the manager's approval (api/reports/[id]/approve-scores).
-    let notificationIds: string[] = [];
-    if (allDone) {
-      const managers = await dataStore.user.findMany({ where: { role: 'review_manager' } });
-      notificationIds = await createNotifications(
-        managers.map((u) => ({
-          userId: u.id,
-          reportId,
-          title: 'Үнэлгээ баталгаажуулалт хүлээж байна',
-          message: `${updatedReport.reportNumber} тайлангийн бүх гишүүн гарын үсгээр үнэлгээгээ баталгаажууллаа. Шалгаад тоон гарын үсгээр баталгаажуулна уу. Дундаж оноо: ${avgScore.toFixed(1)}`,
-        })),
-      );
-    }
+    // Before that, each signature tells them how far scoring has got.
+    const managers = await dataStore.user.findMany({ where: { role: 'review_manager' } });
+    const notificationIds = await createNotifications(
+      managers.map((u) => ({
+        userId: u.id,
+        reportId,
+        ...(allDone
+          ? {
+              title: 'Үнэлгээ батлахыг хүлээж байна',
+              message: `${updatedReport.reportNumber} тайлангийн бүх гишүүн гарын үсгээр үнэлсэн. Шалгаад «Үнэлгээг батлах» дарна уу. Дундаж оноо: ${avgScore.toFixed(1)}`,
+            }
+          : {
+              title: 'Гишүүн үнэлгээгээ илгээлээ',
+              message: `${updatedReport.reportNumber}: ${current.name} гарын үсгээр үнэлсэн (${signed.length}/${uniqueAssignments.length}).`,
+            }),
+      })),
+    );
 
     const finalReport = await dataStore.report.findUnique({ where: { id: reportId }, select: { updatedAt: true } });
     const undoToken =

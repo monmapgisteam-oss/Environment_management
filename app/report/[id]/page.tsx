@@ -1,5 +1,5 @@
 import dataStore from '@/lib/db';
-import { fetchCriteriaFor, fetchCriteriaForReport } from '@/lib/reports/criteria';
+import { fetchCriteriaForReport } from '@/lib/reports/criteria';
 import AttachmentList from '@/components/reports/AttachmentList';
 import MaterialAttachmentList from '@/components/reports/MaterialAttachmentList';
 import ManagerReturnPanel from '@/components/reports/ManagerReturnPanel';
@@ -25,7 +25,7 @@ import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
 import { uniqueAssignmentsByEvaluator } from '@/lib/reports/assignments';
 import { scoresReleased } from '@/lib/reports/scoreRelease';
 import { scoringAttachmentsFor } from '@/lib/reports/scoringAttachments';
-import { parseRevisionItems, reportSections } from '@/lib/reports/revisions';
+import { criteriaSections, parseRevisionItems } from '@/lib/reports/revisions';
 import { signSections } from '@/lib/reports/reportSections';
 
 type Props = {
@@ -110,19 +110,8 @@ export default async function ReportDetailPage(props: Props) {
 
   const attachments = await signAttachments(parseAttachments(report.fileUrl));
   const revisionItems = parseRevisionItems(report.revisionItems);
-  // The manager picks from these sections when returning the report.
-  const sections =
-    isReviewer && !isConclusion
-      ? await signSections(
-          reportSections({
-            reportType: report.reportType.name,
-            reportCategory: report.reportCategory,
-            // Evidence rows of the submit form follow the performance sheet.
-            criteria: await fetchCriteriaFor(report.reportCategory, 'performance'),
-            attachments: parseAttachments(report.fileUrl),
-          }),
-        )
-      : [];
+  // The manager picks from the report's criteria when returning it.
+  const sections = isReviewer && !isConclusion ? await signSections(criteriaSections(criteria)) : [];
   const { criterionAttachments, reportAttachments } = scoringAttachmentsFor(attachments, criteria);
   const signedScanDownloadUrl = report.signedScanUrl ? await createSignedUrl(report.signedScanUrl) : null;
 
@@ -177,7 +166,7 @@ export default async function ReportDetailPage(props: Props) {
             <RevisionNotice
               reason={report.returnReason}
               items={revisionItems}
-              fixHref={revisionItems.length > 0 ? `/sender/revise/${report.id}` : `/sender/submit?edit=${report.id}`}
+              fixHref={`/sender/revise/${report.id}`}
             />
           )}
           {(companyPending || companyRejected) && (isReviewer || isAdmin) && (
@@ -194,12 +183,12 @@ export default async function ReportDetailPage(props: Props) {
                   </>
                 ) : (
                   <>
-                    <span className="font-semibold">Шинэ бүртгэл.</span> {report.senderCompany.name} байгууллагыг админ баталгаажуулаагүй
-                    байна. Дүгнэлтийг шалгаад {isAdmin ? 'баталгаажуулна уу.' : 'доор тайлбар үлдээнэ үү.'}
+                    <span className="font-semibold">Шинэ бүртгэл.</span> {report.senderCompany.name} байгууллага баталгаажаагүй
+                    байна. Дүгнэлтийг шалгаад {isReviewer ? 'баталгаажуулах эсвэл татгалзана уу.' : 'хянах менежер баталгаажуулна.'}
                   </>
                 )}
               </p>
-              {isAdmin && <CompanyApprovalButtons company={report.senderCompany} rejected={companyRejected} />}
+              {isReviewer && <CompanyApprovalButtons company={report.senderCompany} rejected={companyRejected} />}
             </div>
           )}
           <ReportInfoSection report={report} isConclusion={isConclusion} isSenderView={isSenderView} />
@@ -212,7 +201,7 @@ export default async function ReportDetailPage(props: Props) {
               emptyText="Хавсаргасан файл байхгүй байна."
             />
           )}
-          <MaterialAttachmentList attachments={attachments} reportType={report.reportType.name} reportCategory={report.reportCategory} />
+          <MaterialAttachmentList attachments={attachments} reportType={{ name: report.reportType.name, slug: report.reportType.slug }} reportCategory={report.reportCategory} />
 
           {!isConclusion && (
             <EvaluationSection
@@ -248,7 +237,21 @@ export default async function ReportDetailPage(props: Props) {
             />
           )}
 
-          {!isConclusion && <ScoreApprovalCard approval={approval} />}
+          {!isConclusion && (
+            <ScoreApprovalCard
+              approval={approval}
+              pending={
+                isReviewer && report.status === 'completed' && !report.scoresApprovedAt
+                  ? {
+                      reportId: report.id,
+                      reportNumber: report.reportNumber,
+                      evaluatorCount: assignedStaff.length,
+                      finalScore: report.finalScore,
+                    }
+                  : null
+              }
+            />
+          )}
 
           {/* Sender downloads the manager's scanned, physically-signed copy. */}
           {isSenderView && signedScanDownloadUrl && (
@@ -269,7 +272,8 @@ export default async function ReportDetailPage(props: Props) {
 
           {/* Manager controls: confirm/dismiss a staff return request, or return
               the report to the sender directly. */}
-          {isReviewer && !isConclusion && (
+          {/* Once every evaluator has signed, the scores are approved, not returned. */}
+          {isReviewer && !isConclusion && !['completed', 'approved', 'rejected'].includes(report.status) && (
             <ManagerReturnPanel
               reportId={report.id}
               status={report.status}
@@ -290,7 +294,7 @@ export default async function ReportDetailPage(props: Props) {
               isAdmin={isAdmin}
               // The revision notice at the top carries the fix button when shown.
               canFix={needsRevision && !report.returnReason && revisionItems.length === 0}
-              revisePath={revisionItems.length > 0 ? `/sender/revise/${report.id}` : undefined}
+              revisePath={`/sender/revise/${report.id}`}
             />
           </div>
         </aside>

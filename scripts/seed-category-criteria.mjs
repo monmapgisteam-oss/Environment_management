@@ -42,8 +42,19 @@ const SHEETS = {
     ['Удирдлага зохион байгуулалтын төлөвлөгөөний биелэлт', 5],
     ['Нөлөөллийн бүсийн оршин суугчдад тайлагнах төлөвлөгөөний биелэлт', 5],
   ],
+  // г. Хөдөө аж ахуй, үйлдвэрлэлийн төсөл. On older services this sheet
+  // already exists without a category; those rows are tagged instead.
+  Үйлдвэрлэл: [
+    ['Сөрөг нөлөөллийг бууруулах арга хэмжээний төлөвлөгөөний биелэлт', 20],
+    ['Орчны тохижилт, цэцэрлэгжүүлэлтийн төлөвлөгөөний биелэлт', 15],
+    ['Түүх, соёлын өвийг хамгаалах арга хэмжээний биелэлт', 5],
+    ['Осол, эрсдэлийн менежментийн төлөвлөгөөний биелэлт', 20],
+    ['Хог, хаягдлын менежментийн төлөвлөгөөний биелэлт', 20],
+    ['Орчны хяналт шинжилгээний хөтөлбөрийн биелэлт', 10],
+    ['Удирдлага зохион байгуулалтын төлөвлөгөөний биелэлт', 5],
+    ['Нөлөөллийн бүсийн оршин суугчдад тайлагнах төлөвлөгөөний биелэлт', 5],
+  ],
 };
-// г. Хөдөө аж ахуй, үйлдвэрлэлийн төсөл: the criteria already in the table.
 const UNTAGGED_CATEGORY = 'Үйлдвэрлэл';
 
 const dryRun = process.argv.includes('--dry-run');
@@ -63,9 +74,13 @@ for (const criterion of untagged) {
 }
 console.log(`${dryRun ? 'Would tag' : 'Tagged'} ${untagged.length} criteria as "${UNTAGGED_CATEGORY}".`);
 
+// Only the performance sheet is seeded here (plans: seed-plan-criteria.mjs),
+// so a category counts as done once it has performance criteria.
+const performanceRows = (category) =>
+  existing.filter((c) => (c.category ?? UNTAGGED_CATEGORY) === category && c.sheet !== 'plan');
 for (const [category, rows] of Object.entries(SHEETS)) {
-  if (existing.some((c) => c.category === category)) {
-    console.log(`"${category}" already has criteria, skipped.`);
+  if (performanceRows(category).length > 0) {
+    console.log(`"${category}" already has a performance sheet, skipped.`);
     continue;
   }
   for (const [index, [name, maxScore]] of rows.entries()) {

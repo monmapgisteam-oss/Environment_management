@@ -28,17 +28,26 @@ export default function AssignDialog({ report, staff, assigneeIds, onClose }: Pr
   const [deadline, setDeadline] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const toggle = (id: string) =>
+  // Members already assigned stay assigned: their ticks are fixed, and only
+  // new members are sent.
+  const isAssigned = (id: string) => assigneeIds.includes(id);
+  const newMembers = selected.filter((id) => !isAssigned(id));
+  const toggle = (id: string) => {
+    if (isAssigned(id)) return;
     setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
 
   const submit = async () => {
-    if (selected.length === 0) return;
+    if (newMembers.length === 0) {
+      toast('Шинэ гишүүн сонгоогүй байна.', 'error');
+      return;
+    }
     setSaving(true);
     try {
       const res = await fetch('/api/assignments/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reportId: report.id, evaluators: Array.from(new Set(selected)), deadline: deadline || undefined }),
+        body: JSON.stringify({ reportId: report.id, evaluators: newMembers, deadline: deadline || undefined }),
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
@@ -72,16 +81,22 @@ export default function AssignDialog({ report, staff, assigneeIds, onClose }: Pr
         <div className="mt-4 max-h-64 space-y-2 overflow-y-auto">
           {staff.length === 0 && <p className="text-sm text-slate-400">Бүртгэлтэй гишүүн алга байна.</p>}
           {staff.map((member) => (
-            <label key={member.id} className="flex cursor-pointer items-center gap-3 border border-slate-200 p-3 hover:bg-slate-50">
+            <label
+              key={member.id}
+              className={`flex items-center gap-3 border border-slate-200 p-3 ${isAssigned(member.id) ? 'cursor-default bg-slate-50' : 'cursor-pointer hover:bg-slate-50'}`}
+            >
               <input
                 type="checkbox"
                 checked={selected.includes(member.id)}
+                disabled={isAssigned(member.id)}
                 onChange={() => toggle(member.id)}
                 className="h-4 w-4 accent-color-primary"
               />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-slate-800">{member.name}</p>
-                <p className="truncate text-xs text-slate-500">{member.position || 'Үнэлэгч'}</p>
+                <p className="truncate text-xs text-slate-500">
+                  {isAssigned(member.id) ? 'Оноогдсон' : member.position || 'Үнэлэгч'}
+                </p>
               </div>
             </label>
           ))}
@@ -96,10 +111,10 @@ export default function AssignDialog({ report, staff, assigneeIds, onClose }: Pr
           <button
             type="button"
             onClick={submit}
-            disabled={saving || selected.length === 0}
+            disabled={saving || newMembers.length === 0}
             className="flex-1 bg-color-primary px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-color-primary-dark disabled:opacity-50"
           >
-            {saving ? 'Хадгалж байна...' : 'Оноох'}
+            {saving ? 'Хадгалж байна...' : newMembers.length ? `Оноох (${newMembers.length})` : 'Оноох'}
           </button>
           <button
             type="button"

@@ -8,7 +8,6 @@ import KpiStrip from '@/components/ui/KpiStrip';
 import { CreateStaffDialog, CredentialsDialog, ResetPasswordDialog } from '@/components/admin/StaffAccountDialog';
 import { confirmDialog } from '@/lib/confirm';
 import { toast } from '@/lib/toast';
-import { decideCompany } from '@/lib/companyApproval';
 
 export type UserRow = {
   id: string;
@@ -150,12 +149,6 @@ export default function UsersView({ users }: { users: UserRow[] }) {
     users.flatMap((u) => (u.role === 'sender' && u.company?.approvalStatus === 'pending' ? [u.company.id] : [])),
   ).size;
 
-  const decide = async (user: UserRow, action: 'approve' | 'reject') => {
-    if (!user.company) return;
-    setBusy(user.id);
-    if (await decideCompany(user.company, action)) router.refresh();
-    setBusy(null);
-  };
 
   const staffWithoutSignature = users.filter(
     (u) => u.isActive && (u.role === 'evaluator' || u.role === 'review_manager') && !u.hasSignature,
@@ -358,38 +351,6 @@ export default function UsersView({ users }: { users: UserRow[] }) {
                 <div className="my-1 h-px bg-slate-100" />
               </>
             )}
-            {menu.user.role === 'sender' &&
-              (menu.user.company?.approvalStatus === 'pending' || menu.user.company?.approvalStatus === 'rejected') && (
-                <>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className={`${menuItem} font-semibold text-teal-700`}
-                    onClick={() => {
-                      const user = menu.user;
-                      setMenu(null);
-                      decide(user, 'approve');
-                    }}
-                  >
-                    Байгууллагыг баталгаажуулах
-                  </button>
-                  {menu.user.company.approvalStatus === 'pending' && (
-                    <button
-                      type="button"
-                      role="menuitem"
-                      className={`${menuItem} text-rose-600 hover:bg-rose-50`}
-                      onClick={() => {
-                        const user = menu.user;
-                        setMenu(null);
-                        decide(user, 'reject');
-                      }}
-                    >
-                      Бүртгэлийг татгалзах
-                    </button>
-                  )}
-                  <div className="my-1 h-px bg-slate-100" />
-                </>
-              )}
             <button
               type="button"
               role="menuitem"

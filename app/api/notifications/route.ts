@@ -5,7 +5,7 @@ import { getCurrentUser } from '@/lib/auth';
 export async function PATCH(request: NextRequest) {
   try {
     const user = await getCurrentUser();
-    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    if (!user) return NextResponse.json({ error: 'Нэвтрэх хугацаа дууссан байна. Дахин нэвтэрнэ үү.' }, { status: 401 });
     const body = await request.json().catch(() => ({}));
     const raw: unknown[] = Array.isArray(body.ids) ? body.ids : body.id ? [body.id] : [];
     const ids = raw.filter((id): id is string => typeof id === 'string').slice(0, 200);
@@ -20,7 +20,7 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: 'Failed to update' }, { status: 500 });
+    return NextResponse.json({ error: 'Мэдэгдэл шинэчлэхэд алдаа гарлаа.' }, { status: 500 });
   }
 }
 

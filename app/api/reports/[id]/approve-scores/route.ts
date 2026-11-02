@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
 import dataStore from '@/lib/db';
+import { senderRecipientIds } from '@/lib/reports/companies';
 import { getApiUser, unauthorized } from '@/lib/auth';
 import { computeDocumentHash, generateSignatureId, verifyPin } from '@/lib/auth/signature';
 import { uniqueAssignmentsByEvaluator } from '@/lib/reports/assignments';
 import { createNotifications } from '@/lib/reports/undo';
 import { formatScore } from '@/lib/utils';
+import { nounForReportType, PLAN_NOUN } from '@/lib/reports/terms';
 
 async function nextApprovalId(at: Date) {
   const dayStart = new Date(Date.UTC(at.getUTCFullYear(), at.getUTCMonth(), at.getUTCDate()));
@@ -38,6 +40,7 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
       where: { id },
       include: {
         senderCompany: { include: { users: { select: { id: true } } } },
+        reportType: true,
         assignments: { include: { evaluation: true }, orderBy: { assignedAt: 'desc' } },
       },
     });
@@ -97,11 +100,20 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
 
     try {
       await createNotifications(
-        report.senderCompany.users.map((u) => ({
-          userId: u.id,
+        (await senderRecipientIds(report)).map((userId) => ({
+          userId,
           reportId: report.id,
           title: 'Үнэлгээ баталгаажлаа',
-          message: `${report.reportNumber} тайлангийн үнэлгээг менежер баталгаажууллаа. Эцсийн оноо: ${formatScore(report.finalScore)}`,
+          message: `${report.reportNumber} ${nounForReportType(report.reportType) === PLAN_NOUN ? 'БОМТ-ний' : 'тайлангийн'} үнэлгээг менежер баталлаа. Эцсийн оноо: ${formatScore(report.finalScore)}`,
+        })),
+      );
+      // The evaluators learn their scores were approved.
+      await createNotifications(
+        signed.map(({ evaluatorUserId }) => ({
+          userId: evaluatorUserId,
+          reportId: report.id,
+          title: 'Үнэлгээ батлагдлаа',
+          message: `${report.reportNumber} тайлангийн таны үнэлгээг менежер баталлаа.`,
         })),
       );
     } catch (notifyError) {

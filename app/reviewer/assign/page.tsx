@@ -32,7 +32,7 @@ async function fetchStaff() {
 async function fetchDistributableReports() {
   const rawReports = await dataStore.report.findMany({
     where: {
-      status: { in: ['submitted', 'assigned', 'in_review', 'needs_revision'] },
+      status: { in: ['submitted', 'assigned', 'in_review'] },
       title: { not: GENERAL_EVALUATION_CONCLUSION_TITLE },
     },
     include: {

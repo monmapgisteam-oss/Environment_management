@@ -12,15 +12,17 @@ const attachments = [
   { url: 'u4', name: 'd.jpg' },
 ];
 
-test('sections follow the submit form: documents, criteria for performance reports, then other files', () => {
+test('sections follow the submit form: documents, criteria that still hold files, then other files', () => {
   const sections = reportSections({ reportType: PERFORMANCE, reportCategory: 'Үйлдвэрлэл', criteria, attachments });
-  assert.deepEqual(sections.slice(0, 4).map((s) => s.key), ['material:main-document', 'material:annex', 'criterion:c1', 'criterion:c2']);
+  assert.deepEqual(sections.slice(0, 3).map((s) => s.key), ['material:main-document', 'material:annex', 'criterion:c1']);
+  // A criterion without files has no section: the form has no evidence rows.
+  assert.ok(!sections.some((s) => s.key === 'criterion:c2'));
   assert.equal(sections.at(-1).key, 'general');
   assert.deepEqual(sections[0].files.map((f) => f.url), ['u3']);
   assert.deepEqual(sections[2].files.map((f) => f.url), ['u1', 'u2']);
   assert.deepEqual(sections.at(-1).files.map((f) => f.url), ['u4']);
 
-  // Plans have no criterion rows unless older files still sit under one.
+  // Plans likewise list only criteria that still hold files.
   const plan = reportSections({ reportType: PLAN, reportCategory: 'Үйлдвэрлэл', criteria, attachments });
   assert.deepEqual(plan.filter((s) => s.key.startsWith('criterion:')).map((s) => s.key), ['criterion:c1']);
 

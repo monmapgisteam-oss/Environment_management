@@ -52,3 +52,16 @@ export async function attachEffectiveSenderCompanies<T extends ReportWithCompany
     } as T;
   });
 }
+
+// Users to notify for a report's sender: the company the report is stored
+// under and, for imported reports, the company its implementer register
+// resolves to. Empty when that company has no accounts yet.
+export async function senderRecipientIds(report: { senderCompanyId: string; implementerRegister?: string | null }) {
+  const effective = await findSenderCompanyByRegister(report.implementerRegister);
+  const companyIds = [...new Set([report.senderCompanyId, effective?.id].filter((id): id is string => !!id))];
+  const users = await dataStore.user.findMany({ where: { companyId: { in: companyIds }, role: 'sender' }, select: { id: true } });
+  return users.map((user) => user.id);
+}
+
+export const NO_SENDER_ACCOUNT_WARNING =
+  'Илгээгч байгууллагад бүртгэлтэй хэрэглэгч алга тул мэдэгдэл очсонгүй. Байгууллагатай шууд холбогдоно уу.';

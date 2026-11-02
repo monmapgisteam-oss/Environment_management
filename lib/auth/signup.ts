@@ -59,7 +59,8 @@ export function parseSignup(data: Record<string, unknown>): { input: SignupInput
 
 // Second step of sign-up: the company's general evaluation conclusion
 // (Ерөнхий үнэлгээний дүгнэлт). Every field is required so the review
-// organisation can filter conclusions by it.
+// organisation can filter conclusions by it, except the conclusion type, which
+// the form no longer asks for (older conclusions keep theirs).
 export type ConclusionInput = {
   year: number;
   conclusionNumber: string;
@@ -90,7 +91,7 @@ export function parseConclusion(data: Record<string, unknown>, now = new Date())
   const implementerName = text(data.implementerName, 300);
   if (implementerName.length < 2) return { error: 'Төсөл хэрэгжүүлэгчийн нэрээ оруулна уу.' };
   const conclusionType = text(data.conclusionType, 200);
-  if (!CONCLUSION_TYPES.includes(conclusionType)) return { error: 'Дүгнэлтийн төрлөө сонгоно уу.' };
+  if (conclusionType && !CONCLUSION_TYPES.includes(conclusionType)) return { error: 'Дүгнэлтийн төрөл буруу байна.' };
   return { input: { year, conclusionNumber, projectCategory, projectName, district, implementerName, conclusionType } };
 }
 

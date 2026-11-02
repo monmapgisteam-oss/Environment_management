@@ -6,6 +6,7 @@ import { getApiUser, unauthorized } from "@/lib/auth";
 import { ACTIVE_USER_WHERE } from "@/lib/auth/accounts";
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from "@/lib/reports/conclusions";
 import { createNotifications, createUndoToken } from "@/lib/reports/undo";
+import { canTransition, transitionError } from "@/lib/reports/transitions";
 
 export async function POST(request: Request) {
   try {
@@ -32,6 +33,10 @@ export async function POST(request: Request) {
         { error: "Ерөнхий үнэлгээний дүгнэлт нь оноох тайлан биш." },
         { status: 400 },
       );
+    }
+    // Not while the sender is fixing it, a return is pending, or scoring is done.
+    if (!canTransition(targetReport.status, "assign")) {
+      return NextResponse.json({ error: transitionError("assign") }, { status: 409 });
     }
 
     const assignable = await dataStore.user.count({
@@ -67,7 +72,8 @@ export async function POST(request: Request) {
 
       const report = await dataStore.report.update({
         where: { id: reportId },
-        data: { status: "assigned" },
+        // Adding an evaluator to a report already being scored keeps it in review.
+        data: { status: targetReport.status === "submitted" ? "assigned" : targetReport.status },
       });
 
       // Let each newly assigned staff member know they have work to do.
@@ -110,7 +116,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error(error);
     return NextResponse.json(
-      { error: "Failed to assign evaluators" },
+      { error: "Гишүүдэд оноох үед алдаа гарлаа. Дахин оролдоно уу." },
       { status: 500 },
     );
   }

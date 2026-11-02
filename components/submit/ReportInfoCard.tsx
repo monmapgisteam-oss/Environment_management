@@ -1,5 +1,6 @@
 import { REPORT_CATEGORIES } from '@/lib/constants';
 import DateInput from '@/components/ui/DateInput';
+import type { FormWord } from '@/lib/reports/terms';
 
 type ReportInfoFields = {
   reportCategory: string;
@@ -12,6 +13,7 @@ type ReportInfoFields = {
 interface ReportInfoCardProps {
   formData: ReportInfoFields;
   handleChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void;
+  word: FormWord;
 }
 
 const inputClass = 'w-full h-11 border border-slate-200 bg-white px-4 text-sm text-color-text-main placeholder:text-color-text-muted focus:outline-none focus:border-color-primary focus:ring-2 focus:ring-color-primary/10 transition';
@@ -22,7 +24,7 @@ function Required() {
   return <span className="text-red-500">*</span>;
 }
 
-export default function ReportInfoCard({ formData, handleChange }: ReportInfoCardProps) {
+export default function ReportInfoCard({ formData, handleChange, word }: ReportInfoCardProps) {
   return (
     <div className="border border-slate-200 bg-white p-6">
       {/* Header, with the number the server assigned once the report is saved */}
@@ -36,11 +38,11 @@ export default function ReportInfoCard({ formData, handleChange }: ReportInfoCar
               <line x1="16" y1="17" x2="8" y2="17" />
             </svg>
           </div>
-          <h2 className="text-base font-semibold text-color-text-main">Тайлангийн мэдээлэл</h2>
+          <h2 className="text-base font-semibold text-color-text-main">{word.of} мэдээлэл</h2>
         </div>
         {formData.reportNumber && (
           <span className="bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
-            Тайлангийн дугаар: <span className="font-semibold text-slate-800">{formData.reportNumber}</span>
+            {word.of} дугаар: <span className="font-semibold text-slate-800">{formData.reportNumber}</span>
           </span>
         )}
       </div>
@@ -66,7 +68,7 @@ export default function ReportInfoCard({ formData, handleChange }: ReportInfoCar
         </div>
         <div>
           <label htmlFor="report-approvedDate" className={labelClass}>
-            Тайлан батлагдсан огноо <Required />
+            {word.capital} батлагдсан огноо <Required />
           </label>
           <DateInput
             id="report-approvedDate"
@@ -96,13 +98,13 @@ export default function ReportInfoCard({ formData, handleChange }: ReportInfoCar
         </div>
 
         <div className="md:col-span-2">
-          <label htmlFor="report-description" className={labelClass}>Ногоон байгууламжийн талаарх мэдээлэл</label>
+          <label htmlFor="report-description" className={labelClass}>Төслийн тухай мэдээлэл</label>
           <textarea
             id="report-description"
             name="description"
             value={formData.description}
             onChange={handleChange}
-            placeholder="Ногоон байгууламжийн талаарх мэдээллээ бичнэ үү"
+            placeholder="Төслийн тухай мэдээллээ бичнэ үү"
             rows={4}
             className="w-full border border-slate-200 bg-white px-4 py-3 text-sm text-color-text-main placeholder:text-color-text-muted focus:outline-none focus:border-color-primary focus:ring-2 focus:ring-color-primary/10 transition resize-y"
           />

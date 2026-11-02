@@ -11,13 +11,20 @@ import SavedAttachmentList from "@/components/submit/SavedAttachmentList";
 import SubmitActions from "@/components/submit/SubmitActions";
 import SubmitStepper from "@/components/submit/SubmitStepper";
 import { useReportSubmission } from "@/components/submit/useReportSubmission";
-import { materialsTitle, type ReportMaterial } from "@/lib/reports/materials";
-import { sampleForCriterion, scoringSheetSample } from "@/lib/reports/samples";
+import RevisionNotice from "@/components/reports/detail/RevisionNotice";
+import { MAIN_DOCUMENT_ID, materialsTitle, type ReportMaterial } from "@/lib/reports/materials";
 import { nounForReportType } from "@/lib/reports/terms";
+
+// "Шинэ ... илгээх" after a send starts a fresh form: remounting resets every
+// step, picked file and the map pin at once.
+export default function SubmitReportForm() {
+  const [formKey, setFormKey] = useState(0);
+  return <SubmitReportFormBody key={formKey} onNew={() => setFormKey((key) => key + 1)} />;
+}
 
 // The server stores the sender company as the project implementer, so the
 // form does not ask for it.
-export default function SubmitReportForm() {
+function SubmitReportFormBody({ onNew }: { onNew: () => void }) {
   const form = useReportSubmission();
   const showSavedAttachments = form.isEdit && form.existingAttachments.length > 0;
   const isStepForm = !form.isGeneralEvaluation;
@@ -53,11 +60,12 @@ export default function SubmitReportForm() {
 
   const steps: { title: string; content: ReactNode }[] = [
     {
-      title: "Тайлангийн мэдээлэл",
+      title: `${form.word.of} мэдээлэл`,
       content: (
         <ReportInfoCard
           formData={form.formData}
           handleChange={form.handleChange}
+          word={form.word}
         />
       ),
     },
@@ -70,51 +78,16 @@ export default function SubmitReportForm() {
         />
       ),
     },
-    // Performance reports: the documents, then the evidence of each criterion
-    // of the chosen "Төслийн ангилал". Plans: the documents only.
-    ...(form.isPerformanceReport
-      ? [
-          {
-            title: "Бичиг баримт, нотлох файл",
-            content: (
-              <>
-                {form.materials.length > 0 && materialUploads}
-                {form.criteria.length > 0 && (
-                  <EvidenceUploadCard
-                    title="Үнэлгээний шалгуурын нотлох файл"
-                    description="Шалгуур бүрийн баруун талд PDF файл хавсаргана уу (зургийг PDF болгож хавсаргана). Журмын батлагдсан загварыг шалгуур бүрийн доор үзнэ үү."
-                    headerLink={scoringSheetSample(form.formData.reportCategory) ?? undefined}
-                    idPrefix="criterion"
-                    rows={form.criteria.map((criterion) => ({
-                      id: criterion.id,
-                      label: criterion.name,
-                      detail: `Авбал зохих оноо: ${criterion.maxScore}`,
-                      samples: [sampleForCriterion(form.formData.reportCategory, criterion.name)].filter(
-                        (sample): sample is NonNullable<typeof sample> => sample !== null,
-                      ),
-                    }))}
-                    filesByRow={form.criterionFiles}
-                    existingByRow={form.existingCriterionAttachments}
-                    onFilesChange={form.handleCriterionFilesChange}
-                    onExistingChange={form.handleExistingCriterionFilesChange}
-                  />
-                )}
-                {savedGeneralAttachments}
-              </>
-            ),
-          },
-        ]
-      : [
-          {
-            title: materialsLabel,
-            content: (
-              <>
-                {form.materials.length > 0 && materialUploads}
-                {savedGeneralAttachments}
-              </>
-            ),
-          },
-        ]),
+    // Plans and performance reports alike: the document and its "Хавсралт".
+    {
+      title: materialsLabel,
+      content: (
+        <>
+          {form.materials.length > 0 && materialUploads}
+          {savedGeneralAttachments}
+        </>
+      ),
+    },
   ];
   const stepTitles = steps.map((step) => step.title);
   const lastStep = steps.length - 1;
@@ -150,6 +123,47 @@ export default function SubmitReportForm() {
     window.dispatchEvent(new Event("resize"));
   }, [activeStep]);
 
+  // Before sending, every step is checked, not just the visible one: the
+  // first step with something missing opens with the browser's message, and
+  // the map pin and main document are checked too.
+  const firstInvalidStep = () =>
+    stepRefs.current.findIndex((container) =>
+      Array.from(
+        container?.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>("input, select, textarea") ?? [],
+      ).some((field) => !field.checkValidity()),
+    );
+  const hasMainDocument =
+    (form.materialFiles[MAIN_DOCUMENT_ID]?.length ?? 0) + (form.existingMaterialAttachments[MAIN_DOCUMENT_ID]?.length ?? 0) > 0;
+  // Reports filed under the older document lists have no main document row.
+  const isLegacyReturn =
+    form.editStatus === "needs_revision" &&
+    !form.existingMaterialAttachments[MAIN_DOCUMENT_ID]?.length &&
+    Object.keys(form.existingMaterialAttachments).length > 0;
+
+  const readyToSend = () => {
+    const invalid = firstInvalidStep();
+    if (invalid >= 0) {
+      goToStep(invalid);
+      setTimeout(() => currentStepFields(invalid).find((field) => !field.checkValidity())?.reportValidity(), 50);
+      return false;
+    }
+    if (form.location?.lat == null || form.location?.lng == null) {
+      goToStep(1);
+      form.setSubmitError("Газрын зураг дээр байршлаа сонгоно уу.");
+      return false;
+    }
+    if (!hasMainDocument && !isLegacyReturn) {
+      goToStep(lastStep);
+      form.setSubmitError("Үндсэн баримт бичгээ (PDF) хавсаргана уу.");
+      return false;
+    }
+    return true;
+  };
+  const currentStepFields = (index: number) =>
+    Array.from(
+      stepRefs.current[index]?.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>("input, select, textarea") ?? [],
+    );
+
   // Enter or "Дараах" moves on until the last step, which submits.
   const handleFormSubmit = (event: FormEvent<HTMLFormElement>) => {
     if (!isStepForm) return form.handleSubmit(event);
@@ -159,6 +173,7 @@ export default function SubmitReportForm() {
       goToStep(activeStep + 1);
       return;
     }
+    if (!readyToSend()) return;
     form.handleSubmit(event);
   };
 
@@ -169,11 +184,12 @@ export default function SubmitReportForm() {
         {form.submitted ? (
           <SubmitSuccessCard
             noun={nounForReportType(form.formData.reportType)}
-            isEdit={form.isEdit}
+            // Sending a saved draft is a first send; only a returned report is "re"-sent.
+            isEdit={form.isEdit && form.editStatus === "needs_revision"}
             isGeneralEvaluation={form.isGeneralEvaluation}
             reportNumber={form.submittedNumber}
             onBackToReports={form.handleBackToReports}
-            onReset={form.handleReset}
+            onReset={onNew}
           />
         ) : (
           <div
@@ -184,10 +200,17 @@ export default function SubmitReportForm() {
             <SubmitFormHeader
               title={form.pageTitle}
               isGeneralEvaluation={form.isGeneralEvaluation}
+              word={form.word}
             />
 
             {/* Card Body */}
             <form onSubmit={handleFormSubmit} noValidate={isStepForm} className="p-6 sm:p-8">
+              {/* Fixing a returned report: why it came back, above the form. */}
+              {form.returnInfo && (form.returnInfo.reason || form.returnInfo.items.length > 0) && (
+                <div className="mb-6">
+                  <RevisionNotice reason={form.returnInfo.reason} items={form.returnInfo.items} />
+                </div>
+              )}
               {form.isGeneralEvaluation ? (
                 <div className="max-w-3xl">
                   {showSavedAttachments && (
@@ -231,9 +254,12 @@ export default function SubmitReportForm() {
 
               <SubmitActions
                 isGeneralEvaluation={form.isGeneralEvaluation}
+                word={form.word.capital}
                 submitting={form.submitting}
                 savingDraft={form.savingDraft}
                 onSaveDraft={form.handleSaveDraft}
+                // A returned report is fixed and sent, never saved back to drafts.
+                canSaveDraft={form.editStatus !== "needs_revision"}
                 isLastStep={isLastStep}
                 onBack={isStepForm && activeStep > 0 ? () => goToStep(activeStep - 1) : undefined}
               />

@@ -49,7 +49,7 @@ export async function POST(request: Request) {
         conclusionNumber: conclusion.conclusionNumber,
         reportCategory: conclusion.projectCategory,
         projectName: conclusion.projectName,
-        description: conclusion.conclusionType,
+        description: conclusion.conclusionType || null,
         implementerName: conclusion.implementerName,
         year: conclusion.year,
         submittedAt: new Date(),

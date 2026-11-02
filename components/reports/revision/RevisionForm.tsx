@@ -4,16 +4,21 @@ import Link from 'next/link';
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { HiCheckCircle, HiOutlineDocumentText, HiOutlineReply, HiOutlineTrash, HiUpload, HiX } from 'react-icons/hi';
-import type { SignedSectionFile } from '@/lib/reports/reportSections';
+import type { SignedReportSection } from '@/lib/reports/reportSections';
 import type { RevisionItem } from '@/lib/reports/revisions';
+import RevisionItemList from '@/components/reports/revision/RevisionItemList';
 import { toast } from '@/lib/toast';
+import { uploadErrorMessage, uploadReportFile } from '@/lib/reports/uploadFile';
 
-type FlaggedSection = RevisionItem & { group: string; files: SignedSectionFile[] };
+type DocumentSection = SignedReportSection;
 
 type Props = {
   reportId: string;
   reason: string | null;
-  items: FlaggedSection[];
+  // The criteria the reviewer flagged, each with a comment.
+  items: RevisionItem[];
+  // The report and its Хавсралт, the only files the sender sends again.
+  documents: DocumentSection[];
 };
 
 type Draft = { removed: string[]; added: File[] };
@@ -22,21 +27,12 @@ type Draft = { removed: string[]; added: File[] };
 const accept = 'application/pdf,.pdf';
 const allowedPattern = /\.pdf$/i;
 
-async function uploadFile(file: File) {
-  const body = new FormData();
-  body.append('file', file);
-  body.append('purpose', 'report-attachment');
-  const res = await fetch('/api/upload', { method: 'POST', body });
-  if (!res.ok) throw new Error('upload failed');
-  const data = (await res.json()) as { url: string; name: string };
-  return { url: data.url, name: data.name };
-}
-
-// One card per flagged section: the reviewer's comment, the files there now
-// (each can be removed) and new files to add. Every card must change before
-// the report can be sent back.
-export default function RevisionForm({ reportId, reason, items }: Props) {
+// The reviewer's comments on top, then one card for the report and one for
+// its Хавсралт: the files there now (each can be removed) and corrected files
+// to add. At least one file must change, and the report itself must stay.
+export default function RevisionForm({ reportId, reason, items: comments, documents }: Props) {
   const router = useRouter();
+  const items = documents;
   const [drafts, setDrafts] = useState<Record<string, Draft>>(() =>
     Object.fromEntries(items.map((item) => [item.key, { removed: [], added: [] }])),
   );
@@ -46,13 +42,17 @@ export default function RevisionForm({ reportId, reason, items }: Props) {
 
   const changed = (key: string) => drafts[key].added.length > 0 || drafts[key].removed.length > 0;
   const doneCount = items.filter((item) => changed(item.key)).length;
+  const mainDocument = items[0];
+  const mainKept = mainDocument
+    ? mainDocument.files.length - drafts[mainDocument.key].removed.length + drafts[mainDocument.key].added.length > 0
+    : true;
 
   const update = (key: string, next: (draft: Draft) => Draft) =>
     setDrafts((current) => ({ ...current, [key]: next(current[key]) }));
 
   // The first new file in a section replaces the files already there; the
   // sender can restore one of them if it should stay.
-  const addFiles = (item: FlaggedSection, list: FileList | null) => {
+  const addFiles = (item: DocumentSection, list: FileList | null) => {
     const picked = Array.from(list ?? []);
     const valid = picked.filter((file) => allowedPattern.test(file.name));
     if (valid.length < picked.length) toast('Зөвхөн PDF файл хавсаргана уу.', 'error');
@@ -64,19 +64,18 @@ export default function RevisionForm({ reportId, reason, items }: Props) {
   };
 
   const submit = async () => {
-    if (doneCount < items.length) {
+    if (doneCount === 0 || !mainKept) {
       setShowErrors(true);
-      const first = items.find((item) => !changed(item.key));
-      if (first) document.getElementById(`revise-${first.key}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (mainDocument) document.getElementById(`revise-${mainDocument.key}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
     setSending(true);
     try {
       const fixes = [];
-      for (const item of items) {
+      for (const item of items.filter((candidate) => changed(candidate.key))) {
         const draft = drafts[item.key];
         const added = [];
-        for (const file of draft.added) added.push(await uploadFile(file));
+        for (const file of draft.added) added.push(await uploadReportFile(file));
         fixes.push({
           key: item.key,
           keepUrls: item.files.filter((file) => !draft.removed.includes(file.url)).map((file) => file.url),
@@ -97,8 +96,8 @@ export default function RevisionForm({ reportId, reason, items }: Props) {
       toast('Засвар илгээгдлээ.');
       router.push(`/report/${reportId}?role=sender`);
       router.refresh();
-    } catch {
-      toast('Файл хуулах үед алдаа гарлаа. Дахин оролдоно уу.', 'error');
+    } catch (error) {
+      toast(uploadErrorMessage(error), 'error');
       setSending(false);
     }
   };
@@ -106,17 +105,18 @@ export default function RevisionForm({ reportId, reason, items }: Props) {
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
       <div className="space-y-4">
-        {reason && (
+        {(reason || comments.length > 0) && (
           <div className="border border-orange-200 bg-orange-50/40 px-5 py-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-orange-700">Ерөнхий тайлбар</p>
-            <p className="mt-1 whitespace-pre-wrap text-sm text-slate-700">{reason}</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-orange-700">Хянагчийн тайлбар</p>
+            {reason && <p className="mt-1 whitespace-pre-wrap text-sm text-slate-700">{reason}</p>}
+            <RevisionItemList items={comments} className="mt-3" />
           </div>
         )}
 
         {items.map((item, index) => {
           const draft = drafts[item.key];
           const done = changed(item.key);
-          const error = showErrors && !done;
+          const error = showErrors && (item === mainDocument ? !mainKept || doneCount === 0 : false);
           return (
             <section
               key={item.key}
@@ -138,11 +138,6 @@ export default function RevisionForm({ reportId, reason, items }: Props) {
               </header>
 
               <div className="space-y-4 px-5 py-4">
-                <div className="border-l-2 border-orange-400 bg-orange-50/60 px-3 py-2">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-orange-700">Хянагчийн тайлбар</p>
-                  <p className="mt-0.5 whitespace-pre-wrap text-sm text-slate-700">{item.comment}</p>
-                </div>
-
                 <div>
                   <p className="mb-2 text-xs font-semibold text-slate-500">
                     Одоогийн файл
@@ -240,7 +235,11 @@ export default function RevisionForm({ reportId, reason, items }: Props) {
                   </button>
                 </div>
 
-                {error && <p className="text-xs font-medium text-rose-600">Энэ хэсэгт шинэ файл нэмэх эсвэл буруу файлыг устгана уу.</p>}
+                {error && (
+                  <p className="text-xs font-medium text-rose-600">
+                    {mainKept ? 'Засварласан файлаа хавсаргана уу.' : 'Үндсэн баримт бичгийг хавсаргана уу.'}
+                  </p>
+                )}
               </div>
             </section>
           );
@@ -251,11 +250,8 @@ export default function RevisionForm({ reportId, reason, items }: Props) {
         <div className="border border-slate-200 bg-white p-5">
           <p className="text-sm font-semibold text-slate-900">Засварын явц</p>
           <p className="mt-1 text-sm text-slate-500">
-            <span className="font-semibold text-slate-900">{doneCount}</span> / {items.length} хэсэг засагдсан
+            {doneCount > 0 ? 'Засварласан файл хавсаргасан.' : 'Тайлбарын дагуу засаад файлаа солино уу.'}
           </p>
-          <div className="mt-3 h-1.5 bg-slate-100">
-            <div className="h-full bg-teal-600 transition-all" style={{ width: `${(doneCount / items.length) * 100}%` }} />
-          </div>
           <button
             type="button"
             onClick={submit}
@@ -264,8 +260,8 @@ export default function RevisionForm({ reportId, reason, items }: Props) {
           >
             {sending ? 'Илгээж байна...' : 'Засаад илгээх'}
           </button>
-          {showErrors && doneCount < items.length && (
-            <p className="mt-2 text-xs text-rose-600">Бүх хэсгийг засаад илгээнэ үү.</p>
+          {showErrors && (doneCount === 0 || !mainKept) && (
+            <p className="mt-2 text-xs text-rose-600">Засварласан файлаа хавсаргаад илгээнэ үү.</p>
           )}
         </div>
         <Link

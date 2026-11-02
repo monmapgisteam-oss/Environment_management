@@ -1,3 +1,4 @@
+import { formWordForReportType, reportKind } from '@/lib/reports/terms';
 import StatusBadge from '@/components/ui/StatusBadge';
 import { formatDate } from '@/lib/utils';
 import { senderStatus } from '@/lib/reports/scoreRelease';
@@ -12,8 +13,9 @@ type Props = {
 
 // Report header (number, status) plus the submitted project fields and location.
 export default function ReportInfoSection({ report, isConclusion, isSenderView }: Props) {
-  const isPlanOrPerformanceReport =
-    report.reportType?.name?.includes('Жилийн') || report.reportType?.name?.includes('Биелэлт');
+  const isPlanOrPerformanceReport = reportKind(report.reportType) !== null;
+  // A plan reads "Төлөвлөгөөний дугаар", a performance report "Тайлангийн дугаар".
+  const word = formWordForReportType(report.reportType);
   let displayStatus = report.status === 'approved' ? 'completed' : report.status === 'assigned' ? 'submitted' : report.status;
   // "return_requested" is an internal staff→manager step; the sender should still
   // see the report as under review until the manager actually returns it.
@@ -26,7 +28,7 @@ export default function ReportInfoSection({ report, isConclusion, isSenderView }
       <div className="flex items-center justify-between mb-5">
         <div>
           <p className="text-xs text-slate-500 mb-0.5">
-            {isConclusion ? 'Дүгнэлтийн дугаар' : 'Тайлангийн дугаар'}
+            {isConclusion ? 'Дүгнэлтийн дугаар' : `${word.of} дугаар`}
           </p>
           <h1 className="text-xl font-bold text-slate-900">
             {isConclusion ? report.conclusionNumber || report.reportNumber : report.reportNumber}
@@ -96,7 +98,7 @@ export default function ReportInfoSection({ report, isConclusion, isSenderView }
         )}
         {!isConclusion && report.approvedDate && (
           <div>
-            <p className="text-slate-500 text-xs">Тайлан батлагдсан огноо</p>
+            <p className="text-slate-500 text-xs">{word.capital} батлагдсан огноо</p>
             <p className="font-medium text-slate-800 mt-0.5">{formatDate(report.approvedDate)}</p>
           </div>
         )}
@@ -123,7 +125,7 @@ export default function ReportInfoSection({ report, isConclusion, isSenderView }
       {!isConclusion && report.description && (
         <div className="mt-5 pt-5 border-t border-slate-100 text-sm">
           <p className="text-slate-500 text-xs">
-            {!isConclusion && isPlanOrPerformanceReport ? 'Ногоон байгууламжийн талаарх мэдээлэл' : 'Тайлбар'}
+            {!isConclusion && isPlanOrPerformanceReport ? 'Төслийн тухай мэдээлэл' : 'Тайлбар'}
           </p>
           <p className="font-medium text-slate-800 mt-0.5 whitespace-pre-wrap">{report.description}</p>
         </div>

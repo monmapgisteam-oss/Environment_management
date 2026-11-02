@@ -9,25 +9,33 @@ export type PendingCompany = {
   name: string;
   registerNumber: string;
   createdAt: string;
+  rejected: boolean;
   contact: { name: string; email: string; phone: string | null; position: string | null } | null;
   conclusion: { reportId: string; projectName: string | null; conclusionNumber: string | null; fileName: string; fileUrl: string } | null;
 };
 
-// Self-registered companies waiting for the admin. Approve after checking the
-// register number belongs to the organisation (e.g. against the conclusion).
-export default function PendingCompanies({ companies }: { companies: PendingCompany[] }) {
+// Self-registered companies waiting for the review manager, who approves them
+// after checking the register number against the conclusion. Others (the
+// admin) see the list without the buttons.
+export default function PendingCompanies({ companies, canDecide = true }: { companies: PendingCompany[]; canDecide?: boolean }) {
   if (companies.length === 0) return null;
   return (
     <section className="border border-amber-200 bg-white">
       <div className="flex items-center gap-2 border-b border-amber-200 bg-amber-50 px-5 py-3.5">
         <HiOutlineShieldCheck size={18} className="text-amber-700" />
-        <h2 className="text-sm font-semibold text-amber-900">Баталгаажуулалт хүлээж буй байгууллага ({companies.length})</h2>
+        <h2 className="text-sm font-semibold text-amber-900">
+          Баталгаажуулалт хүлээж буй байгууллага ({companies.filter((company) => !company.rejected).length})
+          {companies.some((company) => company.rejected) && ` · татгалзсан ${companies.filter((company) => company.rejected).length}`}
+        </h2>
       </div>
       <ul className="divide-y divide-slate-100">
         {companies.map((company) => (
           <li key={company.id} className="grid gap-4 px-5 py-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-center">
             <div className="min-w-0">
-              <p className="font-semibold text-slate-900">{company.name}</p>
+              <p className="font-semibold text-slate-900">
+                {company.name}
+                {company.rejected && <span className="ml-2 bg-rose-50 px-2 py-0.5 text-[11px] font-semibold text-rose-700">Татгалзсан</span>}
+              </p>
               <p className="text-xs text-slate-500">
                 РД <span className="font-mono font-semibold text-slate-700">{company.registerNumber}</span> · бүртгүүлсэн{' '}
                 {new Date(company.createdAt).toLocaleDateString('mn-MN')}
@@ -67,7 +75,11 @@ export default function PendingCompanies({ companies }: { companies: PendingComp
                 <p className="text-xs text-slate-400">Дүгнэлт хавсаргаагүй</p>
               )}
             </div>
-            <CompanyApprovalButtons company={company} />
+            {canDecide ? (
+              <CompanyApprovalButtons company={company} rejected={company.rejected} />
+            ) : (
+              <span className="text-xs text-slate-400">Хянах менежер шийднэ</span>
+            )}
           </li>
         ))}
       </ul>

@@ -90,8 +90,8 @@ export default function Header({ userName, companyName, role, mobileNav }: Props
   const handleLogout = async () => {
     setOpen(false);
     await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
-    router.push('/');
-    router.refresh();
+    // A full reload drops every cached page of the signed-out user.
+    window.location.href = '/';
   };
 
   return (

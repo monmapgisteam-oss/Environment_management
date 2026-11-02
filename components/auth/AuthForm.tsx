@@ -15,11 +15,15 @@ type Props = {
   examplePassword: string;
   // Shown under the form when the organisation can register itself.
   signupHref?: string;
+  // Someone already signed in on this browser (lib/auth signedInSummary).
+  signedInAs?: { name: string; home: string } | null;
 };
 
-export default function AuthForm({ title, subtitle, allowedRoles, exampleEmail, examplePassword, signupHref }: Props) {
-  const [email, setEmail] = useState(exampleEmail);
-  const [password, setPassword] = useState(examplePassword);
+export default function AuthForm({ title, subtitle, allowedRoles, exampleEmail, examplePassword, signupHref, signedInAs }: Props) {
+  // Test accounts are filled in only during development, never in production.
+  const prefill = process.env.NODE_ENV !== 'production';
+  const [email, setEmail] = useState(prefill ? exampleEmail : '');
+  const [password, setPassword] = useState(prefill ? examplePassword : '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -58,6 +62,19 @@ export default function AuthForm({ title, subtitle, allowedRoles, exampleEmail, 
         <p className="mt-6 text-xs font-semibold uppercase tracking-wider text-teal-700">Нэвтрэх</p>
         <h1 className="mt-2 text-[28px] font-bold leading-tight tracking-tight text-slate-900">{title}</h1>
         <p className="mt-2 text-sm text-slate-500">{subtitle}</p>
+
+        {/* Signing in here replaces the session in every open tab. */}
+        {signedInAs && (
+          <div className="mt-6 border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            <p>
+              Та <span className="font-semibold">{signedInAs.name}</span>-ээр нэвтэрсэн байна. Өөр хэрэглэгчээр нэвтэрвэл бусад
+              нээлттэй цонх тэр хэрэглэгч рүү шилжинэ.
+            </p>
+            <Link href={signedInAs.home} className="mt-2 inline-block font-semibold text-teal-700 hover:underline">
+              Үргэлжлүүлэх →
+            </Link>
+          </div>
+        )}
 
         {/* Email / password login */}
         <form onSubmit={handleSubmit} className="mt-8 space-y-5">

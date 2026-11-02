@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { parseAttachments } = require('../lib/reports/attachments.ts');
-const { ANNEX, MAIN_DOCUMENT_ID, PLAN_MATERIALS, groupMaterialAttachments, leftoverMaterialGroups, materialsFor } = require('../lib/reports/materials.ts');
+const { ANNEX, MAIN_DOCUMENT_ID, groupMaterialAttachments, leftoverMaterialGroups, materialsFor } = require('../lib/reports/materials.ts');
 const { splitScoringAttachments } = require('../lib/reports/scoringAttachments.ts');
 const { REPORT_CATEGORIES } = require('../lib/constants.ts');
 
@@ -21,21 +21,6 @@ test('plans and performance reports attach the document and its Хавсралт
     assert.deepEqual(materialsFor(PLAN, category).map((material) => material.id), [MAIN_DOCUMENT_ID, ANNEX.id]);
   }
   assert.deepEqual(materialsFor(PERFORMANCE, null), []);
-});
-
-test('plans are made of the tables of Журмын 3 дугаар хавсралтын А хэсэг', () => {
-  assert.deepEqual(
-    PLAN_MATERIALS['Аялал жуулчлал, үйлчилгээ'].map((material) => material.id),
-    ['plan-negative-impact', 'plan-landscaping', 'plan-heritage', 'plan-waste', 'plan-monitoring', 'plan-management', 'plan-reporting'],
-  );
-  // Only mining plans add rehabilitation, biodiversity offsets and resettlement.
-  const miningIds = PLAN_MATERIALS['Уул уурхай, газрын тос'].map((material) => material.id);
-  assert.ok(miningIds.includes('plan-rehabilitation'));
-  assert.ok(miningIds.includes('plan-biodiversity'));
-  assert.ok(miningIds.includes('plan-resettlement'));
-  for (const category of REPORT_CATEGORIES) {
-    for (const material of PLAN_MATERIALS[category]) assert.match(material.label, /(төлөвлөгөө|хөтөлбөр)( \/.*\/)?$/);
-  }
 });
 
 test('material files keep their id and stay out of the general list', () => {

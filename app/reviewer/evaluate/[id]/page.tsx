@@ -98,7 +98,7 @@ export default async function ReviewerEvaluatePage(props: Props) {
 
       {/* Attached documents the sender submitted */}
       {reportAttachments.length > 0 && <AttachmentList attachments={reportAttachments} />}
-      <MaterialAttachmentList attachments={signedAttachments} reportType={report.reportType.name} reportCategory={report.reportCategory} />
+      <MaterialAttachmentList attachments={signedAttachments} reportType={{ name: report.reportType.name, slug: report.reportType.slug }} reportCategory={report.reportCategory} />
 
       {/* Evaluation Table */}
       <EvaluationTable

@@ -33,7 +33,9 @@ export default function ManagerReturnPanel({ reportId, status, returnReason, ret
   if (status === 'needs_revision') {
     return (
       <div className="border border-orange-200 bg-orange-50/40 p-5">
-        <p className="text-sm font-semibold text-orange-700">Энэ тайлан илгээгч байгууллага руу буцаагдсан.</p>
+        <p className="text-sm font-semibold text-orange-700">
+          Энэ тайлан илгээгч байгууллага руу буцаагдсан{returnRequestedBy ? ` (${returnRequestedBy})` : ''}.
+        </p>
         {returnReason && <p className="mt-1 text-sm text-slate-600">Шалтгаан: {returnReason}</p>}
         <RevisionItemList items={revisionItems} className="mt-3" />
       </div>
@@ -54,6 +56,7 @@ export default function ManagerReturnPanel({ reportId, status, returnReason, ret
       return false;
     }
     router.refresh();
+    if (data.warning) toast(data.warning, 'error');
     offerUndo(doneMessage, data.undoToken, () => router.refresh());
     return true;
   };
@@ -120,8 +123,8 @@ export default function ManagerReturnPanel({ reportId, status, returnReason, ret
           title="Илгээгч рүү буцаах"
           description={
             requested
-              ? 'Ажилтны сонгосон хэсгүүдийг шалгаж, шаардлагатай бол засаад илгээгч рүү буцаана уу.'
-              : 'Илгээгчийн засах ёстой хэсгүүдийг сонгоод тус бүрт тайлбар бичнэ үү.'
+              ? 'Ажилтны сонгосон шалгууруудыг шалгаж, шаардлагатай бол засаад илгээгч рүү буцаана уу.'
+              : 'Шаардлага хангаагүй шалгууруудыг сонгоод тус бүрт тайлбар бичнэ үү. Илгээгч тайлан, хавсралтаа засаж дахин илгээнэ.'
           }
           sections={sections}
           initialItems={requested ? revisionItems : []}

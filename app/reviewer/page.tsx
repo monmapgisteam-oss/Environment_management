@@ -62,7 +62,11 @@ function IdleMemberRow({ member }: { member: { id: string; name: string; done: n
 }
 
 export default async function ReviewerDashboard() {
-  const [reports, staff] = await Promise.all([fetchReviewerReports(), fetchStaffWorkload()]);
+  const [reports, staff, pendingCompanies] = await Promise.all([
+    fetchReviewerReports(),
+    fetchStaffWorkload(),
+    dataStore.company.count({ where: { type: 'sender', approvalStatus: 'pending' } }),
+  ]);
   const totalCount = reports.length;
   const unassigned = reports.filter((r) => r.assignments.length === 0 && !['needs_revision', 'rejected', 'completed', 'approved'].includes(r.status));
   const returnRequests = reports.filter((r) => r.status === 'return_requested');
@@ -95,6 +99,19 @@ export default async function ReviewerDashboard() {
           </Link>
         }
       />
+
+      {/* New companies wait for the manager before they can sign in. */}
+      {pendingCompanies > 0 && (
+        <Link
+          href="/reviewer/conclusions"
+          className="flex items-center justify-between gap-3 border border-amber-200 bg-amber-50 px-5 py-3.5 text-sm text-amber-900 transition hover:bg-amber-100"
+        >
+          <span>
+            <span className="font-semibold">{pendingCompanies} шинэ байгууллага</span> бүртгэл баталгаажуулахыг хүлээж байна.
+          </span>
+          <span className="font-semibold text-teal-700">Шалгах →</span>
+        </Link>
+      )}
 
       <KpiStrip
         items={[

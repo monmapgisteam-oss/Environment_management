@@ -2,10 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { HiBadgeCheck, HiKey, HiPrinter, HiUpload, HiDocument } from 'react-icons/hi';
+import { HiBadgeCheck, HiPrinter, HiUpload, HiDocument } from 'react-icons/hi';
 import { formatDate } from '@/lib/utils';
 import PrintScoreModal from './PrintScoreModal';
-import ApproveScoresDialog from './detail/ApproveScoresDialog';
 import { offerUndo } from '@/lib/undo';
 
 type Criterion = { id: string; name: string; maxScore: number };
@@ -41,9 +40,6 @@ type Props = {
   criteria: Criterion[];
   evaluations: Evaluation[];
   approval: Approval | null;
-  // Every evaluator signed and the manager has not signed the scores off yet.
-  canApprove: boolean;
-  finalScore: number | null;
 };
 
 // Manager-side controls once every evaluator has scored the report: preview
@@ -62,15 +58,12 @@ export default function ScanPrintPanel({
   criteria,
   evaluations,
   approval,
-  canApprove,
-  finalScore,
 }: Props) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [printOpen, setPrintOpen] = useState(false);
-  const [approveOpen, setApproveOpen] = useState(false);
   // Picking a file only stages it — nothing is sent to the sender until the
   // manager explicitly confirms, so a wrong file can't go out by accident.
   const [pendingFile, setPendingFile] = useState<File | null>(null);
@@ -100,22 +93,22 @@ export default function ScanPrintPanel({
       const formData = new FormData();
       formData.append('file', file);
       const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
-      if (!uploadRes.ok) throw new Error();
-      const uploaded = await uploadRes.json();
+      const uploaded = await uploadRes.json().catch(() => ({}));
+      if (!uploadRes.ok) throw new Error(uploaded.error);
 
       const saveRes = await fetch(`/api/reports/${reportId}/signed-scan`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: uploaded.url, name: uploaded.name }),
       });
-      if (!saveRes.ok) throw new Error();
       const saved = await saveRes.json().catch(() => ({}));
+      if (!saveRes.ok) throw new Error(saved.error);
 
       setPendingFile(null);
       router.refresh();
       offerUndo('Скан хуулга илгээгдлээ.', saved.undoToken, () => router.refresh());
-    } catch {
-      setError('Хуулга хадгалахад алдаа гарлаа. Дахин оролдоно уу.');
+    } catch (err) {
+      setError((err instanceof Error && err.message) || 'Хуулга хадгалахад алдаа гарлаа. Дахин оролдоно уу.');
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -139,12 +132,13 @@ export default function ScanPrintPanel({
         Хэвлэх
       </button>
 
-      {/* First the manager signs the scores off; only then may a signed paper
-          scan go to the sender as well (optional). */}
-      {approval ? (
+      {/* The manager approves the scores from the report sidebar
+          (ScoreApprovalCard); after that a signed paper scan may go to the
+          sender as well (optional). */}
+      {approval && (
         <>
           <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-700">
-            <HiBadgeCheck size={18} /> Гарын үсгээр баталгаажсан
+            <HiBadgeCheck size={18} /> Батлагдсан
           </span>
           <button
             type="button"
@@ -156,25 +150,6 @@ export default function ScanPrintPanel({
             {uploading ? 'Хуулж байна...' : signedScanName ? 'Скан хуулга солих' : 'Скан хуулга хавсаргах'}
           </button>
         </>
-      ) : (
-        canApprove && (
-          <button
-            type="button"
-            onClick={() => setApproveOpen(true)}
-            className="inline-flex items-center gap-2 bg-color-primary px-4 py-2 text-sm font-semibold text-white hover:bg-color-primary-dark transition"
-          >
-            <HiKey size={16} />
-            Гарын үсгээр баталгаажуулах
-          </button>
-        )
-      )}
-      {approveOpen && (
-        <ApproveScoresDialog
-          reportId={reportId}
-          evaluatorCount={evaluations.length}
-          finalScore={finalScore}
-          onClose={() => setApproveOpen(false)}
-        />
       )}
       <input
         ref={fileInputRef}

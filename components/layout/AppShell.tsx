@@ -8,6 +8,7 @@ import { navFor } from '@/lib/nav';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import ForcePasswordDialog from '@/components/auth/ForcePasswordDialog';
 import Toaster from '@/components/ui/Toaster';
+import SessionGuard from '@/components/layout/SessionGuard';
 
 type Props = {
   user: CurrentUser;
@@ -41,6 +42,7 @@ export default async function AppShell({ user, children }: Props) {
           <div className="mx-auto flex w-full max-w-[1480px] flex-1 flex-col">{children}</div>
           <Toaster />
           <ConfirmDialog />
+          <SessionGuard userId={user.id} />
           {/* An admin-created account picks its own password before using the app. */}
           {user.mustChangePassword && <ForcePasswordDialog userName={user.name} email={user.email} />}
         </div>

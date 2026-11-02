@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { HiDownload } from 'react-icons/hi';
 import SignatureBadge from '@/components/signature/SignatureBadge';
+import SignaturePinDialog from '@/components/signature/SignaturePinDialog';
 import { downloadUrl, type Attachment } from '@/lib/reports/attachments';
 import { toast } from '@/lib/toast';
 import { offerUndo } from '@/lib/undo';
@@ -56,8 +57,7 @@ export default function EvaluationTable({ criteria, reportId, savedScores, saved
   const [notes, setNotes] = useState<Record<string, string>>(() => savedNotes || {});
   const [showNoteErrors, setShowNoteErrors] = useState(false);
   const [comment, setComment] = useState(savedComment || '');
-  const [signature, setSignature] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const [signing, setSigning] = useState(false);
   const router = useRouter();
 
   const maxTotal = criteria.reduce((sum, c) => sum + c.maxScore, 0);
@@ -75,37 +75,45 @@ export default function EvaluationTable({ criteria, reportId, savedScores, saved
 
   const missingNotes = criteria.filter((c) => !(notes[c.id] || '').trim());
 
-  const handleSubmit = async () => {
+  const missingScores = criteria.filter((c) => scores[c.id] === '' || scores[c.id] == null);
+
+  // Check every row first; the PIN is asked only when there is nothing left to fill.
+  const startSigning = () => {
+    if (criteria.length === 0) {
+      toast('Энэ ангиллын шалгуур тохируулагдаагүй байна. Админд хандана уу.', 'error');
+      return;
+    }
+    if (missingScores.length > 0) {
+      toast(`${missingScores.length} шалгуурт оноо өгнө үү.`, 'error');
+      document.getElementById(`score-${missingScores[0].id}`)?.focus();
+      return;
+    }
     if (missingNotes.length > 0) {
       setShowNoteErrors(true);
       toast(`${missingNotes.length} шалгуурын үндэслэл, тайлбарыг бичнэ үү.`, 'error');
       document.getElementById(`note-${missingNotes[0].id}`)?.focus();
       return;
     }
-    if (!/^\d+$/.test(signature.trim())) {
-      toast('Тоон гарын үсгийн нууц үгээ оруулна уу.', 'error');
-      return;
-    }
-    setSubmitting(true);
+    setSigning(true);
+  };
+
+  const sign = async (signature: string) => {
     const response = await fetch('/api/evaluations/submit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ reportId, scores, notes, comment, signature, totalScore }),
     });
-    setSubmitting(false);
-    if (response.ok) {
-      const body = await response.json().catch(() => null);
-      // Undo brings the member back to this form to score again.
-      const formPath = `${window.location.pathname}${window.location.search}`;
-      offerUndo('Үнэлгээ амжилттай өгөгдлөө.', body?.undoToken, () => {
-        router.push(formPath);
-        router.refresh();
-      });
-      router.push(redirectTo || '/reviewer/reports');
-    } else {
-      const body = await response.json().catch(() => null);
-      toast(body?.error || 'Алдаа гарлаа. Дахин оролдоно уу.', 'error');
-    }
+    const body = await response.json().catch(() => null);
+    if (!response.ok) return body?.error || 'Алдаа гарлаа. Дахин оролдоно уу.';
+    setSigning(false);
+    // Undo brings the member back to this form to score again.
+    const formPath = `${window.location.pathname}${window.location.search}`;
+    offerUndo('Үнэлгээ гарын үсгээр баталгаажлаа.', body?.undoToken, () => {
+      router.push(formPath);
+      router.refresh();
+    });
+    router.push(redirectTo || '/reviewer/reports');
+    return null;
   };
 
   const isDone = (id: string) => scores[id] !== '' && scores[id] != null && !!(notes[id] || '').trim();
@@ -118,7 +126,11 @@ export default function EvaluationTable({ criteria, reportId, savedScores, saved
         <div>
           <h2 className="text-base font-semibold text-slate-900">Дүгнэх хуудас</h2>
           <p className="mt-0.5 text-sm text-slate-500">
-            {locked ? 'Гарын үсгээр баталгаажсан үнэлгээ.' : 'Шалгуур бүрт оноо өгч, үндэслэлээ бичнэ үү.'}
+            {locked
+              ? signatureStatus
+                ? 'Гарын үсгээр баталгаажсан үнэлгээ.'
+                : 'Одоогоор үнэлэх боломжгүй.'
+              : 'Шалгуур бүрт оноо өгч, үндэслэлээ бичнэ үү.'}
           </p>
         </div>
         <div className="flex items-end gap-6">
@@ -143,6 +155,12 @@ export default function EvaluationTable({ criteria, reportId, savedScores, saved
         <div className="h-1 bg-slate-100">
           <div className="h-full bg-teal-600 transition-all" style={{ width: `${criteria.length ? (doneCount / criteria.length) * 100 : 0}%` }} />
         </div>
+      )}
+
+      {criteria.length === 0 && (
+        <p className="border-b border-slate-200 bg-amber-50 px-6 py-5 text-sm text-amber-800">
+          Энэ ангиллын шалгуур тохируулагдаагүй байна. Админд хандана уу.
+        </p>
       )}
 
       {/* One card per criterion */}
@@ -309,7 +327,7 @@ export default function EvaluationTable({ criteria, reportId, savedScores, saved
           />
         </div>
 
-        {locked && (
+        {locked && signatureStatus && (
           <div className="mt-6 flex items-center justify-between border border-emerald-200 bg-emerald-50/60 px-4 py-3">
             <p className="text-sm text-emerald-700">Гарын үсгээр баталгаажсан тул засах боломжгүй.</p>
             <SignatureBadge
@@ -322,42 +340,36 @@ export default function EvaluationTable({ criteria, reportId, savedScores, saved
           </div>
         )}
 
-        {/* Digital (numeric) signature — the evaluator signs off on their scoring */}
-        {!locked && (
-          <div className="mt-6">
-            <label htmlFor="signature-pin" className="block text-sm font-medium text-slate-700 mb-1.5">
-              Тоон гарын үсгийн нууц үг <span className="text-red-500">*</span>
-            </label>
-            <input
-              id="signature-pin"
-              type="password"
-              inputMode="numeric"
-              autoComplete="off"
-              value={signature}
-              onChange={(e) => setSignature(e.target.value.replace(/\D/g, ''))}
-              placeholder="••••••"
-              className="w-full max-w-xs border border-slate-200 bg-white px-4 py-2.5 text-sm tracking-widest text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-color-primary focus:ring-2 focus:ring-color-primary/10 transition"
-            />
-            <p className="mt-1.5 text-xs text-slate-500">
-              Системээс олгосон 6 оронтой нууц үг. Хэвлэсэн үнэлгээн дээр таны нэр, QR код гарна.
-            </p>
-          </div>
-        )}
-
         {/* Actions */}
         <div className={`mt-6 flex flex-col-reverse gap-4 sm:flex-row sm:items-start ${leftAction ? 'sm:justify-between' : 'sm:justify-end'}`}>
           {leftAction}
           {!locked && (
-            <button
-              onClick={handleSubmit}
-              disabled={submitting}
-              className="h-10 px-6 bg-color-primary text-white text-sm font-semibold hover:bg-color-primary-dark transition inline-flex items-center justify-center disabled:opacity-50"
-            >
-              {submitting ? 'Илгээж байна...' : 'Гарын үсэг зурж илгээх'}
-            </button>
+            <div className="flex flex-col items-end gap-1">
+              <button
+                type="button"
+                onClick={startSigning}
+                className="h-10 px-6 bg-color-primary text-white text-sm font-semibold hover:bg-color-primary-dark transition inline-flex items-center justify-center"
+              >
+                Гарын үсэг зурж илгээх
+              </button>
+              <p className="text-xs text-slate-500">Илгээсний дараа оноог өөрчлөх боломжгүй.</p>
+            </div>
           )}
         </div>
       </div>
+      {signing && (
+        <SignaturePinDialog
+          title="Үнэлгээнд гарын үсэг зурах"
+          summary={[
+            { label: 'Үнэлсэн шалгуур', value: `${doneCount} / ${criteria.length}` },
+            { label: 'Нийт оноо', value: `${totalScore} / ${maxTotal}` },
+          ]}
+          note="Гарын үсэг зурсны дараа үнэлгээ түгжигдэнэ. Хэвлэсэн үнэлгээн дээр таны нэр, QR код гарна."
+          confirmLabel="Гарын үсэг зурж илгээх"
+          onSign={sign}
+          onClose={() => setSigning(false)}
+        />
+      )}
     </div>
   );
 }

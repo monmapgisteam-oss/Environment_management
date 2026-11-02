@@ -47,7 +47,7 @@ function reportTypeChildren(reportTypes: NavReportType[], basePath: string): Nav
 export function senderNav(): NavItem[] {
   return [
     { label: 'Хяналтын самбар', href: '/sender' },
-    { label: 'Жилийн төлөвлөгөө', href: '/sender/submit?type=plan', section: 'Тайлан илгээх' },
+    { label: 'Жилийн төлөвлөгөө', href: '/sender/submit?type=plan', section: 'БОМТ илгээх' },
     { label: 'Биелэлтийн тайлан', href: '/sender/submit?type=performance' },
     { label: 'Миний төлөвлөгөө, тайлан', href: '/sender/reports', match: ['/report/'], section: 'Миний ажил' },
     { label: 'Ноорог', href: '/sender/drafts' },
@@ -95,7 +95,7 @@ export function adminNav(): NavItem[] {
     { label: 'Мэдэгдэл илгээх', href: '/admin/notifications' },
     { label: 'Газрын зураг', href: '/admin/map', section: 'Систем' },
     { label: 'Үнэлгээний шалгуур', href: '/admin/criteria' },
-    { label: 'Тохиргоо', href: '/admin/settings' },
+    { label: 'Тайлангийн төрөл', href: '/admin/settings' },
   ];
 }
 

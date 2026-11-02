@@ -25,7 +25,7 @@ export default function MaterialAttachmentList({
   reportCategory,
 }: {
   attachments: Attachment[];
-  reportType: string | null;
+  reportType: { name: string; slug?: string | null } | null;
   reportCategory: string | null;
 }) {
   const groups = groupMaterialAttachments(attachments, reportType, reportCategory);

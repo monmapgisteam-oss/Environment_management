@@ -6,9 +6,11 @@
 //
 //   npm run seed:plan-criteria -- --dry-run
 //   npm run seed:plan-criteria
+import { createRequire } from 'node:module';
 import store from './data-store.cjs';
 
-const CATEGORIES = ['Уул уурхай, газрын тос', 'Дэд бүтэц, барилга, ШТС', 'Аялал жуулчлал, үйлчилгээ', 'Үйлдвэрлэл'];
+// data-store.cjs registered the TypeScript loader, so the app's own list is used.
+const { REPORT_CATEGORIES: CATEGORIES } = createRequire(import.meta.url)('../lib/constants.ts');
 
 export function planName(name) {
   return name

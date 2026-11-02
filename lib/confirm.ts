@@ -10,11 +10,23 @@ export type ConfirmOptions = {
   cancelLabel?: string;
   // Red confirm button for actions that delete or cannot be undone.
   danger?: boolean;
+  // Asks for a required text (e.g. a reason) as well; see promptDialog.
+  input?: { label: string; placeholder?: string };
 };
 
-export type ConfirmRequest = ConfirmOptions & { resolve: (ok: boolean) => void };
+export type ConfirmRequest = ConfirmOptions & { resolve: (ok: boolean, text?: string) => void };
 
 export const CONFIRM_EVENT = 'app:confirm';
+
+// Like confirmDialog, with a required text field. Resolves to the trimmed
+// text, or null when cancelled.
+export function promptDialog(options: ConfirmOptions & { input: NonNullable<ConfirmOptions['input']> }): Promise<string | null> {
+  if (typeof window === 'undefined') return Promise.resolve(null);
+  return new Promise((resolve) => {
+    const detail: ConfirmRequest = { ...options, resolve: (ok, text) => resolve(ok ? text ?? '' : null) };
+    window.dispatchEvent(new CustomEvent<ConfirmRequest>(CONFIRM_EVENT, { detail }));
+  });
+}
 
 export function confirmDialog(options: ConfirmOptions | string): Promise<boolean> {
   if (typeof window === 'undefined') return Promise.resolve(false);

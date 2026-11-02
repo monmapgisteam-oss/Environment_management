@@ -1,8 +1,11 @@
 type SubmitActionsProps = {
   isGeneralEvaluation: boolean;
+  // Document word on the submit button: "Тайлан" or "Төлөвлөгөө".
+  word: string;
   submitting: boolean;
   savingDraft: boolean;
   onSaveDraft: () => void;
+  canSaveDraft?: boolean;
   // Step-by-step forms: before the last step the submit button moves on to the
   // next step, and a back button returns to the previous one.
   isLastStep?: boolean;
@@ -12,9 +15,11 @@ type SubmitActionsProps = {
 // Form footer: save-draft (reports only) and the submit button.
 export default function SubmitActions({
   isGeneralEvaluation,
+  word,
   submitting,
   savingDraft,
   onSaveDraft,
+  canSaveDraft = true,
   isLastStep = true,
   onBack,
 }: SubmitActionsProps) {
@@ -30,7 +35,7 @@ export default function SubmitActions({
           Өмнөх
         </button>
       )}
-      {!isGeneralEvaluation && (
+      {!isGeneralEvaluation && canSaveDraft && (
         <button
           type="button"
           onClick={onSaveDraft}
@@ -94,7 +99,7 @@ export default function SubmitActions({
             ? "Илгээж байна..."
             : isGeneralEvaluation
             ? "Дүгнэлт илгээх"
-            : "Тайлан илгээх"}
+            : `${word} илгээх`}
         </button>
       )}
     </div>

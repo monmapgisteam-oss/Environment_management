@@ -18,7 +18,8 @@ type Step = { label: string; detail?: string; state: 'done' | 'current' | 'todo'
 // show that outcome as the last step instead.
 export default function StatusTimeline({ status, submittedAt, assignedCount, scoredCount, released, releasedAt }: Props) {
   const concluded = released;
-  const scored = concluded || (assignedCount > 0 && scoredCount >= assignedCount) || status === 'in_review';
+  // Scoring is done only when every assigned evaluator has signed.
+  const scored = concluded || (assignedCount > 0 && scoredCount >= assignedCount);
   const assigned = scored || assignedCount > 0 || ['assigned', 'in_review'].includes(status);
   const returned = status === 'needs_revision';
   const rejected = status === 'rejected';

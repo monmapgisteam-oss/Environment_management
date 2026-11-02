@@ -9,6 +9,10 @@ import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
 import { scoresReleased, senderStatus } from '@/lib/reports/scoreRelease';
 import { REPORT_CATEGORIES } from '@/lib/constants';
 import { resolveAdministrativeLocation } from '@/lib/map/locationResolver';
+import { submissionError } from '@/lib/reports/submitValidation';
+import { findSubmitReportType, MISSING_TYPE_ERROR } from '@/lib/reports/reportTypes';
+import { MAIN_DOCUMENT_ID } from '@/lib/reports/materials';
+import { statusFromEvaluations } from '@/lib/reports/transitions';
 
 // Returns a single report with everything the sender's edit form needs to
 // pre-fill (type, location, attachments).
@@ -21,7 +25,7 @@ export async function GET(_request: Request, props: { params: Promise<{ id: stri
     include: { reportType: true, location: true },
   });
   if (!report) {
-    return NextResponse.json({ error: 'Report not found' }, { status: 404 });
+    return NextResponse.json({ error: 'Тайлан олдсонгүй.' }, { status: 404 });
   }
   if (!(await canAccessReport(user, report))) return unauthorized();
   // The sender gets the score only after the manager signed it off.
@@ -40,7 +44,7 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
     if (!user) return unauthorized();
     const existing = await dataStore.report.findUnique({ where: { id: params.id } });
     if (!existing) {
-      return NextResponse.json({ error: 'Report not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Тайлан олдсонгүй.' }, { status: 404 });
     }
     // Only the sender's own drafts and returned reports can be changed.
     if (!(await canAccessReport(user, existing)) || !['draft', 'needs_revision'].includes(existing.status)) {
@@ -58,19 +62,24 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
     if ((data.title || '').trim() === GENERAL_EVALUATION_CONCLUSION_TITLE) {
       return NextResponse.json({ error: 'Ерөнхий үнэлгээний дүгнэлт илгээх хэсэг хаагдсан.' }, { status: 400 });
     }
-
-    // Resolve the (possibly changed) report type the same way create does.
-    const typeValue = data.reportType?.trim() || '';
-    let reportType = typeValue
-      ? await dataStore.reportType.findFirst({
-          where: { OR: [{ id: typeValue }, { slug: typeValue }, { name: typeValue }] },
-        })
-      : null;
-    if (!reportType) {
-      reportType = await dataStore.reportType.findFirst({ where: { isActive: true } });
+    // A returned report is fixed and sent, never put back into drafts: that
+    // would drop the reviewer's notes and hide it from the review queue.
+    if (data.status === 'draft' && existing.status === 'needs_revision') {
+      return NextResponse.json({ error: 'Буцаагдсан тайланг ноорог болгох боломжгүй. Засаад илгээнэ үү.' }, { status: 400 });
     }
+    if (data.status !== 'draft') {
+      // Reports filed under the older document lists have no main document row.
+      const legacy =
+        existing.status === 'needs_revision' &&
+        !parseAttachments(existing.fileUrl).some((file) => file.materialId === MAIN_DOCUMENT_ID);
+      const missing = submissionError(data, !legacy);
+      if (missing) return NextResponse.json({ error: missing }, { status: 400 });
+    }
+
+    // Resolve the report type the same way create does.
+    const reportType = await findSubmitReportType(data);
     if (!reportType) {
-      return NextResponse.json({ error: 'No report type found' }, { status: 400 });
+      return NextResponse.json({ error: MISSING_TYPE_ERROR }, { status: 400 });
     }
 
     const status = data.status === 'draft' ? 'draft' : 'submitted';
@@ -89,13 +98,21 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
     // The sender's own company is the project implementer; the form does not ask for it.
     const senderCompany = user.company;
     if (!senderCompany) {
-      return NextResponse.json({ error: 'No sender company found' }, { status: 400 });
+      return NextResponse.json({ error: 'Байгууллагын мэдээлэл олдсонгүй.' }, { status: 400 });
     }
+
+    // Once evaluators are assigned, the type and category (which pick the
+    // scoring sheet) stay as they were scored.
+    const assignments = await dataStore.reportAssignment.findMany({
+      where: { reportId: params.id },
+      include: { evaluation: true },
+    });
+    const scoringStarted = assignments.length > 0;
 
     const report = await dataStore.report.update({
       where: { id: params.id },
       data: {
-        reportTypeId: reportType.id,
+        reportTypeId: scoringStarted ? existing.reportTypeId : reportType.id,
         senderCompanyId: senderCompany.id,
         title: data.title || 'Тайлан',
         description: data.description || null,
@@ -103,19 +120,26 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
           data.attachmentKind === 'document'
             ? serializeDocumentAttachments(data.fileUrl)
             : serializeReportAttachments(data.fileUrl),
-        reportCategory: REPORT_CATEGORIES.includes(data.reportCategory) ? data.reportCategory : null,
+        reportCategory: scoringStarted
+          ? existing.reportCategory
+          : REPORT_CATEGORIES.includes(data.reportCategory)
+          ? data.reportCategory
+          : null,
         implementerName: senderCompany.name,
         implementerRegister: senderCompany.registerNumber,
         approvedDate: data.approvedDate ? new Date(data.approvedDate) : null,
         hasGreenery: data.hasGreenery === 'yes' ? true : data.hasGreenery === 'no' ? false : null,
         treeCount: data.hasGreenery === 'yes' && data.treeCount !== '' && data.treeCount != null ? parseInt(data.treeCount) : null,
         spentAmount: data.spentAmount !== '' && data.spentAmount != null ? parseInt(data.spentAmount) : null,
-        status,
+        // A fixed report goes back to where scoring stood.
+        status: status === 'submitted' && scoringStarted ? statusFromEvaluations(assignments) : status,
         // Fixing a returned report clears the previous return reason.
         returnReason: null,
         returnRequestedBy: null,
         revisionItems: null,
         submittedAt: status === 'draft' ? null : new Date(),
+        // A draft counts for the year it is actually sent in.
+        ...(status === 'submitted' && existing.status === 'draft' ? { year: new Date().getFullYear() } : {}),
         ...(hasLocation
           ? {
               location: {
@@ -150,10 +174,11 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
             data: managers.map((manager) => ({
               userId: manager.id,
               reportId: report.id,
-              title: isConclusion ? 'Дүгнэлт дахин ирлээ' : 'Тайлан дахин ирлээ',
+              // A draft sent for the first time is a new report, not a resubmission.
+              title: isConclusion ? 'Шинэ дүгнэлт ирлээ' : 'Шинэ тайлан ирлээ',
               message: isConclusion
-                ? `${report.senderCompany.name}-аас "${report.title}" дүгнэлтийг дахин илгээлээ.`
-                : `${report.senderCompany.name}-аас "${report.title}" тайланг засаж дахин илгээлээ.`,
+                ? `${report.senderCompany.name}-аас "${report.title}" дүгнэлт ирлээ.`
+                : `${report.senderCompany.name}-аас "${report.title}" тайлан хянуулахаар ирлээ.`,
             })),
           });
         }
@@ -165,6 +190,33 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
     return NextResponse.json(report, { status: 200 });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: 'Failed to update report' }, { status: 500 });
+    return NextResponse.json({ error: 'Тайлан хадгалахад алдаа гарлаа. Дахин оролдоно уу.' }, { status: 500 });
+  }
+}
+
+// The sender deletes one of their own drafts, with its files. Only drafts:
+// anything sent is part of the review record.
+export async function DELETE(_request: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
+  try {
+    const user = await getApiUser('sender');
+    if (!user) return unauthorized();
+    const report = await dataStore.report.findUnique({ where: { id: params.id } });
+    if (!report || !(await canAccessReport(user, report))) {
+      return NextResponse.json({ error: 'Ноорог олдсонгүй.' }, { status: 404 });
+    }
+    if (report.status !== 'draft') {
+      return NextResponse.json({ error: 'Зөвхөн ноорог устгах боломжтой.' }, { status: 400 });
+    }
+    const where = { reportId: report.id };
+    await dataStore.reportLocation.deleteMany({ where });
+    await dataStore.activityLog.deleteMany({ where });
+    await dataStore.notification.deleteMany({ where });
+    await dataStore.report.deleteMany({ where: { id: report.id } });
+    await deleteUploads(parseAttachments(report.fileUrl).map((file) => file.url));
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('[report delete] failed:', error);
+    return NextResponse.json({ error: 'Ноорог устгахад алдаа гарлаа.' }, { status: 500 });
   }
 }

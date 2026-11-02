@@ -8,6 +8,8 @@ import ReportTable from '@/components/reports/ReportTable';
 import { attachEffectiveSenderCompanies } from '@/lib/reports/companies';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
 import { formatDate } from '@/lib/utils';
+import { loadSetupProblems } from '@/lib/setupCheck';
+import { reportKind } from '@/lib/reports/terms';
 import { HiOutlineCog, HiOutlineMap, HiOutlineOfficeBuilding, HiOutlineUser, HiOutlineViewGrid } from 'react-icons/hi';
 
 async function fetchAdminReports() {
@@ -24,33 +26,58 @@ async function fetchAdminReports() {
 }
 
 export default async function AdminDashboard() {
-  const [reports, companyCount, userCount, evaluatorCount] = await Promise.all([
+  const [reports, companyCount, userCount, evaluatorCount, setupProblems, pendingCompanies] = await Promise.all([
     fetchAdminReports(),
     dataStore.company.count({ where: { type: 'sender' } }),
     dataStore.user.count({ where: { role: { not: 'admin' } } }),
     dataStore.user.count({ where: { role: 'evaluator' } }),
+    loadSetupProblems(),
+    dataStore.company.count({ where: { type: 'sender', approvalStatus: 'pending' } }),
   ]);
   const year = new Date().getFullYear();
   const submitted = reports.filter((r) => r.status !== 'draft');
   const completed = submitted.filter((r) => ['completed', 'approved'].includes(r.status)).length;
   const thisYear = submitted.filter((r) => r.year === year);
-  const byType = ['Жилийн', 'Биелэлт'].map((key) => ({
+  const byType = (['plan', 'performance'] as const).map((key) => ({
     key,
-    label: key === 'Жилийн' ? 'Жилийн төлөвлөгөө' : 'Биелэлтийн тайлан',
-    count: thisYear.filter((r) => r.reportType.name.includes(key)).length,
+    label: key === 'plan' ? 'Жилийн төлөвлөгөө' : 'Биелэлтийн тайлан',
+    count: thisYear.filter((r) => reportKind(r.reportType) === key).length,
   }));
   const recent = submitted.slice(0, 6);
   const shortcuts = [
-    { label: 'Компаниуд', note: `${companyCount} илгээгч`, href: '/admin/companies', icon: <HiOutlineOfficeBuilding size={18} /> },
+    {
+      label: 'Компаниуд',
+      note: pendingCompanies ? `${pendingCompanies} менежер батлахыг хүлээж байна` : `${companyCount} илгээгч`,
+      href: '/admin/companies',
+      icon: <HiOutlineOfficeBuilding size={18} />,
+    },
     { label: 'Хэрэглэгчид', note: `${userCount} бүртгэл`, href: '/admin/users', icon: <HiOutlineUser size={18} /> },
     { label: 'Газрын зураг', note: 'Байршлууд', href: '/admin/map', icon: <HiOutlineMap size={18} /> },
     { label: 'Үнэлгээний шалгуур', note: 'Оноо, төрөл', href: '/admin/criteria', icon: <HiOutlineViewGrid size={18} /> },
-    { label: 'Тохиргоо', note: 'Тайлангийн төрөл', href: '/admin/settings', icon: <HiOutlineCog size={18} /> },
+    { label: 'Тайлангийн төрөл', note: 'Үндсэн төрлүүд', href: '/admin/settings', icon: <HiOutlineCog size={18} /> },
   ];
 
   return (
     <main className="flex-1 min-w-0 space-y-6 px-6 py-7 lg:px-8">
       <PageHeader title="Удирдлагын хуудас" eyebrow="Системийн админ" subtitle="Тайлан, байгууллага, хэрэглэгчийн ерөнхий нэгтгэл" />
+
+      {/* Setup the workflow needs, checked here before anyone hits it mid-task. */}
+      {setupProblems.length > 0 && (
+        <section className="border border-amber-300 bg-amber-50 p-5">
+          <h2 className="text-sm font-semibold text-amber-900">Системийн тохиргоо дутуу байна ({setupProblems.length})</h2>
+          <p className="mt-1 text-xs text-amber-800">Эдгээрийг засахгүй бол илгээх, үнэлэх үед алдаа гарна.</p>
+          <ul className="mt-3 space-y-1.5">
+            {setupProblems.map((problem) => (
+              <li key={problem.message} className="text-sm text-amber-900">
+                • {problem.message}{' '}
+                <Link href={problem.href} className="font-semibold text-teal-700 hover:underline">
+                  Засах
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <KpiStrip
         items={[
@@ -122,7 +149,9 @@ export default async function AdminDashboard() {
       <section className="space-y-3">
         <h2 className="text-base font-semibold text-slate-900">Бүх тайлан</h2>
         <ReportTable
-          reports={reports.map((report) => ({
+          role="admin"
+          // Senders' unsent drafts are private to them.
+          reports={reports.filter((report) => report.status !== 'draft').map((report) => ({
             id: report.id,
             reportNumber: report.reportNumber,
             reportType: report.reportType,

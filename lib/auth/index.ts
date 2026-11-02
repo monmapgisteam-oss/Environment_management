@@ -3,7 +3,8 @@ import { redirect } from 'next/navigation';
 import { NextResponse } from 'next/server';
 import dataStore from '@/lib/db';
 import { attachEffectiveSenderCompanies } from '@/lib/reports/companies';
-import { LOGIN_PATH, REGISTRATION_PATH, SESSION_COOKIE, verifyToken, type Role } from './session';
+import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
+import { LOGIN_PATH, REGISTRATION_PATH, ROLE_HOME, SESSION_COOKIE, verifyToken, type Role } from './session';
 import { isActiveUser, isCompanyApproved } from './accounts';
 
 export * from './session';
@@ -64,6 +65,12 @@ export async function requireRegistrationUser(): Promise<CurrentUser> {
   return user;
 }
 
+// For login pages: who is already signed in on this browser, and their portal.
+export async function signedInSummary() {
+  const user = await getCurrentUser({ allowPendingPassword: true });
+  return user ? { name: user.name, home: ROLE_HOME[user.role] } : null;
+}
+
 // API counterpart of requireRegistrationUser: null unless the caller is such a sender.
 export async function getRegistrationApiUser(): Promise<CurrentUser | null> {
   const user = await getCurrentUser({ allowUnapprovedCompany: true });
@@ -71,8 +78,19 @@ export async function getRegistrationApiUser(): Promise<CurrentUser | null> {
   return user;
 }
 
-export function unauthorized() {
-  return NextResponse.json({ error: 'Та энэ үйлдлийг хийх эрхгүй байна.' }, { status: 403 });
+// The answer when getApiUser found nobody allowed: 401 when the caller is not
+// signed in at all (expired, logged out, or replaced in another tab), so the
+// browser can send them to login; 403 when they are signed in with a role that
+// may not do this.
+export async function unauthorized() {
+  const signedIn = await getCurrentUser({ allowPendingPassword: true, allowUnapprovedCompany: true });
+  if (!signedIn) {
+    return NextResponse.json({ error: 'Нэвтрэх хугацаа дууссан байна. Дахин нэвтэрнэ үү.' }, { status: 401 });
+  }
+  return NextResponse.json(
+    { error: 'Та энэ үйлдлийг хийх эрхгүй байна. Өөр хэрэглэгчээр нэвтэрсэн бол хуудсаа дахин ачаална уу.' },
+    { status: 403 },
+  );
 }
 
 // Senders may only open reports of their own company. The company is the one
@@ -80,9 +98,12 @@ export function unauthorized() {
 // Evaluators open only reports assigned to them; managers and admins open all.
 export async function canAccessReport(
   user: CurrentUser,
-  report: { id: string; senderCompanyId: string; implementerRegister?: string | null },
+  report: { id: string; senderCompanyId: string; implementerRegister?: string | null; title?: string | null },
 ) {
   if (user.role === 'evaluator') {
+    // Conclusions ("Ерөнхий үнэлгээний дүгнэлт") are never assigned; staff read
+    // them from the conclusions list.
+    if ('title' in report && report.title === GENERAL_EVALUATION_CONCLUSION_TITLE) return true;
     const assignment = await dataStore.reportAssignment.findFirst({
       where: { reportId: report.id, evaluatorUserId: user.id },
       select: { id: true },

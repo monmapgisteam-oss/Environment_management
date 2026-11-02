@@ -13,6 +13,7 @@ import {
   HiOutlineTrendingUp,
 } from 'react-icons/hi';
 import { scoresReleased, senderStatus } from '@/lib/reports/scoreRelease';
+import { reportKind } from '@/lib/reports/terms';
 
 const IN_REVIEW = ['submitted', 'assigned', 'in_review', 'return_requested'];
 const DONE = ['completed', 'approved'];
@@ -61,16 +62,26 @@ export default async function SenderDashboard() {
     : null;
 
   // This year's two obligations: the annual plan and the performance report.
+  // A returned report still has to be fixed, and a saved draft is continued
+  // rather than started again.
   const thisYear = reports.filter((r) => r.year === year);
-  const plan = thisYear.find((r) => r.reportType.name.includes('Жилийн'));
-  const performance = thisYear.find((r) => r.reportType.name.includes('Биелэлт'));
+  const dutyFor = (kind: 'plan' | 'performance', href: string) => {
+    const ofType = thisYear.filter((r) => reportKind(r.reportType) === kind);
+    const sent = ofType.find((r) => !['needs_revision', 'rejected'].includes(r.status));
+    const returned = ofType.find((r) => r.status === 'needs_revision');
+    const draft = drafts.find((r) => reportKind(r.reportType) === kind);
+    if (sent) return { done: true, detail: `Илгээсэн · ${formatDate(sent.submittedAt)}`, href: `/report/${sent.id}?role=sender`, action: 'Харах' };
+    if (returned) return { done: false, detail: 'Засвар шаардсан', href: `/sender/revise/${returned.id}`, action: 'Засах' };
+    if (draft) return { done: false, detail: 'Ноорог хадгалсан', href: `/sender/submit?edit=${draft.id}`, action: 'Үргэлжлүүлэх' };
+    return { done: false, detail: 'Илгээгээгүй', href, action: 'Илгээх' };
+  };
   const duties = [
-    { label: 'Жилийн төлөвлөгөө', report: plan, href: '/sender/submit?type=plan', icon: <HiOutlineCalendar size={20} /> },
-    { label: 'Биелэлтийн тайлан', report: performance, href: '/sender/submit?type=performance', icon: <HiOutlineTrendingUp size={20} /> },
+    { label: 'Жилийн төлөвлөгөө', ...dutyFor('plan', '/sender/submit?type=plan'), icon: <HiOutlineCalendar size={20} /> },
+    { label: 'Биелэлтийн тайлан', ...dutyFor('performance', '/sender/submit?type=performance'), icon: <HiOutlineTrendingUp size={20} /> },
   ];
 
   const kpis = [
-    { label: 'Нийт илгээсэн', value: totalCount, note: `${year} оны байдлаар`, accent: 'bg-teal-600' },
+    { label: 'Нийт илгээсэн', value: totalCount, note: 'Бүх он', accent: 'bg-teal-600' },
     { label: 'Хянагдаж байгаа', value: inReviewCount, note: 'Хянах байгууллагад', accent: 'bg-amber-400' },
     { label: 'Засвар шаардсан', value: revisionCount, note: revisionCount ? 'Засаад дахин илгээнэ үү' : 'Засах тайлан алга', accent: 'bg-rose-500' },
     { label: 'Үнэлгээ дууссан', value: doneCount, note: averageScore ? `Дундаж оноо ${averageScore}` : 'Дүн гараагүй', accent: 'bg-sky-500' },
@@ -131,7 +142,7 @@ export default async function SenderDashboard() {
         {/* Latest reports with a 4-step progress */}
         <div className="border border-slate-200 bg-white shadow-soft">
           <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-            <h2 className="text-base font-semibold text-slate-900">Сүүлийн тайлангууд</h2>
+            <h2 className="text-base font-semibold text-slate-900">Сүүлийн БОМТ-ууд</h2>
             <Link href="/sender/reports" className="inline-flex items-center gap-1 text-sm font-medium text-teal-700 hover:underline">
               Бүгдийг харах <HiOutlineArrowRight size={14} />
             </Link>
@@ -193,27 +204,25 @@ export default async function SenderDashboard() {
                 <li key={duty.label} className="flex items-center gap-3 px-5 py-4">
                   <span
                     className={`flex h-9 w-9 shrink-0 items-center justify-center ${
-                      duty.report ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-400'
+                      duty.done ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-400'
                     }`}
                   >
-                    {duty.report ? <HiOutlineCheck size={18} /> : duty.icon}
+                    {duty.done ? <HiOutlineCheck size={18} /> : duty.icon}
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block text-sm font-semibold text-slate-900">{duty.label}</span>
-                    <span className="block text-xs text-slate-500">
-                      {duty.report ? `Илгээсэн · ${formatDate(duty.report.submittedAt)}` : 'Илгээгээгүй'}
-                    </span>
+                    <span className="block text-xs text-slate-500">{duty.detail}</span>
                   </span>
-                  {duty.report ? (
-                    <Link href={`/report/${duty.report.id}?role=sender`} className="text-xs font-semibold text-teal-700 hover:underline">
-                      Харах
+                  {duty.done ? (
+                    <Link href={duty.href} className="text-xs font-semibold text-teal-700 hover:underline">
+                      {duty.action}
                     </Link>
                   ) : (
                     <Link
                       href={duty.href}
                       className="inline-flex h-8 items-center border border-teal-600 px-3 text-xs font-semibold text-teal-700 transition hover:bg-teal-50"
                     >
-                      Илгээх
+                      {duty.action}
                     </Link>
                   )}
                 </li>

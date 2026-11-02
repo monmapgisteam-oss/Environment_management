@@ -1,5 +1,6 @@
 import dataStore from '@/lib/db';
 import { REPORT_CATEGORIES } from '@/lib/constants';
+import { reportKind, type ReportTypeRef } from '@/lib/reports/terms';
 
 // Each report category is scored on its own sheet of criteria (Журмын 4 дүгээр
 // хавсралт), and senders attach evidence per criterion. Reports filed before
@@ -15,8 +16,8 @@ export function criteriaCategory(reportCategory: string | null | undefined) {
 // sheets. Older criteria have no sheet and belong to the performance sheet.
 export type CriteriaSheet = 'plan' | 'performance';
 
-export function sheetForReportType(reportTypeName: string | null | undefined): CriteriaSheet {
-  return reportTypeName?.includes('Жилийн') ? 'plan' : 'performance';
+export function sheetForReportType(type: ReportTypeRef): CriteriaSheet {
+  return reportKind(type) === 'plan' ? 'plan' : 'performance';
 }
 
 function sheetWhere(sheet: CriteriaSheet) {
@@ -34,9 +35,9 @@ export async function fetchCriteriaFor(reportCategory: string | null | undefined
 // criteria (scored before plans had their own sheet) keeps those criteria, so
 // its evaluations stay complete and new scores match them.
 export async function fetchCriteriaForReport(
-  report: { id: string; reportCategory: string | null; reportType: { name: string } | null },
+  report: { id: string; reportCategory: string | null; reportType: { name: string; slug?: string | null } | null },
 ) {
-  const criteria = await fetchCriteriaFor(report.reportCategory, sheetForReportType(report.reportType?.name));
+  const criteria = await fetchCriteriaFor(report.reportCategory, sheetForReportType(report.reportType));
   const scores = await dataStore.evaluationScore.findMany({
     where: { evaluation: { reportId: report.id } },
     select: { criterionId: true },
