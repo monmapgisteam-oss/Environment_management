@@ -153,7 +153,7 @@ export default async function ReviewerDashboard() {
             )}
           </Panel>
 
-          <Panel title="Буцаах хүсэлт" count={returnRequests.length} subtitle="Гишүүд дутуу гэж үзсэн тайлангууд" link={{ label: 'Буцаасан тайлан', href: '/reviewer/returned' }}>
+          <Panel title="Буцаах хүсэлт" count={returnRequests.length} subtitle="Гишүүд дутуу гэж үзсэн тайлангууд" link={{ label: 'Буцаасан БОМТ', href: '/reviewer/returned' }}>
             {returnRequests.length === 0 ? (
               <PanelEmpty>Шийдвэрлэх хүсэлт алга.</PanelEmpty>
             ) : (

@@ -51,6 +51,7 @@ export function senderNav(): NavItem[] {
     { label: 'Биелэлтийн тайлан', href: '/sender/submit?type=performance' },
     { label: 'Миний төлөвлөгөө, тайлан', href: '/sender/reports', match: ['/report/'], section: 'Миний ажил' },
     { label: 'Ноорог', href: '/sender/drafts' },
+    { label: 'Ерөнхий үнэлгээний дүгнэлт', href: '/sender/conclusions' },
     { label: 'Газарзүйн мэдээлэл', href: '/sender/geography' },
   ];
 }
@@ -66,7 +67,7 @@ export function reviewerNav(reportTypes: NavReportType[]): NavItem[] {
       section: 'Тайлан',
     },
     { label: 'Ерөнхий үнэлгээний дүгнэлт', href: '/reviewer/conclusions' },
-    { label: 'Буцаасан тайлан', href: '/reviewer/returned' },
+    { label: 'Буцаасан БОМТ', href: '/reviewer/returned' },
     { label: 'Үнэлгээний явц', href: '/reviewer/evaluation-progress', section: 'Хяналт' },
     { label: 'Газарзүйн мэдээлэл', href: '/reviewer/geography' },
   ];

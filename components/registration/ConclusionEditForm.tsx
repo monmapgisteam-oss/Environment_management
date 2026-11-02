@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type ChangeEvent, type FormEvent } from 'react';
+import { useId, useState, type ChangeEvent, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { LuFileText, LuPencil, LuUpload } from 'react-icons/lu';
 import { CONCLUSION_MAX_FILE_BYTES, conclusionFileError } from '@/lib/auth/signup';
@@ -24,15 +24,29 @@ const labelClass = 'mb-1 block text-[13px] font-medium text-slate-700';
 type Props = {
   initial: ConclusionValues;
   file: { name: string; url: string } | null;
-  // A rejected registration goes back to the admin when saved.
-  rejected: boolean;
+  // A rejected registration goes back to the review manager when saved.
+  rejected?: boolean;
+  // Where the form is sent: the registration page by default, or the sender
+  // portal's own conclusion routes.
+  endpoint?: string;
+  // A new conclusion: opens as the form, needs a PDF, and Болих closes it.
+  isNew?: boolean;
+  onCancel?: () => void;
 };
 
 // The conclusion sent at sign-up: read view with the file, and an edit form
 // to fix the fields or replace the PDF after the reviewers' comments.
-export default function ConclusionEditForm({ initial, file, rejected }: Props) {
+export default function ConclusionEditForm({
+  initial,
+  file,
+  rejected = false,
+  endpoint = '/api/registration/conclusion',
+  isNew = false,
+  onCancel,
+}: Props) {
   const router = useRouter();
-  const [editing, setEditing] = useState(false);
+  const fileInputId = useId();
+  const [editing, setEditing] = useState(isNew);
   const [form, setForm] = useState(initial);
   const [newFile, setNewFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
@@ -54,14 +68,29 @@ export default function ConclusionEditForm({ initial, file, rejected }: Props) {
     try {
       const body = new FormData();
       for (const [key, value] of Object.entries(form)) body.append(key, value);
+      if (isNew && !newFile) {
+        setError('Ерөнхий үнэлгээний дүгнэлтийн PDF файлаа хавсаргана уу.');
+        return;
+      }
       if (newFile) body.append('file', newFile);
-      const res = await fetch('/api/registration/conclusion', { method: 'POST', body });
+      const res = await fetch(endpoint, { method: 'POST', body });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setError(data.error || 'Хадгалахад алдаа гарлаа.');
         return;
       }
-      toast(data.resubmitted ? 'Дүгнэлтээ засаж дахин илгээлээ. Хянах байгууллага дахин шалгана.' : 'Дүгнэлт шинэчлэгдлээ. Хянагчдад мэдэгдэл очлоо.');
+      toast(
+        isNew
+          ? 'Дүгнэлт нэмэгдлээ. Хянагчдад мэдэгдэл очлоо.'
+          : data.resubmitted
+          ? 'Дүгнэлтээ засаж дахин илгээлээ. Хянах байгууллага дахин шалгана.'
+          : 'Дүгнэлт шинэчлэгдлээ. Хянагчдад мэдэгдэл очлоо.',
+      );
+      if (isNew) {
+        onCancel?.();
+        router.refresh();
+        return;
+      }
       setEditing(false);
       setNewFile(null);
       router.refresh();
@@ -85,7 +114,7 @@ export default function ConclusionEditForm({ initial, file, rejected }: Props) {
       <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-6 py-4">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Ерөнхий үнэлгээний дүгнэлт</p>
-          <h2 className="mt-0.5 truncate text-base font-semibold text-slate-900">{initial.projectName}</h2>
+          <h2 className="mt-0.5 truncate text-base font-semibold text-slate-900">{initial.projectName || 'Шинэ дүгнэлт'}</h2>
         </div>
         {!editing && (
           <button
@@ -139,6 +168,7 @@ export default function ConclusionEditForm({ initial, file, rejected }: Props) {
             <div>
               <label className={labelClass}>Төслийн ангилал</label>
               <select value={form.projectCategory} onChange={set('projectCategory')} required className={inputClass}>
+                <option value="">-- Сонгох --</option>
                 {CONCLUSION_PROJECT_CATEGORIES.map((category) => (
                   <option key={category} value={category}>
                     {category}
@@ -149,6 +179,7 @@ export default function ConclusionEditForm({ initial, file, rejected }: Props) {
             <div>
               <label className={labelClass}>Төсөл хэрэгжих байршил</label>
               <select value={form.district} onChange={set('district')} required className={inputClass}>
+                <option value="">-- Дүүрэг сонгох --</option>
                 {CONCLUSION_DISTRICTS.map((district) => (
                   <option key={district} value={district}>
                     {district}
@@ -163,7 +194,7 @@ export default function ConclusionEditForm({ initial, file, rejected }: Props) {
             <div className="sm:col-span-2">
               <span className={labelClass}>Дүгнэлтийн файл</span>
               <label
-                htmlFor="registration-file"
+                htmlFor={fileInputId}
                 className="flex cursor-pointer items-center gap-3 border border-dashed border-slate-300 bg-slate-50 px-4 py-3 transition hover:border-teal-500"
               >
                 {newFile ? <LuFileText size={20} className="text-teal-700" /> : <LuUpload size={20} className="text-slate-400" />}
@@ -178,7 +209,7 @@ export default function ConclusionEditForm({ initial, file, rejected }: Props) {
                   </span>
                 </span>
               </label>
-              <input id="registration-file" type="file" accept="application/pdf,.pdf" onChange={pickFile} className="sr-only" />
+              <input id={fileInputId} type="file" accept="application/pdf,.pdf" onChange={pickFile} className="sr-only" />
             </div>
           </div>
 
@@ -188,6 +219,7 @@ export default function ConclusionEditForm({ initial, file, rejected }: Props) {
             <button
               type="button"
               onClick={() => {
+                if (isNew) return onCancel?.();
                 setEditing(false);
                 setForm(initial);
                 setNewFile(null);

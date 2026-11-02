@@ -2,6 +2,7 @@ import EmptyState from '@/components/ui/EmptyState';
 import PageHeader from '@/components/layout/PageHeader';
 import dataStore from '@/lib/db';
 import ReportTable from '@/components/reports/ReportTable';
+import { PLAN_NOUN } from '@/lib/reports/terms';
 import { attachEffectiveSenderCompanies } from '@/lib/reports/companies';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
 
@@ -40,22 +41,22 @@ export default async function ReturnedReportsPage() {
 
   return (
     <main className="flex-1 min-w-0 space-y-6 px-6 py-7 lg:px-8">
-      <PageHeader title="Буцаасан тайлан" subtitle="Гишүүдийн буцаах хүсэлт, илгээгч байгууллага руу засварлуулахаар буцаасан тайлангууд." />
+      <PageHeader title="Буцаасан БОМТ" subtitle="Гишүүдийн буцаах хүсэлт, илгээгч байгууллага руу засварлуулахаар буцаасан БОМТ, тайлангууд." />
 
       {requested.length > 0 && (
         <section className="space-y-3">
           <h2 className="text-base font-semibold text-slate-900">Буцаах хүсэлт ({requested.length})</h2>
           <p className="text-sm text-slate-500">Гишүүн дутуу гэж үзсэн тайлан. Нээж, илгээгчид буцаах эсвэл хүсэлтийг татгалзана уу.</p>
-          <ReportTable role="reviewer" reports={requested} showStatusFilter={false} />
+          <ReportTable role="reviewer" reports={requested} showStatusFilter={false} noun={PLAN_NOUN} />
         </section>
       )}
 
       <h2 className="text-base font-semibold text-slate-900">Илгээгчид буцаасан</h2>
 
       {tableReports.length === 0 ? (
-        <EmptyState title="Буцаасан тайлан байхгүй байна." />
+        <EmptyState title="Буцаасан БОМТ байхгүй байна." />
       ) : (
-        <ReportTable role="reviewer" reports={tableReports} showStatusFilter={false} />
+        <ReportTable role="reviewer" reports={tableReports} showStatusFilter={false} noun={PLAN_NOUN} />
       )}
     </main>
   );

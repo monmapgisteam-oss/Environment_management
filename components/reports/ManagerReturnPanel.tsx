@@ -34,7 +34,7 @@ export default function ManagerReturnPanel({ reportId, status, returnReason, ret
     return (
       <div className="border border-orange-200 bg-orange-50/40 p-5">
         <p className="text-sm font-semibold text-orange-700">
-          Энэ тайлан илгээгч байгууллага руу буцаагдсан{returnRequestedBy ? ` (${returnRequestedBy})` : ''}.
+          Энэ БОМТ илгээгч байгууллага руу буцаагдсан{returnRequestedBy ? ` (${returnRequestedBy})` : ''}.
         </p>
         {returnReason && <p className="mt-1 text-sm text-slate-600">Шалтгаан: {returnReason}</p>}
         <RevisionItemList items={revisionItems} className="mt-3" />
