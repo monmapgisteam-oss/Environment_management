@@ -94,7 +94,7 @@ export default async function SenderDashboard() {
             className="inline-flex h-10 items-center gap-2 bg-color-primary px-4 text-sm font-semibold text-white shadow-btn transition hover:bg-color-primary-dark"
           >
             <HiOutlineCalendar size={17} />
-            Шинэ тайлан илгээх
+            Шинэ БОМТ илгээх
           </Link>
         }
       />

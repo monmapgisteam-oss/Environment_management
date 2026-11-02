@@ -103,41 +103,6 @@ export function sampleForCriterion(category: string | null | undefined, criterio
   };
 }
 
-// Template of a plan table, by material id (lib/reports/materials.ts): a plan
-// row "plan-<file>" is the same table of Журмын 3 дугаар хавсралтын А хэсэг
-// that the criterion samples above are cut from.
-export function samplesForMaterial(
-  reportType: string | null | undefined,
-  category: string | null | undefined,
-  material: { id: string; label: string },
-): SampleLink[] {
-  if (reportType !== 'Жилийн төлөвлөгөө' || !category || !material.id.startsWith('plan-')) return [];
-  const file = material.id.slice('plan-'.length);
-  const match = SUBJECT_PAGES[category]?.find(([, subjectFile]) => subjectFile === file);
-  if (!match) return [];
-  const page = match[2];
-  return [
-    {
-      href: `/samples/${CATEGORY_FOLDERS[category]}/${file}.pdf`,
-      label: `Загвар хүснэгт татах (Журмын 3-р хавсралт, ${page}-р хуудас)`,
-      page,
-      download: downloadName(category, material.label),
-    },
-  ];
-}
-
-// The approved cover page of the plan (Журмын 1 дүгээр хавсралт).
-export function planCoverSample(category: string | null | undefined): SampleLink | null {
-  if (!category || !CATEGORY_FOLDERS[category]) return null;
-  const isMining = category === 'Уул уурхай, газрын тос';
-  return {
-    href: `/samples/plan/${isMining ? 'cover-mining' : 'cover-general'}.pdf`,
-    label: 'Төлөвлөгөөний нүүр хуудасны загвар (Журмын 1-р хавсралт)',
-    page: 1,
-    download: `Загвар - Төлөвлөгөөний нүүр хуудас (${category}).pdf`,
-  };
-}
-
 export function scoringSheetSample(category: string | null | undefined): SampleLink | null {
   const page = category ? SCORING_SHEET_PAGES[category] : undefined;
   return page ? pdfLink(page, `Үнэлгээний хуудас (Журмын 4-р хавсралт, ${page}-р хуудас)`) : null;

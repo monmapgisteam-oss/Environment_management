@@ -2,8 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { planCoverSample, sampleForCriterion, samplesForMaterial, scoringSheetSample, SAMPLE_PDF_URL } = require('../lib/reports/samples.ts');
-const { materialsFor } = require('../lib/reports/materials.ts');
+const { sampleForCriterion, scoringSheetSample, SAMPLE_PDF_URL } = require('../lib/reports/samples.ts');
 const { REPORT_CATEGORIES, EVALUATION_CRITERIA } = require('../lib/constants.ts');
 
 // The sheets the seed script creates (scripts/seed-category-criteria.mjs).
@@ -54,28 +53,6 @@ test('every seeded criterion of every category has its own table file cut from t
     }
     assert.match(scoringSheetSample(category).href, new RegExp(`^${SAMPLE_PDF_URL}#page=\\d+$`));
   }
-});
-
-test('every plan table links to its own template; other rows to nothing', () => {
-  const exists = (href) => fs.existsSync(path.join(__dirname, '..', 'public', href));
-  for (const category of REPORT_CATEGORIES) {
-    for (const material of materialsFor('Жилийн төлөвлөгөө', category)) {
-      const samples = samplesForMaterial('Жилийн төлөвлөгөө', category, material);
-      if (material.id === 'project-intro') {
-        assert.deepEqual(samples, []);
-        continue;
-      }
-      assert.equal(samples.length, 1, `${category}: ${material.id}`);
-      assert.ok(exists(samples[0].href), samples[0].href);
-      assert.match(samples[0].download, /^Загвар - .+\.pdf$/);
-    }
-    assert.ok(exists(planCoverSample(category).href), category);
-  }
-  const waste = { id: 'plan-waste', label: 'Хог, хаягдлын менежментийн төлөвлөгөө' };
-  assert.equal(samplesForMaterial('Жилийн төлөвлөгөө', 'Үйлдвэрлэл', waste)[0].href, '/samples/industry/waste.pdf');
-  assert.equal(planCoverSample('Уул уурхай, газрын тос').href, '/samples/plan/cover-mining.pdf');
-  assert.equal(planCoverSample('Үйлдвэрлэл').href, '/samples/plan/cover-general.pdf');
-  assert.deepEqual(samplesForMaterial('Биелэлтийн тайлан', 'Үйлдвэрлэл', waste), []);
 });
 
 test('unknown subjects and categories have no sample', () => {

@@ -1,4 +1,5 @@
 import ScanPrintPanel from '@/components/reports/ScanPrintPanel';
+import ScoreSheetButton from '@/components/reports/ScoreSheetButton';
 import SignatureBadge from '@/components/signature/SignatureBadge';
 import { downloadUrl, type Attachment } from '@/lib/reports/attachments';
 import { formatDate } from '@/lib/utils';
@@ -30,6 +31,9 @@ export default function EvaluationScoresCard({
   const locationLabel = [report.location?.province, report.location?.district, report.location?.khoroo, report.location?.addressDetail]
     .filter((v) => v && v !== 'Тодорхойгүй')
     .join(', ');
+  // Plans are scored from the whole document, so the file column only shows
+  // when a criterion carries evidence (performance reports, older plans).
+  const showFiles = criteria.some((criterion) => (criterionAttachments[criterion.id] || []).length > 0);
 
   return (
     <div className="bg-white border border-slate-200 p-6">
@@ -53,6 +57,19 @@ export default function EvaluationScoresCard({
             finalScore={report.finalScore}
           />
         )}
+        {viewerRole === 'sender' && approval && (
+          <ScoreSheetButton
+            reportNumber={report.reportNumber}
+            title={report.title}
+            senderCompanyName={report.senderCompany?.name || ''}
+            submittedAtLabel={formatDate(report.submittedAt)}
+            implementerName={report.implementerName || ''}
+            locationLabel={locationLabel}
+            criteria={criteria}
+            evaluations={evaluations}
+            approval={approval}
+          />
+        )}
       </div>
 
       <div className="overflow-x-auto">
@@ -62,7 +79,9 @@ export default function EvaluationScoresCard({
               <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase w-12">№</th>
               <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase">Шалгуур</th>
               <th className="text-center py-3 px-4 text-xs font-semibold text-slate-500 uppercase w-28">Авбал зохих оноо</th>
-              <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase w-56">Илгээсэн файл</th>
+              {showFiles && (
+                <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase w-56">Илгээсэн файл</th>
+              )}
               {evaluations.map((ev, i) => (
                 <th key={i} className="text-center py-3 px-4 text-xs font-semibold text-slate-500 uppercase w-28">
                   <div className="flex flex-col items-center gap-1">
@@ -86,6 +105,7 @@ export default function EvaluationScoresCard({
                 <td className="py-3 px-4 text-slate-600">{index + 1}</td>
                 <td className="py-3 px-4 text-slate-800">{criterion.name}</td>
                 <td className="py-3 px-4 text-center font-semibold text-slate-700">{criterion.maxScore}</td>
+                {showFiles && (
                 <td className="py-3 px-4">
                   {(criterionAttachments[criterion.id] || []).length > 0 ? (
                     <div className="space-y-1.5">
@@ -105,6 +125,7 @@ export default function EvaluationScoresCard({
                     <span className="text-xs text-slate-400">-</span>
                   )}
                 </td>
+                )}
                 {evaluations.map((ev, i) => {
                   const score = ev.scores.find((s) => s.criterionId === criterion.id);
                   return (
@@ -126,7 +147,7 @@ export default function EvaluationScoresCard({
               <td className="py-3 px-4 text-center font-bold text-slate-900">
                 {criteria.reduce((sum, c) => sum + c.maxScore, 0)}
               </td>
-              <td className="py-3 px-4"></td>
+              {showFiles && <td className="py-3 px-4"></td>}
               {evaluations.map((ev, i) => (
                 <td key={i} className="py-3 px-4 text-center font-bold text-color-primary text-lg">
                   {ev.totalScore}

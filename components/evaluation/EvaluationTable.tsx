@@ -167,11 +167,11 @@ export default function EvaluationTable({ criteria, reportId, savedScores, saved
                     Авбал зохих оноо: <span className="font-semibold text-slate-700">{criterion.maxScore}</span>
                   </p>
 
-                  <div className="mt-3">
-                    <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Илгээсэн файл</p>
-                    {files.length === 0 ? (
-                      <p className="text-xs text-slate-400">Файл хавсаргаагүй</p>
-                    ) : (
+                  {/* Plans are scored from the whole document, so their criteria
+                      carry no files; only evidence a sender attached is listed. */}
+                  {files.length > 0 && (
+                    <div className="mt-3">
+                      <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Илгээсэн файл</p>
                       <ul className="flex flex-wrap gap-2">
                         {files.map((file, fileIndex) => (
                           <li key={`${file.url}-${fileIndex}`} className="flex max-w-full items-stretch border border-slate-200 bg-slate-50 text-xs">
@@ -198,8 +198,8 @@ export default function EvaluationTable({ criteria, reportId, savedScores, saved
                           </li>
                         ))}
                       </ul>
-                    )}
-                  </div>
+                    </div>
+                  )}
 
                   {otherEvaluations.length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-1.5">

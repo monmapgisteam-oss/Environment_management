@@ -76,13 +76,16 @@ export default async function ReportDetailPage(props: Props) {
   const visibleAssignments = uniqueAssignments.flatMap(({ evaluator, evaluation }) =>
     !evaluation || (isStaff && evaluator?.id !== currentUser.id) ? [] : [{ evaluator, evaluation }],
   );
+  const isSenderView = !isReviewer && !isStaff;
+  // The manager prints the scores with each signer's QR code, which opens their
+  // public profile; the sender gets the same sheet once the scores are approved.
+  const showSignerQr = isReviewer || (isSenderView && !!report.scoresApprovedAt);
   const evaluations: EvaluationSummary[] = await Promise.all(
     visibleAssignments.map(async ({ evaluator, evaluation }) => ({
       evaluatorName: evaluator.name,
       evaluatorPosition: evaluator.position,
-      // The manager prints the scores with each signer's QR code, which opens
-      // their public profile (name, position, workplace, contact).
-      evaluatorQrUrl: isReviewer ? await createQrImageUrl(await getPublicProfileQrUrl(evaluator.id), 160) : null,
+      // Signer QR code for the printed sheet (see showSignerQr).
+      evaluatorQrUrl: showSignerQr ? await createQrImageUrl(await getPublicProfileQrUrl(evaluator.id), 160) : null,
       totalScore: evaluation.totalScore,
       comment: evaluation.comment,
       scores: evaluation.scores,
@@ -101,7 +104,6 @@ export default async function ReportDetailPage(props: Props) {
     submitted: !!evaluation,
   }));
 
-  const isSenderView = !isReviewer && !isStaff;
   const viewerRole: ViewerRole = isReviewer ? 'manager' : isStaff ? 'staff' : 'sender';
   const isConclusion = report.title === GENERAL_EVALUATION_CONCLUSION_TITLE;
   const needsRevision = isSenderView && !isConclusion && report.status === 'needs_revision';
@@ -142,7 +144,7 @@ export default async function ReportDetailPage(props: Props) {
       ? {
           name: approver.name,
           position: approver.position,
-          qrUrl: isReviewer ? await createQrImageUrl(await getPublicProfileQrUrl(approver.id), 160) : null,
+          qrUrl: showSignerQr ? await createQrImageUrl(await getPublicProfileQrUrl(approver.id), 160) : null,
           signatureId: report.scoresApprovalSignatureId,
           approvedAt: report.scoresApprovedAt.toISOString(),
         }

@@ -212,7 +212,7 @@ export default function SignupForm() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-teal-700">Бүртгүүлэх</p>
-          <h1 className="mt-1.5 text-2xl font-bold leading-tight tracking-tight text-slate-900">Тайлан илгээх байгууллага</h1>
+          <h1 className="mt-1.5 text-2xl font-bold leading-tight tracking-tight text-slate-900">БОМТ илгээх байгууллага</h1>
           <p className="mt-1 text-sm text-slate-500">
             {phase === 0
               ? 'Байгууллагынхаа мэдээллийг оруулж, нэвтрэх эрх үүсгэнэ.'
@@ -250,7 +250,7 @@ export default function SignupForm() {
               </Field>
             </Section>
 
-            <Section number={2} title="Тайлан хариуцсан ажилтан">
+            <Section number={2} title="БОМТ хариуцсан ажилтан">
               <Field label="Овог, нэр" required>
                 <input value={form.contactName} onChange={set('contactName')} required placeholder="Б. Батбаяр" className={inputClass} />
               </Field>

@@ -184,7 +184,7 @@ export default function UsersView({ users }: { users: UserRow[] }) {
       <KpiStrip
         items={[
           { label: 'Нийт хэрэглэгч', value: users.length, note: `${users.filter((u) => !u.isActive).length} идэвхгүй`, accent: 'bg-slate-400' },
-          { label: 'Илгээгч', value: counts.sender ?? 0, note: 'Тайлан илгээх байгууллага', accent: 'bg-sky-500' },
+          { label: 'Илгээгч', value: counts.sender ?? 0, note: 'БОМТ илгээх байгууллага', accent: 'bg-sky-500' },
           { label: 'Хянах менежер', value: counts.review_manager ?? 0, note: 'Хянах байгууллага', accent: 'bg-violet-500' },
           {
             label: 'Ажилтан',

@@ -43,8 +43,8 @@ function splitKey(key: string): [string, string] {
   return at < 0 ? [key, ''] : [key.slice(0, at), key.slice(at + 1)];
 }
 
-// Every upload section of a report, in the order of the submit form, with the
-// files currently in it. Criteria show for performance reports, and for older
+// Every upload section of a report, in the order of the submit form (the
+// documents, then the criteria), with the files currently in it. Criteria show for performance reports, and for older
 // plans that still carry criterion files.
 export function reportSections(params: {
   reportType: string | null | undefined;
@@ -55,17 +55,17 @@ export function reportSections(params: {
   const { reportType, reportCategory, criteria, attachments } = params;
   const sections: ReportSection[] = [];
   const performance = isPerformanceReportType(reportType);
+  const materialGroup = materialsTitle(reportType);
+  for (const material of materialsFor(reportType, reportCategory)) {
+    const key = `material:${material.id}`;
+    sections.push({ key, label: material.label, group: materialGroup, files: filesOfSection(attachments, key) });
+  }
   for (const criterion of criteria) {
     const key = `criterion:${criterion.id}`;
     const files = filesOfSection(attachments, key);
     if (performance || files.length > 0) {
       sections.push({ key, label: criterion.name, group: 'Үнэлгээний шалгуурын нотлох файл', files });
     }
-  }
-  const materialGroup = materialsTitle(reportType);
-  for (const material of materialsFor(reportType, reportCategory)) {
-    const key = `material:${material.id}`;
-    sections.push({ key, label: material.label, group: materialGroup, files: filesOfSection(attachments, key) });
   }
   // Files saved under a row the form no longer has (an older material list)
   // still get a section, so they can be flagged and replaced.

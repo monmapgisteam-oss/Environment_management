@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import ReportInfoCard from "@/components/submit/ReportInfoCard";
 import LocationCard from "@/components/submit/LocationCard";
-import AttachmentCard from "@/components/submit/AttachmentCard";
 import DocumentUploadCard from "@/components/submit/DocumentUploadCard";
 import EvidenceUploadCard from "@/components/submit/EvidenceUploadCard";
 import SubmitSuccessCard from "@/components/submit/SubmitSuccessCard";
@@ -12,8 +11,8 @@ import SavedAttachmentList from "@/components/submit/SavedAttachmentList";
 import SubmitActions from "@/components/submit/SubmitActions";
 import SubmitStepper from "@/components/submit/SubmitStepper";
 import { useReportSubmission } from "@/components/submit/useReportSubmission";
-import { PROJECT_INTRO, materialsTitle, type ReportMaterial } from "@/lib/reports/materials";
-import { planCoverSample, sampleForCriterion, samplesForMaterial, scoringSheetSample } from "@/lib/reports/samples";
+import { materialsTitle, type ReportMaterial } from "@/lib/reports/materials";
+import { sampleForCriterion, scoringSheetSample } from "@/lib/reports/samples";
 import { nounForReportType } from "@/lib/reports/terms";
 
 // The server stores the sender company as the project implementer, so the
@@ -25,19 +24,10 @@ export default function SubmitReportForm() {
   const [currentStep, setCurrentStep] = useState(0);
   const stepRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  const generalAttachments = (
-    <div className="space-y-3">
-      {showSavedAttachments && (
-        <SavedAttachmentList
-          attachments={form.existingAttachments}
-          onRemove={form.handleRemoveExistingAttachment}
-        />
-      )}
-      <AttachmentCard
-        attachedFiles={form.attachedFiles}
-        onFileChange={form.handleFileChange}
-      />
-    </div>
+  // General files saved on older reports, which the form no longer asks for,
+  // stay listed so the sender can remove them.
+  const savedGeneralAttachments = showSavedAttachments && (
+    <SavedAttachmentList attachments={form.existingAttachments} onRemove={form.handleRemoveExistingAttachment} />
   );
 
   const materialsLabel = materialsTitle(form.formData.reportType);
@@ -51,7 +41,6 @@ export default function SubmitReportForm() {
         id: material.id,
         label: material.label,
         detail: material.note,
-        samples: samplesForMaterial(form.formData.reportType, form.formData.reportCategory, material),
       }))}
       filesByRow={form.materialFiles}
       existingByRow={form.existingMaterialAttachments}
@@ -59,20 +48,8 @@ export default function SubmitReportForm() {
       onExistingChange={form.handleExistingMaterialFilesChange}
     />
   );
-  // Performance reports ask for the project introduction first, above the
-  // criterion evidence; plans keep it as the first row of their documents.
-  const hasProjectIntro = form.materials.some((material) => material.id === PROJECT_INTRO.id);
-  const projectIntroUpload = materialCard([PROJECT_INTRO], { title: PROJECT_INTRO.label, idPrefix: "intro" });
-  const materialUploads = form.isPerformanceReport
-    ? materialCard(
-        form.materials.filter((material) => material.id !== PROJECT_INTRO.id),
-        { title: materialsLabel, idPrefix: "material" },
-      )
-    : materialCard(form.materials, {
-        title: materialsLabel,
-        idPrefix: "material",
-        headerLink: planCoverSample(form.formData.reportCategory) ?? undefined,
-      });
+  // The document and its "Хавсралт".
+  const materialUploads = materialCard(form.materials, { title: materialsLabel, idPrefix: "material" });
 
   const steps: { title: string; content: ReactNode }[] = [
     {
@@ -93,16 +70,15 @@ export default function SubmitReportForm() {
         />
       ),
     },
-    // Performance reports: criterion evidence with general files under it,
-    // then the materials of the chosen "Төслийн ангилал". Plans: the
-    // documents of that "Төслийн ангилал" with general files under them.
+    // Performance reports: the documents, then the evidence of each criterion
+    // of the chosen "Төслийн ангилал". Plans: the documents only.
     ...(form.isPerformanceReport
       ? [
           {
-            title: "Үнэлгээний шалгуурын нотлох файл",
+            title: "Бичиг баримт, нотлох файл",
             content: (
               <>
-                {hasProjectIntro && projectIntroUpload}
+                {form.materials.length > 0 && materialUploads}
                 {form.criteria.length > 0 && (
                   <EvidenceUploadCard
                     title="Үнэлгээний шалгуурын нотлох файл"
@@ -123,11 +99,10 @@ export default function SubmitReportForm() {
                     onExistingChange={form.handleExistingCriterionFilesChange}
                   />
                 )}
-                {generalAttachments}
+                {savedGeneralAttachments}
               </>
             ),
           },
-          { title: materialsLabel, content: materialUploads },
         ]
       : [
           {
@@ -135,7 +110,7 @@ export default function SubmitReportForm() {
             content: (
               <>
                 {form.materials.length > 0 && materialUploads}
-                {generalAttachments}
+                {savedGeneralAttachments}
               </>
             ),
           },

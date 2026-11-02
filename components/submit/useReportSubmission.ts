@@ -1,7 +1,7 @@
 import { useState, useEffect, type ChangeEvent, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { isDocumentAttachment, isReportAttachment, parseAttachments, type Attachment } from "@/lib/reports/attachments";
-import { materialsFor } from "@/lib/reports/materials";
+import { materialsFor, type ReportMaterial } from "@/lib/reports/materials";
 import { toast } from "@/lib/toast";
 
 export type Criterion = {
@@ -101,7 +101,6 @@ export function useReportSubmission() {
   const [submittedNumber, setSubmittedNumber] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
-  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const [documentFiles, setDocumentFiles] = useState<File[]>([]);
   const [criteria, setCriteria] = useState<Criterion[]>([]);
   const [criterionFiles, setCriterionFiles] = useState<Record<string, File[]>>({});
@@ -125,10 +124,17 @@ export function useReportSubmission() {
     spentAmount: "",
   });
   // The regulation's scoring sheets are for performance reports only. Plans and
-  // performance reports each attach the documents their "Төслийн ангилал"
-  // requires (lib/reports/materials.ts); the other forms attach general files only.
+  // performance reports attach the document and its "Хавсралт"
+  // (lib/reports/materials.ts); the general evaluation attaches documents only.
   const isPerformanceReport = !isGeneralEvaluation && formData.reportType === PERFORMANCE_REPORT_LABEL;
-  const materials = isGeneralEvaluation ? [] : materialsFor(formData.reportType, formData.reportCategory);
+  const listedMaterials = isGeneralEvaluation ? [] : materialsFor(formData.reportType, formData.reportCategory);
+  // Files a saved report keeps under rows of an older document list get their
+  // own rows, so the sender can see and remove them.
+  const listedIds = new Set(listedMaterials.map((material) => material.id));
+  const leftoverMaterials: ReportMaterial[] = Object.entries(existingMaterialAttachments)
+    .filter(([id, files]) => !listedIds.has(id) && files.length > 0)
+    .map(([id], index) => ({ id, label: `Өмнөх хавсралт ${index + 1}` }));
+  const materials = [...listedMaterials, ...leftoverMaterials];
   const materialIds = new Set(materials.map((material) => material.id));
 
   useEffect(() => {
@@ -244,10 +250,6 @@ export function useReportSubmission() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleFileChange = (files: File[]) => {
-    setAttachedFiles(files);
-  };
-
   const handleDocumentChange = (files: File[]) => {
     setDocumentFiles(files);
     setSubmitError("");
@@ -271,15 +273,6 @@ export function useReportSubmission() {
 
   const handleRemoveExistingAttachment = (index: number) => {
     setExistingAttachments((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  // Upload newly picked files and return them as { url, name } entries.
-  const uploadAttachments = async () => {
-    const uploaded: UploadedFile[] = [];
-    for (const file of attachedFiles) {
-      uploaded.push(await uploadFile(file, "report-attachment", "Attachment upload failed"));
-    }
-    return uploaded;
   };
 
   const criterionIds = new Set(criteria.map((criterion) => criterion.id));
@@ -323,7 +316,7 @@ export function useReportSubmission() {
   // JSON string stored on the report. Preserves the sender's original files when
   // editing, while letting them add more.
   const buildFileUrl = async () => {
-    const uploaded = isGeneralEvaluation ? await uploadDocuments() : await uploadAttachments();
+    const uploaded = isGeneralEvaluation ? await uploadDocuments() : [];
     const uploadedCriterionFiles = isGeneralEvaluation ? [] : await uploadCriterionAttachments();
     const keptAttachments = existingAttachments.filter(
       isGeneralEvaluation ? isDocumentAttachment : isReportAttachment,
@@ -389,7 +382,6 @@ export function useReportSubmission() {
 
   const handleReset = () => {
     setSubmitted(false);
-    setAttachedFiles([]);
     setDocumentFiles([]);
     setCriterionFiles({});
     setExistingCriterionAttachments({});
@@ -428,8 +420,10 @@ export function useReportSubmission() {
         setSubmitted(true);
         window.scrollTo({ top: 0 });
       } else {
-        setSubmitError("Илгээх үед алдаа гарлаа. Дахин оролдоно уу.");
-        toast("Илгээх үед алдаа гарлаа.", "error");
+        // Show the server's reason (e.g. a refused file) when it gives one.
+        const body = (await response.json().catch(() => null)) as { error?: string } | null;
+        setSubmitError(body?.error || "Илгээх үед алдаа гарлаа. Дахин оролдоно уу.");
+        toast(body?.error || "Илгээх үед алдаа гарлаа.", "error");
       }
     } catch {
       setSubmitError("Файл хуулах үед алдаа гарлаа. Дахин оролдоно уу.");
@@ -472,7 +466,6 @@ export function useReportSubmission() {
     submittedNumber,
     submitting,
     savingDraft,
-    attachedFiles,
     documentFiles,
     criteria,
     criterionFiles,
@@ -486,7 +479,6 @@ export function useReportSubmission() {
     formData,
     setLocation,
     handleChange,
-    handleFileChange,
     handleDocumentChange,
     handleCriterionFilesChange,
     handleExistingCriterionFilesChange,
