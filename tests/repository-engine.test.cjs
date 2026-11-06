@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { read, write } = require('../lib/db/engine.ts');
 
-// In-memory Store with the same contract as the ArcGIS-backed one.
+// In-memory Store with the same contract as the Convex-backed one.
 function memoryStore() {
   const tables = {};
   let next = 0;

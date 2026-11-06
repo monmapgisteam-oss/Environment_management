@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-This is a private Next.js App Router project for a report submission and evaluation system. Route pages and API handlers live under `app/`; major user areas include `app/sender`, `app/reviewer`, `app/evaluator`, `app/admin`, `app/geography`, and `app/api`. Each portal has a `layout.tsx` that checks the role and renders the shared sidebar and header (`components/layout/AppShell.tsx`); pages render only their `<main>`. Sidebar menus live in `lib/nav.ts`. Reusable UI lives in `components/`, grouped by feature folder (`layout`, `ui`, `reports`, `map`, and so on). Shared helpers live in `lib/` feature folders: `lib/auth`, `lib/reports`, `lib/map`, `lib/survey`; `lib/constants.ts` and `lib/utils.ts` stay at the top level. All application data and files are stored in the private ArcGIS feature service `Hosted/Tailan` (tables `tailan_<model>`, files as attachments of `tailan_upload`): the repository engine, ArcGIS client, schema, and storage helpers live in `lib/db/`, and the provisioning and one-time Convex migration scripts in `scripts/`. Static files belong in `public/`; local uploads under `public/uploads` are ignored.
+This is a private Next.js App Router project for a report submission and evaluation system. Route pages and API handlers live under `app/`; major user areas include `app/sender`, `app/reviewer`, `app/evaluator`, `app/admin`, `app/geography`, and `app/api`. Each portal has a `layout.tsx` that checks the role and renders the shared sidebar and header (`components/layout/AppShell.tsx`); pages render only their `<main>`. Sidebar menus live in `lib/nav.ts`. Reusable UI lives in `components/`, grouped by feature folder (`layout`, `ui`, `reports`, `map`, and so on). Shared helpers live in `lib/` feature folders: `lib/auth`, `lib/reports`, `lib/map`, `lib/survey`; `lib/constants.ts` and `lib/utils.ts` stay at the top level. On `main`, application data and uploaded files live in Convex. `convex/` defines authenticated server queries, mutations, storage, and schema; `lib/db/` exposes the repository API and shared engine. The `arcgis-feature-service` branch preserves the ArcGIS implementation. One-time backup and ArcGIS-to-Convex merge tools live in `scripts/`. Static files belong in `public/`; local uploads under `public/uploads` are ignored.
 
 ## Build, Test, and Development Commands
 
@@ -12,8 +12,10 @@ This is a private Next.js App Router project for a report submission and evaluat
 - `npm run start`: serve the production build locally.
 - `npm run lint`: type-check the project with `tsc --noEmit`.
 - `npm test`: run the repository engine tests in `tests/`.
-- `npm run setup`: create the core report types and every category's scoring sheets in a fresh ArcGIS service (safe to re-run; the admin dashboard lists anything still missing).
-- `npm run arcgis:provision`: add tables, fields, and indexes from `lib/db/schema.json` that the ArcGIS service lacks (`-- --dry-run` to list them).
+- `npm run setup`: create the core report types and every category's scoring sheets in a fresh Convex deployment (safe to re-run; the admin dashboard lists anything still missing).
+- `npm run convex:push`: deploy schema/functions to the configured development deployment.
+- `npm run db:backup`: privately back up both databases and their files before migration.
+- `npm run migrate:convex -- --backup=backups/<snapshot>`: review the merge plan; append `--apply` to migrate.
 
 ## Coding Style & Naming Conventions
 
@@ -31,4 +33,4 @@ Recent commit messages are short and informal, so keep new commits concise but d
 
 New pages under a portal are protected by that portal's layout and `proxy.ts`. New API routes must check the caller themselves with `getApiUser(...roles)` from `@/lib/auth` and return `unauthorized()` when it is null; for report data, also call `canAccessReport`.
 
-Keep secrets in `.env` or `.env.local`; these files are ignored. Required local values include `JWT_SECRET`, `ARCGIS_PORTAL_URL`, `ARCGIS_DATA_SERVICE_URL`, `ARCGIS_CLIENT_ID`, and `ARCGIS_CLIENT_SECRET` (plus `ARCGIS_HTTP_REFERER` when the credential is referrer-restricted). In production also set `APP_URL` (the public site address printed in signature QR codes) and, behind more than one proxy, `TRUST_PROXY_HOPS` (how many proxies append to `X-Forwarded-For`; default 1). Do not commit generated build output, `node_modules`, local uploads, or secrets. After changing `lib/db/schema.json`, update `lib/db/models.ts` and run `npm run arcgis:provision` (needs a service owner token in `ARCGIS_ADMIN_TOKEN`).
+Keep secrets in `.env` or `.env.local`; these files are ignored. Required local values include `JWT_SECRET`, `CONVEX_URL`, `CONVEX_DEPLOYMENT`, and `CONVEX_SERVER_SECRET` (the same server-only secret must be set on the Convex deployment). In production also set `APP_URL` (the public site address printed in signature QR codes) and, behind more than one proxy, `TRUST_PROXY_HOPS` (how many proxies append to `X-Forwarded-For`; default 1). Do not commit generated build output, `node_modules`, local uploads, or secrets. After changing `lib/db/schema.json`, update `lib/db/models.ts` and run `npm run convex:push` to deploy the generated Convex tables/indexes.

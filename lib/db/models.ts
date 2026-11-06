@@ -1,4 +1,4 @@
-// Application records stored in the ArcGIS feature service. IDs survive migration.
+// Application records stored in Convex. Application IDs survive migration.
 export type Company = {
   id: string;
   name: string;
