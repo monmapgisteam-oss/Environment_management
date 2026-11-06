@@ -18,6 +18,7 @@ type Criterion = {
 };
 
 type Props = {
+  title?: string;
   criteria: Criterion[];
   reportId: string;
   savedScores?: Record<string, string> | null;
@@ -47,7 +48,7 @@ type Props = {
   criterionAttachments?: Record<string, Attachment[]>;
 };
 
-export default function EvaluationTable({ criteria, reportId, savedScores, savedNotes, savedComment, locked, signatureStatus, signedAt, signatureId, greenery, redirectTo, leftAction, otherEvaluations = [], selfName, criterionAttachments = {} }: Props) {
+export default function EvaluationTable({ title = 'Дүгнэх хуудас', criteria, reportId, savedScores, savedNotes, savedComment, locked, signatureStatus, signedAt, signatureId, greenery, redirectTo, leftAction, otherEvaluations = [], selfName, criterionAttachments = {} }: Props) {
   const [scores, setScores] = useState<Record<string, string>>(() => {
     if (savedScores) return savedScores;
     const init: Record<string, string> = {};
@@ -113,6 +114,7 @@ export default function EvaluationTable({ criteria, reportId, savedScores, saved
       router.refresh();
     });
     router.push(redirectTo || '/reviewer/reports');
+    router.refresh();
     return null;
   };
 
@@ -124,7 +126,7 @@ export default function EvaluationTable({ criteria, reportId, savedScores, saved
       {/* Header: running total and how many rows are complete */}
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-slate-200 px-6 py-5">
         <div>
-          <h2 className="text-base font-semibold text-slate-900">Дүгнэх хуудас</h2>
+          <h2 className="text-base font-semibold text-slate-900">{title}</h2>
           <p className="mt-0.5 text-sm text-slate-500">
             {locked
               ? signatureStatus

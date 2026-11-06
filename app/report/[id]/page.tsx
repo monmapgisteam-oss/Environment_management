@@ -27,6 +27,7 @@ import { scoresReleased } from '@/lib/reports/scoreRelease';
 import { scoringAttachmentsFor } from '@/lib/reports/scoringAttachments';
 import { criteriaSections, parseRevisionItems } from '@/lib/reports/revisions';
 import { signSections } from '@/lib/reports/reportSections';
+import { isVerifiedEvaluation, managerApprovalError, managerEvaluationState } from '@/lib/reports/managerEvaluation';
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -70,6 +71,10 @@ export default async function ReportDetailPage(props: Props) {
   const criteria = await fetchCriteriaForReport(report);
 
   const uniqueAssignments = uniqueAssignmentsByEvaluator(report.assignments);
+  const managerProgress = managerEvaluationState(uniqueAssignments, currentUser.id);
+  const managerScored = uniqueAssignments.some(({ evaluator, evaluation }) =>
+    evaluator.role === 'review_manager' && isVerifiedEvaluation(evaluation),
+  );
 
   // A staff member viewing the report may only see their OWN evaluation, never
   // their colleagues'. Managers and the sender see every evaluator's scores.
@@ -98,10 +103,10 @@ export default async function ReportDetailPage(props: Props) {
   );
 
   // Staff this report was distributed to, with whether each has scored it yet.
-  const assignedStaff: AssignedStaffMember[] = uniqueAssignments.map(({ evaluator, evaluation }) => ({
+  const assignedStaff: AssignedStaffMember[] = managerProgress.members.map(({ evaluator, evaluation }) => ({
     name: evaluator.name,
     position: evaluator.position,
-    submitted: !!evaluation,
+    submitted: isVerifiedEvaluation(evaluation),
   }));
 
   const viewerRole: ViewerRole = isReviewer ? 'manager' : isStaff ? 'staff' : 'sender';
@@ -117,7 +122,7 @@ export default async function ReportDetailPage(props: Props) {
 
   // Manager only sees the print/scan panel once every assigned staff member
   // has actually submitted a score — nothing to sign before that.
-  const allEvaluatorsDone = assignedStaff.length > 0 && assignedStaff.every((member) => member.submitted);
+  const allEvaluatorsDone = managerProgress.allMembersSigned;
 
   // Scores stay hidden from the sender until the manager signs them off with
   // their digital signature — a single staff member finishing (or even all of
@@ -234,6 +239,7 @@ export default async function ReportDetailPage(props: Props) {
               scoredCount={scoredCount}
               releasedAt={report.scoresApprovedAt ?? report.signedScanUploadedAt ?? null}
               released={scoresReleased(report)}
+              managerScored={managerScored}
             />
           )}
 
@@ -241,12 +247,15 @@ export default async function ReportDetailPage(props: Props) {
             <ScoreApprovalCard
               approval={approval}
               pending={
-                isReviewer && report.status === 'completed' && !report.scoresApprovedAt
+                isReviewer && ['submitted', 'assigned', 'in_review', 'completed'].includes(report.status) && !scoresReleased(report)
                   ? {
                       reportId: report.id,
                       reportNumber: report.reportNumber,
                       evaluatorCount: assignedStaff.length,
+                      signedEvaluatorCount: managerProgress.signedMembers.length,
                       finalScore: report.finalScore,
+                      ownEvaluationSigned: managerProgress.ownSigned,
+                      canApprove: managerApprovalError(report, uniqueAssignments, currentUser.id) === null,
                     }
                   : null
               }

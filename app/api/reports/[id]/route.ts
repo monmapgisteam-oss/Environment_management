@@ -105,7 +105,7 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
     // scoring sheet) stay as they were scored.
     const assignments = await dataStore.reportAssignment.findMany({
       where: { reportId: params.id },
-      include: { evaluation: true },
+      include: { evaluator: { select: { id: true, role: true } }, evaluation: true },
     });
     const scoringStarted = assignments.length > 0;
 

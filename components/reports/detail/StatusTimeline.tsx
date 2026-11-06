@@ -9,14 +9,15 @@ type Props = {
   // The manager signed the scores off (lib/reports/scoreRelease.ts), and when.
   released: boolean;
   releasedAt: Date | null;
+  managerScored?: boolean;
 };
 
 type Step = { label: string; detail?: string; state: 'done' | 'current' | 'todo' };
 
 // Where the report is in the review flow: sent → assigned → scored and signed
-// by each evaluator → signed off by the manager. Returned and rejected reports
+// by members and the manager independently → final approval. Returned and rejected reports
 // show that outcome as the last step instead.
-export default function StatusTimeline({ status, submittedAt, assignedCount, scoredCount, released, releasedAt }: Props) {
+export default function StatusTimeline({ status, submittedAt, assignedCount, scoredCount, released, releasedAt, managerScored = false }: Props) {
   const concluded = released;
   // Scoring is done only when every assigned evaluator has signed.
   const scored = concluded || (assignedCount > 0 && scoredCount >= assignedCount);
@@ -44,9 +45,14 @@ export default function StatusTimeline({ status, submittedAt, assignedCount, sco
     steps.push({ label: 'Татгалзсан', state: 'current' });
   } else {
     steps.push({
+      label: 'Менежер үнэлсэн',
+      detail: managerScored || concluded ? 'Тоон гарын үсгээр баталгаажсан' : 'Өөрийн үнэлгээ, гарын үсэг хүлээгдэж байна',
+      state: state(managerScored || concluded, ['submitted', 'assigned', 'in_review', 'completed'].includes(status) && !managerScored && !concluded),
+    });
+    steps.push({
       label: 'Менежер баталгаажуулсан',
       detail: concluded ? (releasedAt ? formatDate(releasedAt) : undefined) : 'Хүлээгдэж байна',
-      state: state(concluded, scored && !concluded),
+      state: state(concluded, scored && managerScored && !concluded),
     });
   }
 

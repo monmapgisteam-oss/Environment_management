@@ -1,6 +1,6 @@
 import { REPORT_CATEGORIES } from '@/lib/constants';
 import { parseAttachments } from '@/lib/reports/attachments';
-import { MAIN_DOCUMENT_ID } from '@/lib/reports/materials';
+import { MAIN_DOCUMENT_ID, missingAnnexMaterial } from '@/lib/reports/materials';
 
 type SubmitFields = {
   title?: unknown;
@@ -30,5 +30,7 @@ export function submissionError(data: SubmitFields, requireMainDocument = true):
   if (requireMainDocument && !files.some((file) => file.materialId === MAIN_DOCUMENT_ID)) {
     return 'Үндсэн баримт бичгээ (PDF) хавсаргана уу.';
   }
+  const missing = missingAnnexMaterial(files);
+  if (missing) return `«${missing.label}» баримт бичгийг (PDF) хавсаргана уу.`;
   return null;
 }

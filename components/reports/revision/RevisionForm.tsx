@@ -9,6 +9,7 @@ import type { RevisionItem } from '@/lib/reports/revisions';
 import RevisionItemList from '@/components/reports/revision/RevisionItemList';
 import { toast } from '@/lib/toast';
 import { uploadErrorMessage, uploadReportFile } from '@/lib/reports/uploadFile';
+import { MAIN_DOCUMENT_ID, REQUIRED_ANNEX_MATERIALS } from '@/lib/reports/materials';
 
 type DocumentSection = SignedReportSection;
 
@@ -27,9 +28,7 @@ type Draft = { removed: string[]; added: File[] };
 const accept = 'application/pdf,.pdf';
 const allowedPattern = /\.pdf$/i;
 
-// The reviewer's comments on top, then one card for the report and one for
-// its Хавсралт: the files there now (each can be removed) and corrected files
-// to add. At least one file must change, and the report itself must stay.
+// Keep the main document and every required annex when replacing files.
 export default function RevisionForm({ reportId, reason, items: comments, documents }: Props) {
   const router = useRouter();
   const items = documents;
@@ -42,10 +41,11 @@ export default function RevisionForm({ reportId, reason, items: comments, docume
 
   const changed = (key: string) => drafts[key].added.length > 0 || drafts[key].removed.length > 0;
   const doneCount = items.filter((item) => changed(item.key)).length;
-  const mainDocument = items[0];
-  const mainKept = mainDocument
-    ? mainDocument.files.length - drafts[mainDocument.key].removed.length + drafts[mainDocument.key].added.length > 0
-    : true;
+  const requiredKeys = new Set([MAIN_DOCUMENT_ID, ...REQUIRED_ANNEX_MATERIALS.map((material) => material.id)]
+    .map((id) => `material:${id}`));
+  const hasFiles = (item: DocumentSection) =>
+    item.files.length - drafts[item.key].removed.length + drafts[item.key].added.length > 0;
+  const missingDocument = items.find((item) => requiredKeys.has(item.key) && !hasFiles(item));
 
   const update = (key: string, next: (draft: Draft) => Draft) =>
     setDrafts((current) => ({ ...current, [key]: next(current[key]) }));
@@ -64,9 +64,10 @@ export default function RevisionForm({ reportId, reason, items: comments, docume
   };
 
   const submit = async () => {
-    if (doneCount === 0 || !mainKept) {
+    if (doneCount === 0 || missingDocument) {
       setShowErrors(true);
-      if (mainDocument) document.getElementById(`revise-${mainDocument.key}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const target = missingDocument ?? items[0];
+      if (target) document.getElementById(`revise-${target.key}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
     setSending(true);
@@ -116,7 +117,7 @@ export default function RevisionForm({ reportId, reason, items: comments, docume
         {items.map((item, index) => {
           const draft = drafts[item.key];
           const done = changed(item.key);
-          const error = showErrors && (item === mainDocument ? !mainKept || doneCount === 0 : false);
+          const error = showErrors && ((requiredKeys.has(item.key) && !hasFiles(item)) || (index === 0 && doneCount === 0));
           return (
             <section
               key={item.key}
@@ -133,7 +134,10 @@ export default function RevisionForm({ reportId, reason, items: comments, docume
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{item.group}</p>
-                  <h2 className="text-sm font-semibold leading-snug text-slate-900">{item.label}</h2>
+                  <h2 className="text-sm font-semibold leading-snug text-slate-900">
+                    {item.label}
+                    {requiredKeys.has(item.key) && <span className="ml-2 text-xs font-normal text-red-600">(заавал)</span>}
+                  </h2>
                 </div>
               </header>
 
@@ -237,7 +241,7 @@ export default function RevisionForm({ reportId, reason, items: comments, docume
 
                 {error && (
                   <p className="text-xs font-medium text-rose-600">
-                    {mainKept ? 'Засварласан файлаа хавсаргана уу.' : 'Үндсэн баримт бичгийг хавсаргана уу.'}
+                    {hasFiles(item) ? 'Засварласан файлаа хавсаргана уу.' : `«${item.label}» баримт бичгийг (PDF) хавсаргана уу.`}
                   </p>
                 )}
               </div>
@@ -260,7 +264,7 @@ export default function RevisionForm({ reportId, reason, items: comments, docume
           >
             {sending ? 'Илгээж байна...' : 'Засаад илгээх'}
           </button>
-          {showErrors && (doneCount === 0 || !mainKept) && (
+          {showErrors && (doneCount === 0 || missingDocument) && (
             <p className="mt-2 text-xs text-rose-600">Засварласан файлаа хавсаргаад илгээнэ үү.</p>
           )}
         </div>

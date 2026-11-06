@@ -9,7 +9,10 @@ import { signAttachments } from '@/lib/db/storage';
 import { attachEffectiveSenderCompanies } from '@/lib/reports/companies';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
 import { scoringAttachmentsFor } from '@/lib/reports/scoringAttachments';
-import { requireUser } from '@/lib/auth';
+import { canAccessReport, requireUser } from '@/lib/auth';
+import Link from 'next/link';
+import { managerEvaluationState, managerScoringError } from '@/lib/reports/managerEvaluation';
+import { scoresReleased } from '@/lib/reports/scoreRelease';
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -22,12 +25,11 @@ async function fetchReport(id: string) {
       reportType: true,
       senderCompany: true,
       location: true,
-      evaluations: {
+      assignments: {
         include: {
-          scores: true,
+          evaluator: true,
+          evaluation: { include: { scores: true } },
         },
-        orderBy: { createdAt: 'desc' },
-        take: 1,
       },
     },
   });
@@ -36,12 +38,24 @@ async function fetchReport(id: string) {
 
 export default async function ReviewerEvaluatePage(props: Props) {
   // Checked here too, not only in the layout: a soft navigation can skip it.
-  await requireUser('review_manager');
+  const user = await requireUser('review_manager');
   const params = await props.params;
   const report = await fetchReport(params.id);
 
-  if (!report) {
+  if (!report || !(await canAccessReport(user, report))) {
     return <div className="p-8 text-center text-slate-500">Тайлан олдсонгүй.</div>;
+  }
+  const progress = managerEvaluationState(report.assignments, user.id);
+  const ownEvaluation = progress.ownAssignment?.evaluation;
+  const scoringError = managerScoringError(report.status, report.assignments, user.id, scoresReleased(report));
+  if (scoringError && !progress.ownSigned) {
+    return (
+      <main className="flex-1 min-w-0 space-y-4 px-6 py-7 lg:px-8">
+        <h1 className="text-xl font-semibold text-slate-900">{report.reportNumber} · Менежерийн үнэлгээ</h1>
+        <p className="border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800">{scoringError}</p>
+        <Link href={`/report/${report.id}?role=reviewer`} className="inline-flex text-sm font-semibold text-teal-700 hover:underline">Тайлан руу буцах</Link>
+      </main>
+    );
   }
   const criteria = await fetchCriteriaForReport(report);
 
@@ -108,17 +122,25 @@ export default async function ReviewerEvaluatePage(props: Props) {
         criteria={tableCriteria}
         reportId={report.id}
         savedScores={
-          report.evaluations?.[0]?.scores?.reduce((acc: Record<string, string>, s) => {
+          ownEvaluation?.scores?.reduce((acc: Record<string, string>, s) => {
             acc[s.criterionId] = String(s.score);
             return acc;
           }, {}) || null
         }
-        savedNotes={Object.fromEntries((report.evaluations?.[0]?.scores || []).map((s) => [s.criterionId, s.note || '']))}
-        savedComment={report.evaluations?.[0]?.comment || null}
-        locked={report.evaluations?.[0]?.status === 'SIGNED'}
-        signatureStatus={report.evaluations?.[0]?.signatureStatus || null}
-        signedAt={report.evaluations?.[0]?.signedAt ? report.evaluations[0].signedAt.toISOString() : null}
-        signatureId={report.evaluations?.[0]?.signatureId || null}
+        savedNotes={Object.fromEntries((ownEvaluation?.scores || []).map((s) => [s.criterionId, s.note || '']))}
+        savedComment={ownEvaluation?.comment || null}
+        locked={!!scoringError || ownEvaluation?.status === 'SIGNED'}
+        signatureStatus={ownEvaluation?.signatureStatus || null}
+        signedAt={ownEvaluation?.signedAt ? ownEvaluation.signedAt.toISOString() : null}
+        signatureId={ownEvaluation?.signatureId || null}
+        selfName={user.name}
+        title="Менежерийн дүгнэх хуудас"
+        redirectTo={`/report/${report.id}?role=reviewer`}
+        otherEvaluations={progress.signedMembers.flatMap(({ evaluator, evaluation }) => evaluation ? [{
+          evaluatorName: evaluator.name,
+          totalScore: evaluation.totalScore,
+          scores: evaluation.scores,
+        }] : [])}
         greenery={{ hasGreenery: report.hasGreenery, treeCount: report.treeCount, spentAmount: report.spentAmount }}
         criterionAttachments={criterionAttachments}
       />

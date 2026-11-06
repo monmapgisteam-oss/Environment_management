@@ -38,7 +38,7 @@ async function fetchDistributableReports() {
     include: {
       reportType: true,
       senderCompany: true,
-      assignments: { include: { evaluator: { select: { id: true, name: true } } } },
+      assignments: { include: { evaluator: { select: { id: true, name: true, role: true } } } },
     },
     orderBy: { submittedAt: 'desc' },
   });
@@ -51,7 +51,7 @@ async function fetchDistributableReports() {
       reportTypeName: report.reportType.name,
       senderName: report.senderCompany?.name || '-',
       status: report.status,
-      assignees: uniqueAssignmentsByEvaluator(report.assignments).map((a) => ({ id: a.evaluator.id, name: a.evaluator.name })),
+      assignees: uniqueAssignmentsByEvaluator(report.assignments).filter((a) => a.evaluator.role === 'evaluator').map((a) => ({ id: a.evaluator.id, name: a.evaluator.name })),
     }))
     .sort((a, b) => a.reportNumber.localeCompare(b.reportNumber));
 }

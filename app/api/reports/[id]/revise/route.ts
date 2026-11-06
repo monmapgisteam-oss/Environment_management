@@ -6,7 +6,7 @@ import { parseAttachments, type Attachment } from '@/lib/reports/attachments';
 import { applySectionFixes, filesOfSection, parseRevisionItems } from '@/lib/reports/revisions';
 import { notifyReportResubmitted } from '@/lib/reports/resubmitNotifications';
 import { attachmentError } from '@/lib/reports/attachmentOwnership';
-import { ANNEX, MAIN_DOCUMENT_ID } from '@/lib/reports/materials';
+import { ANNEX, MAIN_DOCUMENT_ID, REQUIRED_ANNEX_MATERIALS, missingAnnexMaterial } from '@/lib/reports/materials';
 import { statusFromEvaluations } from '@/lib/reports/transitions';
 
 type Fix = { key: string; keepUrls: string[]; added: Attachment[] };
@@ -35,7 +35,7 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
   try {
     const report = await dataStore.report.findUnique({
       where: { id },
-      include: { senderCompany: true, assignments: { include: { evaluation: true } } },
+      include: { senderCompany: true, assignments: { include: { evaluator: { select: { id: true, role: true } }, evaluation: true } } },
     });
     if (!report || !(await canAccessReport(user, report))) return unauthorized();
     if (report.status !== 'needs_revision') {
@@ -45,7 +45,8 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
 
     const body = await request.json().catch(() => null);
     // Only the report and its Хавсралт are sent again.
-    const documentKeys = [`material:${MAIN_DOCUMENT_ID}`, `material:${ANNEX.id}`];
+    const documentKeys = [MAIN_DOCUMENT_ID, ANNEX.id, ...REQUIRED_ANNEX_MATERIALS.map((material) => material.id)]
+      .map((id) => `material:${id}`);
     const fixes = readFixes(body?.fixes).filter((fix) => documentKeys.includes(fix.key));
     const attachments = parseAttachments(report.fileUrl);
 
@@ -69,6 +70,10 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
     const isMain = (file: Attachment) => file.materialId === MAIN_DOCUMENT_ID;
     if (!fixedFiles.some(isMain)) {
       return NextResponse.json({ error: 'Үндсэн баримт бичгийг хавсаргана уу.' }, { status: 400 });
+    }
+    const missingAnnex = missingAnnexMaterial(fixedFiles);
+    if (missingAnnex) {
+      return NextResponse.json({ error: `«${missingAnnex.label}» баримт бичгийг (PDF) хавсаргана уу.` }, { status: 400 });
     }
     const updated = await dataStore.report.update({
       where: { id },

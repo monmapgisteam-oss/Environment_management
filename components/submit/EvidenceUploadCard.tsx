@@ -8,6 +8,9 @@ export type EvidenceRow = {
   id: string;
   label: string;
   detail?: string;
+  required?: boolean;
+  // Named uploads grouped inside this row's attachment box.
+  uploadRows?: EvidenceRow[];
   // Approved templates from the regulation for this row; `download` names the
   // saved file, otherwise the link opens in a new tab.
   samples?: { href: string; label: string; download?: string }[];
@@ -64,6 +67,18 @@ function validFiles(files: File[]) {
   return files.filter((file) => allowedPattern.test(file.name) && file.size <= MAX_UPLOAD_BYTES);
 }
 
+function RequiredBadge() {
+  return <span className="shrink-0 rounded bg-rose-50 px-2 py-0.5 text-[11px] font-medium text-rose-700">Заавал</span>;
+}
+
+function UploadIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 16V4m-4 4 4-4 4 4M4 16v4h16v-4" />
+    </svg>
+  );
+}
+
 export default function EvidenceUploadCard({
   title,
   description,
@@ -75,10 +90,92 @@ export default function EvidenceUploadCard({
   onFilesChange,
   onExistingChange,
 }: Props) {
+  const uploadSlot = (row: EvidenceRow, showLabel: boolean) => {
+    const pickedFiles = filesByRow[row.id] || [];
+    const existingFiles = existingByRow[row.id] || [];
+    const inputId = `${idPrefix}-file-${row.id}`;
+    const hasFiles = pickedFiles.length + existingFiles.length > 0;
+
+    return (
+      <div className={showLabel ? "grid min-w-0 gap-3 px-5 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:pl-16" : "min-w-0 sm:w-44"}>
+        {showLabel && (
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <p className="text-sm font-medium leading-6 text-slate-800">{row.label}</p>
+              {row.required ? <RequiredBadge /> : <span className="text-xs text-slate-400">Заавал биш</span>}
+            </div>
+            {!hasFiles && <p className="mt-1 text-xs text-slate-400">Файл сонгоогүй</p>}
+          </div>
+        )}
+
+        <div className={`relative self-start ${showLabel ? "sm:w-44" : ""}`}>
+          <input
+            id={inputId}
+            aria-label={row.label}
+            aria-required={row.required || undefined}
+            type="file"
+            multiple
+            accept={accept}
+            className="peer sr-only"
+            onChange={(event) => {
+              const picked = Array.from(event.target.files || []);
+              const nextFiles = validFiles(picked);
+              if (nextFiles.length < picked.length) toast("Зөвхөн 25MB хүртэлх PDF файл хавсаргана уу.", "error");
+              onFilesChange(row.id, [...pickedFiles, ...nextFiles]);
+              event.currentTarget.value = "";
+            }}
+          />
+          <label
+            htmlFor={inputId}
+            className="flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-color-primary shadow-sm transition-colors hover:border-teal-300 hover:bg-teal-50 active:bg-teal-100 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-teal-600"
+          >
+            <UploadIcon />
+            {hasFiles ? "Файл нэмэх" : "Файл сонгох"}
+          </label>
+        </div>
+
+        {!showLabel && !hasFiles && <p className="mt-2 text-center text-xs text-slate-400">PDF · 25 MB хүртэл</p>}
+        {hasFiles && (
+          <div className={showLabel ? "space-y-2 sm:col-span-2" : "mt-3 space-y-2"}>
+            {existingFiles.map((file, fileIndex) => (
+              <div key={`${file.url}-${fileIndex}`} className="flex min-w-0 items-center gap-2 rounded border border-teal-100 bg-teal-50/50 px-3 py-2">
+                <span className="min-w-0 flex-1 truncate text-xs text-slate-700" title={file.name}>{file.name}</span>
+                {onExistingChange && (
+                  <button
+                    type="button"
+                    aria-label={`${file.name} устгах`}
+                    onClick={() => onExistingChange(row.id, existingFiles.filter((_, indexToKeep) => indexToKeep !== fileIndex))}
+                    className="shrink-0 px-1 py-1 text-xs font-medium text-slate-500 hover:text-red-600"
+                  >
+                    Устгах
+                  </button>
+                )}
+              </div>
+            ))}
+            {pickedFiles.map((file, fileIndex) => (
+              <div key={`${file.name}-${fileIndex}`} className="flex min-w-0 items-center gap-2 rounded border border-teal-100 bg-teal-50/50 px-3 py-2">
+                <span className="min-w-0 flex-1 truncate text-xs text-slate-700" title={file.name}>{file.name}</span>
+                <button
+                  type="button"
+                  aria-label={`${file.name} устгах`}
+                  onClick={() => onFilesChange(row.id, pickedFiles.filter((_, indexToKeep) => indexToKeep !== fileIndex))}
+                  className="shrink-0 px-1 py-1 text-xs font-medium text-slate-500 hover:text-red-600"
+                >
+                  Устгах
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
-    <div className="border border-slate-200 bg-white">
-      <div className="border-b border-slate-200 px-6 py-4">
+    <div className="overflow-hidden rounded-md border border-slate-200 bg-white">
+      <div className="border-b border-slate-200 px-5 py-4">
         <h3 className="text-base font-semibold text-color-text-main">{title}</h3>
+        <p className="mt-1 text-xs text-color-text-muted">Баримт бичиг тус бүрийг PDF файлаар хавсаргана уу. Нэг файл 25 MB хүртэл.</p>
         {description && <p className="mt-1 text-sm text-color-text-muted">{description}</p>}
         {headerLink && (
           <a href={headerLink.href} target="_blank" rel="noopener noreferrer" className={sampleLinkClass}>
@@ -90,20 +187,19 @@ export default function EvidenceUploadCard({
 
       <div className="divide-y divide-slate-200">
         {rows.map((row, index) => {
-          const pickedFiles = filesByRow[row.id] || [];
-          const existingFiles = existingByRow[row.id] || [];
-          const inputId = `${idPrefix}-file-${row.id}`;
-
           return (
-            <div key={row.id} className="grid gap-4 px-6 py-4 lg:grid-cols-[1fr_360px] lg:items-start">
-              <div>
+            <section key={row.id} className={row.uploadRows ? "" : "grid gap-4 px-5 py-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start"}>
+              <div className={row.uploadRows ? "border-b border-slate-100 bg-slate-50/80 px-5 py-4" : "min-w-0"}>
                 <div className="flex items-start gap-3">
-                  <span className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center bg-teal-50 text-sm font-bold text-color-primary">
+                  <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded bg-teal-50 text-xs font-semibold text-color-primary">
                     {index + 1}
                   </span>
                   <div>
-                    <p className="text-sm font-semibold leading-6 text-slate-900">{row.label}</p>
-                    {row.detail && <p className="mt-1 text-xs font-medium text-slate-500">{row.detail}</p>}
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <p className="text-sm font-semibold leading-6 text-slate-900">{row.label}</p>
+                      {row.required && <RequiredBadge />}
+                    </div>
+                    {row.detail && <p className="mt-1 text-xs leading-5 text-slate-500">{row.detail}</p>}
                     {row.samples && row.samples.length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-2">
                         {row.samples.map((sample) => (
@@ -125,72 +221,14 @@ export default function EvidenceUploadCard({
                 </div>
               </div>
 
-              <div className="border border-dashed border-slate-200 bg-slate-50 p-3">
-                <input
-                  id={inputId}
-                  type="file"
-                  multiple
-                  accept={accept}
-                  className="hidden"
-                  onChange={(event) => {
-                    const picked = Array.from(event.target.files || []);
-                    const nextFiles = validFiles(picked);
-                    if (nextFiles.length < picked.length) toast("Зөвхөн 25MB хүртэлх PDF файл хавсаргана уу.", "error");
-                    onFilesChange(row.id, [...pickedFiles, ...nextFiles]);
-                    event.currentTarget.value = "";
-                  }}
-                />
-                <label
-                  htmlFor={inputId}
-                  className="flex cursor-pointer items-center justify-center border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-color-primary transition hover:bg-teal-50"
-                >
-                  Файл сонгох
-                </label>
-
-                {existingFiles.length === 0 && pickedFiles.length === 0 ? (
-                  <p className="mt-3 text-center text-xs text-color-text-muted">Файл хавсаргаагүй байна.</p>
-                ) : (
-                  <div className="mt-3 space-y-2">
-                    {existingFiles.map((file, fileIndex) => (
-                      <div key={`${file.url}-${fileIndex}`} className="flex items-center gap-2 border border-slate-200 bg-white px-3 py-2">
-                        <span className="min-w-0 flex-1 truncate text-sm text-slate-700">{file.name}</span>
-                        {onExistingChange && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              onExistingChange(
-                                row.id,
-                                existingFiles.filter((_, indexToKeep) => indexToKeep !== fileIndex),
-                              )
-                            }
-                            className="text-xs font-semibold text-red-500 hover:text-red-600"
-                          >
-                            Устгах
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                    {pickedFiles.map((file, fileIndex) => (
-                      <div key={`${file.name}-${fileIndex}`} className="flex items-center gap-2 border border-slate-200 bg-white px-3 py-2">
-                        <span className="min-w-0 flex-1 truncate text-sm text-slate-700">{file.name}</span>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            onFilesChange(
-                              row.id,
-                              pickedFiles.filter((_, indexToKeep) => indexToKeep !== fileIndex),
-                            )
-                          }
-                          className="text-xs font-semibold text-red-500 hover:text-red-600"
-                        >
-                          Устгах
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
+              {row.uploadRows ? (
+                <div className="divide-y divide-slate-100">
+                  {row.uploadRows.map((uploadRow) => (
+                    <div key={uploadRow.id}>{uploadSlot(uploadRow, true)}</div>
+                  ))}
+                </div>
+              ) : uploadSlot(row, false)}
+            </section>
           );
         })}
       </div>

@@ -12,7 +12,7 @@ import SubmitActions from "@/components/submit/SubmitActions";
 import SubmitStepper from "@/components/submit/SubmitStepper";
 import { useReportSubmission } from "@/components/submit/useReportSubmission";
 import RevisionNotice from "@/components/reports/detail/RevisionNotice";
-import { MAIN_DOCUMENT_ID, materialsTitle, type ReportMaterial } from "@/lib/reports/materials";
+import { ANNEX, MAIN_DOCUMENT_ID, REQUIRED_ANNEX_MATERIALS, materialsTitle, type ReportMaterial } from "@/lib/reports/materials";
 import { nounForReportType } from "@/lib/reports/terms";
 
 // "Шинэ ... илгээх" after a send starts a fresh form: remounting resets every
@@ -44,10 +44,18 @@ function SubmitReportFormBody({ onNew }: { onNew: () => void }) {
   ) => (
     <EvidenceUploadCard
       {...props}
-      rows={materials.map((material) => ({
+      rows={materials.filter((material) => !REQUIRED_ANNEX_MATERIALS.some((annex) => annex.id === material.id)).map((material) => ({
         id: material.id,
         label: material.label,
         detail: material.note,
+        required: material.id === MAIN_DOCUMENT_ID,
+        ...(material.id === ANNEX.id ? {
+          detail: "Дараах гурван баримт бичгийг PDF файлаар заавал хавсаргана уу.",
+          uploadRows: [
+            ...REQUIRED_ANNEX_MATERIALS.map((annex) => ({ ...annex, required: true })),
+            { id: ANNEX.id, label: "Бусад хавсралт" },
+          ],
+        } : {}),
       }))}
       filesByRow={form.materialFiles}
       existingByRow={form.existingMaterialAttachments}
@@ -55,7 +63,7 @@ function SubmitReportFormBody({ onNew }: { onNew: () => void }) {
       onExistingChange={form.handleExistingMaterialFilesChange}
     />
   );
-  // The document and its "Хавсралт".
+  // Required annex uploads share the "Хавсралт" box.
   const materialUploads = materialCard(form.materials, { title: materialsLabel, idPrefix: "material" });
 
   const steps: { title: string; content: ReactNode }[] = [
@@ -155,6 +163,14 @@ function SubmitReportFormBody({ onNew }: { onNew: () => void }) {
     if (!hasMainDocument && !isLegacyReturn) {
       goToStep(lastStep);
       form.setSubmitError("Үндсэн баримт бичгээ (PDF) хавсаргана уу.");
+      return false;
+    }
+    const missingAnnex = REQUIRED_ANNEX_MATERIALS.find((material) =>
+      !(form.materialFiles[material.id]?.length || form.existingMaterialAttachments[material.id]?.length),
+    );
+    if (missingAnnex) {
+      goToStep(lastStep);
+      form.setSubmitError(`«${missingAnnex.label}» баримт бичгийг (PDF) хавсаргана уу.`);
       return false;
     }
     return true;

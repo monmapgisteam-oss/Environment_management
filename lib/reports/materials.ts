@@ -1,8 +1,8 @@
 import type { Attachment } from '@/lib/reports/attachments';
 import { reportKind, type ReportTypeRef } from '@/lib/reports/terms';
 
-// Documents a plan or performance report attaches: the document itself and
-// one "Хавсралт" row for everything that goes with it.
+// Documents a plan or performance report attaches: the document itself,
+// required annex documents, and optional additional annex files.
 // Uploaded files carry the row's `id` as `materialId`. Reports saved with the
 // older per-table lists keep those ids and show as "Өмнөх хавсралт" rows.
 
@@ -15,6 +15,15 @@ export type ReportMaterial = {
 
 export const MAIN_DOCUMENT_ID = 'main-document';
 export const ANNEX: ReportMaterial = { id: 'annex', label: 'Хавсралт' };
+export const REQUIRED_ANNEX_MATERIALS: ReportMaterial[] = [
+  { id: 'official-request', label: 'Албан хүсэлт' },
+  { id: 'state-registration-certificate', label: 'Улсын бүртгэлийн гэрчилгээ' },
+  { id: 'land-documents', label: 'Газрын бичиг баримт' },
+];
+
+export function missingAnnexMaterial(attachments: Attachment[]): ReportMaterial | undefined {
+  return REQUIRED_ANNEX_MATERIALS.find((material) => !attachments.some((file) => file.materialId === material.id));
+}
 
 function mainDocument(reportType: ReportTypeRef): ReportMaterial {
   return {
@@ -26,9 +35,9 @@ function mainDocument(reportType: ReportTypeRef): ReportMaterial {
   };
 }
 
-// The two files every plan and performance report carries.
+// Upload slots shared by plans and performance reports.
 export function documentRows(reportType: ReportTypeRef): ReportMaterial[] {
-  return [mainDocument(reportType), ANNEX];
+  return [mainDocument(reportType), ANNEX, ...REQUIRED_ANNEX_MATERIALS];
 }
 
 export function materialsFor(

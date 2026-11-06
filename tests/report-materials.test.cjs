@@ -1,26 +1,36 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { parseAttachments } = require('../lib/reports/attachments.ts');
-const { ANNEX, MAIN_DOCUMENT_ID, groupMaterialAttachments, leftoverMaterialGroups, materialsFor } = require('../lib/reports/materials.ts');
+const { ANNEX, MAIN_DOCUMENT_ID, REQUIRED_ANNEX_MATERIALS, groupMaterialAttachments, leftoverMaterialGroups, materialsFor } = require('../lib/reports/materials.ts');
 const { splitScoringAttachments } = require('../lib/reports/scoringAttachments.ts');
 const { REPORT_CATEGORIES } = require('../lib/constants.ts');
 
 const PLAN = 'Жилийн төлөвлөгөө';
 const PERFORMANCE = 'Биелэлтийн тайлан';
 
-test('plans and performance reports attach the document and its Хавсралт', () => {
+test('plans and performance reports include the three named annex documents in every category', () => {
+  const annexLabels = ['Албан хүсэлт', 'Улсын бүртгэлийн гэрчилгээ', 'Газрын бичиг баримт'];
   for (const category of REPORT_CATEGORIES) {
     assert.deepEqual(
       materialsFor(PLAN, category).map((material) => material.label),
-      ['Байгаль орчны менежментийн жилийн төлөвлөгөө', 'Хавсралт'],
+      ['Байгаль орчны менежментийн жилийн төлөвлөгөө', 'Хавсралт', ...annexLabels],
     );
     assert.deepEqual(
       materialsFor(PERFORMANCE, category).map((material) => material.label),
-      ['Байгаль орчны менежментийн төлөвлөгөөний биелэлтийн тайлан', 'Хавсралт'],
+      ['Байгаль орчны менежментийн төлөвлөгөөний биелэлтийн тайлан', 'Хавсралт', ...annexLabels],
     );
-    assert.deepEqual(materialsFor(PLAN, category).map((material) => material.id), [MAIN_DOCUMENT_ID, ANNEX.id]);
+    assert.deepEqual(materialsFor(PLAN, category).map((material) => material.id), [MAIN_DOCUMENT_ID, ANNEX.id, ...REQUIRED_ANNEX_MATERIALS.map((material) => material.id)]);
   }
   assert.deepEqual(materialsFor(PERFORMANCE, null), []);
+});
+
+test('named annex files remain in their document groups alongside older annex uploads', () => {
+  const files = [ANNEX, ...REQUIRED_ANNEX_MATERIALS].map((material, index) => ({
+    url: `upload:${index}`, name: `${index}.pdf`, materialId: material.id,
+  }));
+  const saved = parseAttachments(JSON.stringify(files));
+  assert.deepEqual(groupMaterialAttachments(saved, PLAN, 'Үйлдвэрлэл').map((group) => group.files[0]), files);
+  assert.deepEqual(leftoverMaterialGroups(saved, PLAN, 'Үйлдвэрлэл'), []);
 });
 
 test('material files keep their id and stay out of the general list', () => {

@@ -34,6 +34,7 @@ export function transitionError(action: ReportAction) {
 
 type SignableAssignment = {
   evaluatorUserId?: string | null;
+  evaluator?: { id?: string | null; role?: string | null } | null;
   assignedAt?: Date | string | null;
   evaluation?: { status?: string | null; signatureStatus?: string | null } | null;
 };
@@ -52,8 +53,12 @@ export function signingProgress(assignments: SignableAssignment[]) {
 // The status a report goes back to when a return request is dismissed:
 // whatever its evaluations say it is.
 export function statusFromEvaluations(assignments: SignableAssignment[]) {
-  const progress = signingProgress(assignments);
-  if (progress.total === 0) return 'submitted';
+  // An early manager signature must not complete a report with no members,
+  // or prevent assigning members after a returned report is resubmitted.
+  const members = assignments.filter((assignment) => assignment.evaluator?.role !== 'review_manager');
+  const progress = signingProgress(members);
+  const anyScored = assignments.some((assignment) => !!assignment.evaluation);
+  if (progress.total === 0) return anyScored ? 'in_review' : 'submitted';
   if (progress.allSigned) return 'completed';
-  return progress.anyScored ? 'in_review' : 'assigned';
+  return anyScored ? 'in_review' : 'assigned';
 }

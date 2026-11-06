@@ -21,6 +21,12 @@ ARCGIS_HTTP_REFERER="<app URL, if the credential is referrer-restricted>"
 
 The service item must stay private and the OAuth application needs edit access to it.
 
+### Connection troubleshooting
+
+If login returns HTTP 503 and the server logs `getaddrinfo ENOTFOUND environment.ub.gov.mn`, the Next.js server could not resolve the ArcGIS hostname. Check DNS and network access from the machine or container running Next.js, including any required VPN. Confirm both ArcGIS URLs against the deployment's service addresses. Changing OAuth credentials does not fix a DNS failure.
+
+OAuth requests retry a connection failure once. During a continuing outage, login pages remain available, but signing in requires the service to recover. The rate limiter's local fallback only counts attempts; it does not provide offline access to user accounts.
+
 ## 3. Schema changes
 
 Fields and relationships are defined in `lib/db/schema.json`, and `lib/db/models.ts` holds the matching TypeScript types. After editing the schema, update `models.ts` and add the new tables and fields to the service:

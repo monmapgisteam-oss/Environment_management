@@ -38,10 +38,10 @@ export async function serviceToken(): Promise<string> {
   if (cached?.key === key && Date.now() < cached.expiresAt - 60_000) return cached.token;
   if (pending?.key === key) return pending.promise;
   const promise = (async () => {
-    const response = await fetch(`${portal}/sharing/rest/oauth2/token`, {
+    const response = await fetchWithConnectRetry(`${portal}/sharing/rest/oauth2/token`, () => ({
       method: 'POST', cache: 'no-store', signal: AbortSignal.timeout(30_000), headers: arcgisHeaders(),
       body: new URLSearchParams({ f: 'json', grant_type: 'client_credentials', client_id: clientId, client_secret: clientSecret }),
-    });
+    }));
     if (!response.ok) throw new Error(`ArcGIS OAuth request failed (HTTP ${response.status}).`);
     const result = await response.json();
     if (result.error || typeof result.access_token !== 'string' || typeof result.expires_in !== 'number' || result.expires_in <= 0) {

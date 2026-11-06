@@ -19,7 +19,7 @@ export async function POST(request: Request) {
 
     const before = await dataStore.report.findUnique({
       where: { id: reportId },
-      include: { assignments: { include: { evaluation: true } } },
+      include: { assignments: { include: { evaluator: { select: { id: true, role: true } }, evaluation: true } } },
     });
     if (!before) {
       return NextResponse.json({ error: 'Тайлан олдсонгүй.' }, { status: 404 });

@@ -5,8 +5,9 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import dataStore from '@/lib/db';
 import { attachEffectiveSenderCompanies } from '@/lib/reports/companies';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
-import { uniqueAssignmentsByEvaluator } from '@/lib/reports/assignments';
 import { formatShortDate } from '@/lib/utils';
+import { requireUser } from '@/lib/auth';
+import { managerEvaluationState } from '@/lib/reports/managerEvaluation';
 
 async function fetchEvaluationReports() {
   const reports = await dataStore.report.findMany({
@@ -18,7 +19,7 @@ async function fetchEvaluationReports() {
       reportType: true,
       senderCompany: true,
       location: true,
-      assignments: { include: { evaluator: { select: { id: true, name: true } }, evaluation: true } },
+      assignments: { include: { evaluator: { select: { id: true, name: true, role: true } }, evaluation: true } },
     },
     orderBy: { submittedAt: 'desc' },
   });
@@ -28,13 +29,15 @@ async function fetchEvaluationReports() {
 // Every report being scored: who has signed, who hasn't, and by when. Reports
 // waiting for the manager's approval come first.
 export default async function EvaluationProgressPage() {
+  const user = await requireUser('review_manager');
   const reports = await fetchEvaluationReports();
   const now = Date.now();
   const rows = reports
     .map((report) => {
-      const evaluators = uniqueAssignmentsByEvaluator(report.assignments).map((assignment) => ({
+      const progress = managerEvaluationState(report.assignments, user.id);
+      const evaluators = progress.members.map((assignment) => ({
         name: assignment.evaluator?.name ?? '—',
-        signed: assignment.evaluation?.status === 'SIGNED',
+        signed: assignment.evaluation?.status === 'SIGNED' && assignment.evaluation.signatureStatus === 'VERIFIED',
         deadline: assignment.deadline,
       }));
       const pending = evaluators.filter((evaluator) => !evaluator.signed);
@@ -42,7 +45,7 @@ export default async function EvaluationProgressPage() {
         .map((evaluator) => evaluator.deadline)
         .filter((deadline): deadline is Date => !!deadline)
         .sort((a, b) => a.getTime() - b.getTime())[0];
-      return { report, evaluators, signed: evaluators.length - pending.length, nextDeadline };
+      return { report, evaluators, signed: evaluators.length - pending.length, nextDeadline, progress };
     })
     .sort((a, b) => Number(b.report.status === 'completed') - Number(a.report.status === 'completed'));
 
@@ -69,7 +72,7 @@ export default async function EvaluationProgressPage() {
               </tr>
             </thead>
             <tbody>
-              {rows.map(({ report, evaluators, signed, nextDeadline }) => {
+              {rows.map(({ report, evaluators, signed, nextDeadline, progress }) => {
                 const overdue = !!nextDeadline && nextDeadline.getTime() < now;
                 return (
                   <tr key={report.id} className="border-b border-slate-100 align-top hover:bg-slate-50">
@@ -100,9 +103,9 @@ export default async function EvaluationProgressPage() {
                       {nextDeadline ? `${formatShortDate(nextDeadline)}${overdue ? ' · хоцорсон' : ''}` : '—'}
                     </td>
                     <td className="px-4 py-3">
-                      {report.status === 'completed' ? (
-                        <Link href={`/report/${report.id}?role=reviewer`} className="text-xs font-semibold text-teal-700 hover:underline">
-                          Батлах →
+                      {!progress.ownSigned || progress.allMembersSigned ? (
+                        <Link href={progress.ownSigned ? `/report/${report.id}?role=reviewer` : `/reviewer/evaluate/${report.id}`} className="text-xs font-semibold text-teal-700 hover:underline">
+                          {progress.ownSigned ? 'Батлах →' : 'Өөрийн үнэлгээ өгөх →'}
                         </Link>
                       ) : (
                         <StatusBadge status={report.status} />

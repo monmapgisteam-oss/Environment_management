@@ -20,7 +20,7 @@ async function fetchReviewerReports() {
       reportType: true,
       senderCompany: true,
       location: true,
-      assignments: true,
+      assignments: { include: { evaluator: { select: { role: true } } } },
     },
     orderBy: { submittedAt: 'desc' },
   });
@@ -68,12 +68,12 @@ export default async function ReviewerDashboard() {
     dataStore.company.count({ where: { type: 'sender', approvalStatus: 'pending' } }),
   ]);
   const totalCount = reports.length;
-  const unassigned = reports.filter((r) => r.assignments.length === 0 && !['needs_revision', 'rejected', 'completed', 'approved'].includes(r.status));
+  const unassigned = reports.filter((r) => !r.assignments.some((a) => a.evaluator.role === 'evaluator') && !['needs_revision', 'rejected', 'completed', 'approved'].includes(r.status));
   const returnRequests = reports.filter((r) => r.status === 'return_requested');
   const inReviewCount = reports.filter((r) => ['assigned', 'in_review', 'return_requested'].includes(r.status)).length;
   const completedCount = reports.filter((r) => ['completed', 'approved'].includes(r.status)).length;
-  // Every evaluator has signed their scores; the manager still has to check
-  // them and sign them off before the sender sees anything.
+  // Every member has signed; the manager must score their own sheet and
+  // approve the final results before the sender sees them.
   const awaitingApproval = reports.filter((r) => r.status === 'completed' && !scoresReleased(r));
   const busiest = Math.max(1, ...staff.map((s) => s.open));
   // Members with reports waiting for their score, busiest first; the free
@@ -177,7 +177,7 @@ export default async function ReviewerDashboard() {
             )}
           </Panel>
 
-          <Panel title="Баталгаажуулалт хүлээж буй" count={awaitingApproval.length} subtitle="Бүх гишүүн гарын үсгээр үнэлсэн, таны гарын үсэг хүлээж байна" className="flex-1">
+          <Panel title="Менежерийн үнэлгээ, баталгаажуулалт" count={awaitingApproval.length} subtitle="Бүх гишүүн үнэлсэн. Өөрийн үнэлгээг өгч, гарын үсгээр баталгаажуулна уу." className="flex-1">
             {awaitingApproval.length === 0 ? (
               <PanelEmpty>Хүлээгдэж буй тайлан алга.</PanelEmpty>
             ) : (

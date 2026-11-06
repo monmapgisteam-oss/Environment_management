@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
 import dataStore from '@/lib/db';
 import { senderRecipientIds } from '@/lib/reports/companies';
-import { getApiUser, unauthorized } from '@/lib/auth';
+import { canAccessReport, getApiUser, unauthorized } from '@/lib/auth';
 import { checkPinWithLimit, computeDocumentHash, generateSignatureId } from '@/lib/auth/signature';
 import { uniqueAssignmentsByEvaluator } from '@/lib/reports/assignments';
 import { createNotifications } from '@/lib/reports/undo';
 import { formatScore } from '@/lib/utils';
 import { nounForReportType, PLAN_NOUN } from '@/lib/reports/terms';
+import { isVerifiedEvaluation, managerApprovalError } from '@/lib/reports/managerEvaluation';
 
 async function nextApprovalId(at: Date) {
   const dayStart = new Date(Date.UTC(at.getUTCFullYear(), at.getUTCMonth(), at.getUTCDate()));
@@ -41,22 +42,22 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
       include: {
         senderCompany: { include: { users: { select: { id: true } } } },
         reportType: true,
-        assignments: { include: { evaluation: true }, orderBy: { assignedAt: 'desc' } },
+        assignments: { include: { evaluator: { select: { id: true, role: true } }, evaluation: true }, orderBy: { assignedAt: 'desc' } },
       },
     });
     if (!report) return NextResponse.json({ error: 'Тайлан олдсонгүй.' }, { status: 404 });
+    if (!(await canAccessReport(manager, report))) return unauthorized();
     if (report.scoresApprovedAt) {
       return NextResponse.json({ error: 'Үнэлгээ аль хэдийн баталгаажсан байна.' }, { status: 409 });
     }
 
     // Every assigned evaluator must have signed their scores first.
     const assignments = uniqueAssignmentsByEvaluator(report.assignments);
+    const approvalError = managerApprovalError(report, assignments, manager.id);
+    if (approvalError) return NextResponse.json({ error: approvalError }, { status: 400 });
     const signed = assignments.flatMap(({ evaluatorUserId, evaluation }) =>
-      evaluation?.status === 'SIGNED' && evaluation.signatureStatus === 'VERIFIED' ? [{ evaluatorUserId, evaluation }] : [],
+      isVerifiedEvaluation(evaluation) && evaluation ? [{ evaluatorUserId, evaluation }] : [],
     );
-    if (report.status !== 'completed' || assignments.length === 0 || signed.length !== assignments.length || report.finalScore == null) {
-      return NextResponse.json({ error: 'Бүх гишүүн гарын үсгээр үнэлгээгээ баталгаажуулаагүй байна.' }, { status: 400 });
-    }
 
     if (!manager.signaturePinHash) {
       return NextResponse.json(

@@ -70,8 +70,15 @@ export async function requireRegistrationUser(): Promise<CurrentUser> {
 
 // For login pages: who is already signed in on this browser, and their portal.
 export async function signedInSummary() {
-  const user = await getCurrentUser({ allowPendingPassword: true });
-  return user ? { name: user.name, home: ROLE_HOME[user.role] } : null;
+  try {
+    const user = await getCurrentUser({ allowPendingPassword: true });
+    return user ? { name: user.name, home: ROLE_HOME[user.role] } : null;
+  } catch (error) {
+    // This banner is optional. Keep login pages available during an outage;
+    // login and protected routes still require a successful database lookup.
+    console.error('[auth] signed-in summary unavailable:', error);
+    return null;
+  }
 }
 
 // API counterpart of requireRegistrationUser: null unless the caller is such a sender.

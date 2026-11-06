@@ -1,12 +1,14 @@
 import dataStore from '@/lib/db';
 import { NextResponse } from 'next/server';
-import { getApiUser, unauthorized } from '@/lib/auth';
+import { canAccessReport, getApiUser, unauthorized } from '@/lib/auth';
 import { checkPinWithLimit, computeDocumentHash, generateSignatureId } from '@/lib/auth/signature';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@/lib/reports/conclusions';
 import { uniqueAssignmentsByEvaluator } from '@/lib/reports/assignments';
 import { fetchCriteriaForReport } from '@/lib/reports/criteria';
 import { createNotifications, createUndoToken } from '@/lib/reports/undo';
 import { canTransition, transitionError } from '@/lib/reports/transitions';
+import { isVerifiedEvaluation, managerEvaluationState, managerScoringError } from '@/lib/reports/managerEvaluation';
+import { scoresReleased } from '@/lib/reports/scoreRelease';
 
 async function findOpenAssignment(reportId: string, evaluatorUserId?: string) {
   const assignments = await dataStore.reportAssignment.findMany({
@@ -19,6 +21,7 @@ async function findOpenAssignment(reportId: string, evaluatorUserId?: string) {
   });
 
   return (
+    assignments.find((assignment) => assignment.evaluation?.status === 'SIGNED') ||
     assignments.find((assignment) => !assignment.evaluation) ||
     assignments.find((assignment) => assignment.evaluation?.status !== 'SIGNED') ||
     assignments[0] ||
@@ -57,11 +60,15 @@ export async function POST(request: Request) {
 
     const targetReport = await dataStore.report.findUnique({
       where: { id: reportId },
-      select: { id: true, title: true, reportCategory: true, status: true, finalScore: true, reportType: { select: { name: true, slug: true } } },
+      include: {
+        reportType: true,
+        assignments: { include: { evaluator: { select: { id: true, role: true } }, evaluation: true } },
+      },
     });
     if (!targetReport || targetReport.title === GENERAL_EVALUATION_CONCLUSION_TITLE) {
       return NextResponse.json({ error: 'Ерөнхий үнэлгээний дүгнэлт нь үнэлэх тайлан биш.' }, { status: 400 });
     }
+    if (!(await canAccessReport(current, targetReport))) return unauthorized();
 
     const numericSignature = typeof signature === 'string' ? signature.trim() : '';
     if (!/^\d+$/.test(numericSignature)) {
@@ -84,18 +91,19 @@ export async function POST(request: Request) {
 
     const totalScore = scoreEntries.reduce((sum, s) => sum + s.score, 0);
 
-    // A returned report (or one already scored) can't be signed: signing would
-    // silently undo the return. A manager may also score a report nobody was
-    // assigned to yet.
-    const scorable =
-      canTransition(targetReport.status, 'evaluate') || (current.role === 'review_manager' && targetReport.status === 'submitted');
-    if (!scorable) {
+    // Managers and members score independently. Approval and return states
+    // remain locked for both roles.
+    const managerError = current.role === 'review_manager'
+      ? managerScoringError(targetReport.status, targetReport.assignments, current.id, scoresReleased(targetReport))
+      : null;
+    if (managerError) return NextResponse.json({ error: managerError }, { status: 409 });
+    if (current.role === 'evaluator' && (!canTransition(targetReport.status, 'evaluate') || scoresReleased(targetReport))) {
       return NextResponse.json({ error: transitionError('evaluate') }, { status: 409 });
     }
 
     // Everyone scores under their own assignment; a manager without one gets
     // one created, so a manager's PIN never signs an evaluator's assignment.
-    let assignment;
+    let assignment = await findOpenAssignment(reportId, current.id);
     let assignmentCreated = false;
     if (current.role === 'evaluator') {
       const alreadySigned = await dataStore.reportAssignment.findFirst({
@@ -109,30 +117,14 @@ export async function POST(request: Request) {
       if (alreadySigned) {
         return NextResponse.json({ error: 'Гарын үсгээр баталгаажсан тул засах боломжгүй.' }, { status: 403 });
       }
-      assignment = await findOpenAssignment(reportId, current.id);
       if (!assignment) {
         return NextResponse.json({ error: 'Танд энэ тайлан оноогдоогүй байна.' }, { status: 403 });
-      }
-    } else {
-      assignment = await findOpenAssignment(reportId, current.id);
-      if (assignment?.evaluation?.status === 'SIGNED') assignment = null;
-      if (!assignment) {
-        assignment = await dataStore.reportAssignment.create({
-          data: {
-            reportId,
-            evaluatorUserId: current.id,
-            assignedByUserId: current.id,
-            status: 'submitted',
-          },
-          include: { evaluation: true },
-        });
-        assignmentCreated = true;
       }
     }
 
     // A signed score is locked — the backend enforces this even if a stale
     // frontend still lets someone click submit.
-    if (assignment.evaluation?.status === 'SIGNED') {
+    if (assignment?.evaluation?.status === 'SIGNED') {
       return NextResponse.json({ error: 'Гарын үсгээр баталгаажсан тул засах боломжгүй.' }, { status: 403 });
     }
 
@@ -167,6 +159,15 @@ export async function POST(request: Request) {
     }
     const pinError = await checkPinWithLimit(current.id, numericSignature, current.signaturePinHash);
     if (pinError) return NextResponse.json({ error: pinError }, { status: 400 });
+
+    // A failed validation/PIN check must not leave an empty manager assignment.
+    if (!assignment) {
+      assignment = await dataStore.reportAssignment.create({
+        data: { reportId, evaluatorUserId: current.id, assignedByUserId: current.id, status: 'submitted' },
+        include: { evaluation: true },
+      });
+      assignmentCreated = true;
+    }
 
     const signedAt = new Date();
     const signatureId = await nextSignatureId(signedAt);
@@ -226,11 +227,12 @@ export async function POST(request: Request) {
     // signed, verified evaluator's total score — unsigned scores never count.
     const assignments = await dataStore.reportAssignment.findMany({
       where: { reportId },
-      include: { evaluation: true },
+      include: { evaluator: { select: { id: true, role: true } }, evaluation: true },
     });
     const uniqueAssignments = uniqueAssignmentsByEvaluator(assignments);
-    const signed = uniqueAssignments.filter((a) => a.evaluation?.status === 'SIGNED' && a.evaluation?.signatureStatus === 'VERIFIED');
-    const allDone = uniqueAssignments.length > 0 && signed.length === uniqueAssignments.length;
+    const signed = uniqueAssignments.filter((a) => isVerifiedEvaluation(a.evaluation));
+    const progress = managerEvaluationState(assignments, current.id);
+    const allDone = progress.allMembersSigned;
     const rawAvg = signed.length
       ? signed.reduce((sum, a) => sum + (a.evaluation?.totalScore ?? 0), 0) / signed.length
       : 0;
@@ -247,8 +249,8 @@ export async function POST(request: Request) {
       },
     });
 
-    // Once every evaluator has signed, the managers are asked to check the
-    // scores and sign them off. The sender hears nothing yet: scores reach
+    // Once every member has signed, managers can finish their own evaluation
+    // or approve if they already signed. Scores reach
     // them only after the manager's approval (api/reports/[id]/approve-scores).
     // Before that, each signature tells them how far scoring has got.
     const managers = await dataStore.user.findMany({ where: { role: 'review_manager' } });
@@ -256,14 +258,21 @@ export async function POST(request: Request) {
       managers.map((u) => ({
         userId: u.id,
         reportId,
-        ...(allDone
+        ...(current.role === 'review_manager'
           ? {
-              title: 'Үнэлгээ батлахыг хүлээж байна',
-              message: `${updatedReport.reportNumber} тайлангийн бүх гишүүн гарын үсгээр үнэлсэн. Шалгаад «Үнэлгээг батлах» дарна уу. Дундаж оноо: ${avgScore.toFixed(1)}`,
+              title: 'Менежер үнэлгээгээ баталгаажууллаа',
+              message: `${updatedReport.reportNumber}: ${current.name} өөрийн үнэлгээг тоон гарын үсгээр баталгаажуулсан. Дундаж оноо: ${avgScore.toFixed(1)}`,
+            }
+          : allDone
+          ? {
+              title: managerEvaluationState(assignments, u.id).ownSigned ? 'Үнэлгээ батлахыг хүлээж байна' : 'Менежерийн үнэлгээ хүлээж байна',
+              message: managerEvaluationState(assignments, u.id).ownSigned
+                ? `${updatedReport.reportNumber} тайлангийн бүх гишүүн гарын үсгээр үнэлсэн. Таны үнэлгээ баталгаажсан тул эцсийн дүнг батална уу.`
+                : `${updatedReport.reportNumber} тайлангийн бүх гишүүн гарын үсгээр үнэлсэн. Өөрийн үнэлгээг өгч, тоон гарын үсгээр баталгаажуулна уу.`,
             }
           : {
               title: 'Гишүүн үнэлгээгээ илгээлээ',
-              message: `${updatedReport.reportNumber}: ${current.name} гарын үсгээр үнэлсэн (${signed.length}/${uniqueAssignments.length}).`,
+              message: `${updatedReport.reportNumber}: ${current.name} гарын үсгээр үнэлсэн (${progress.signedMembers.length}/${progress.members.length}).`,
             }),
       })),
     );
