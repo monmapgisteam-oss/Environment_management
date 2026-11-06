@@ -63,3 +63,30 @@ npm run build
 On a host that restricts Turbopack's build-worker ports, use `npm run build -- --webpack`.
 
 For a deployed Next.js host, set `JWT_SECRET`, `CONVEX_URL`, `CONVEX_SITE_URL`, `CONVEX_SERVER_SECRET`, `APP_URL`, and (when needed) `TRUST_PROXY_HOPS`. Convex schema/functions are deployed separately using the matching CLI credentials. An HTTP 503 during login means the database lookup failed; check the deployment URL, shared secret, deployed functions, and network access.
+
+## Vercel service deployment
+
+The root `vercel.json` declares one Next.js service named `web`, rooted at `.`. Set the Vercel project's Root Directory to the repository root. Installation, build, and development commands belong to the service configuration. The public catch-all rewrite sends pages, static assets, and `/api/*` requests to this same service, preserving their existing paths.
+
+The API is implemented by Next.js Route Handlers under `app/api`; there is no separate Fastify application. Browser requests use same-origin `/api/...` URLs, so authentication cookies and the origin checks in `proxy.ts` stay on the same domain. Server components and API handlers call external Convex through `lib/db/convex.ts`, using `CONVEX_URL` and `CONVEX_SERVER_SECRET`. There are no calls between Vercel services, so no internal service bindings or generated binding URL variables are needed. Convex is deployed on Convex Cloud and is not a Vercel service.
+
+Set the following environment variables in the Vercel project for each deployment environment:
+
+| Variable | Value |
+| --- | --- |
+| `CONVEX_URL` | `https://hearty-caterpillar-651.convex.cloud`, or the selected environment's Convex deployment |
+| `CONVEX_SITE_URL` | `https://hearty-caterpillar-651.convex.site`, matching that deployment |
+| `CONVEX_SERVER_SECRET` | The same server-only secret configured on that Convex deployment |
+| `JWT_SECRET` | The application's session and private file-link signing secret |
+| `APP_URL` | The public application origin used in signer QR codes |
+| `TRUST_PROXY_HOPS` | Number of trusted proxies, default `1` |
+
+The Vercel build runs `npm run build`. It does not deploy Convex functions, seed records, or run migrations. Deploy backend schema/function changes separately to the matching Convex deployment. In particular, deploying this repository preserves an intentionally cleared database; run `npm run setup` only when you want to restore report types and scoring sheets.
+
+Test the service routing locally with the Vercel CLI:
+
+```bash
+vercel dev --local
+```
+
+`--local` runs without linking or authenticating a Vercel project (`-L` is the older alias). Keep `.env.local` configured for the external Convex backend. Stop a separate `next dev` process in the same checkout before starting the Vercel runner, since Next.js allows only one development server per output directory. Open the URL printed by the CLI and check `/`, `/login/admin`, and `/api/auth/session`. Without a session cookie, the session endpoint returns HTTP 200 with `userId` and `name` set to `null`.

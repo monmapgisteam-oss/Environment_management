@@ -32,6 +32,8 @@ Official report submission and evaluation system for managing reports, reviews, 
 
 Use Node.js 20.19 or newer. Install with `npm install`, then follow [SETUP.md](SETUP.md) to configure Convex.
 
+For Vercel, the root `vercel.json` configures a single `web` service for the Next.js pages and API routes, with Convex hosted externally. See [Vercel service deployment](SETUP.md#vercel-service-deployment) for environment variables and `vercel dev --local` instructions.
+
 ```bash
 npm run convex:push         # deploy functions, tables and indexes to the configured dev deployment
 npm run setup               # add missing core types and category scoring sheets
