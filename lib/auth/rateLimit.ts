@@ -1,4 +1,4 @@
-// Fixed-window request limiter. `limitRequest` counts in Convex,
+// Fixed-window request limiter. `limitRequest` counts in the ArcGIS service,
 // so the limit holds across restarts and several server instances; if the
 // service cannot be reached it falls back to `rateLimit`, which counts in this
 // process only.
@@ -58,7 +58,7 @@ export function clientIp(request: Request): string {
   return trusted || request.headers.get('x-real-ip')?.trim() || 'unknown';
 }
 
-// Shared counter in Convex (lib/db/rateLimit.ts), with the
+// Shared counter in the ArcGIS service (lib/db/rateLimit.ts), with the
 // in-process counter as a fallback so a service outage does not lock everyone
 // out of login.
 export async function limitRequest(

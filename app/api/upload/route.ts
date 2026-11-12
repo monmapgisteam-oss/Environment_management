@@ -3,7 +3,7 @@ import { uploadAttachment } from '@/lib/db/storage';
 import { getCurrentUser } from '@/lib/auth';
 import { CONTENT_TYPE, detectFileKind, MAX_FILE_BYTES, tooLargeRequest } from '@/lib/reports/fileType';
 
-// Files live in Convex storage; upload records track the owner.
+// Files are ArcGIS attachments of upload records, which also record the owner.
 // Every file is identified by its first bytes: senders upload PDF only; review
 // staff may also upload a PNG or JPEG (a scanned, signed score sheet). The
 // stored type comes from those bytes, never from what the browser claims.

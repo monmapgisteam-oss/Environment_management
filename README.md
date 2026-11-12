@@ -7,7 +7,7 @@ Official report submission and evaluation system for managing reports, reviews, 
 - **Framework:** Next.js 16 with App Router
 - **Language:** TypeScript
 - **Styling:** Tailwind CSS
-- **Data and files:** Convex database and file storage, accessed only from the server
+- **Data and files:** private ArcGIS feature service (tables and attachments), accessed only from the server
 - **Authentication:** JWT with session cookies
 
 ## Features
@@ -30,13 +30,13 @@ Official report submission and evaluation system for managing reports, reviews, 
 
 ## Setup
 
-Use Node.js 20.19 or newer. Install with `npm install`, then follow [SETUP.md](SETUP.md) to configure Convex.
+Use Node.js 20.12 or newer. Install with `npm install`, then follow [SETUP.md](SETUP.md) to configure the ArcGIS service.
 
-For Vercel, the root `vercel.json` configures a single `web` service for the Next.js pages and API routes, with Convex hosted externally. See [Vercel service deployment](SETUP.md#vercel-service-deployment) for environment variables and `vercel dev --local` instructions.
+For Vercel, the root `vercel.json` configures a single `web` service for the Next.js pages and API routes, with data in the external ArcGIS feature service. See [Vercel service deployment](SETUP.md#vercel-service-deployment) for routing and `vercel dev --local` instructions.
 
 ```bash
-npm run convex:push         # deploy functions, tables and indexes to the configured dev deployment
-npm run setup               # add missing core types and category scoring sheets
+npm run arcgis:provision    # adds tables and fields from lib/db/schema.json that the service lacks
+npm run migrate:convex      # one time: copy the Convex data into the ArcGIS service
 npm run seed:criteria       # once per deployment: scoring sheets for each report category
 npm run seed:report-types   # core report types; folds Survey123-made types into them
 npm run fix:locations       # fills missing province/district of saved report locations from their coordinates
@@ -48,11 +48,9 @@ npm run dev
 
 ## Data flow
 
-Every application page and API reads/writes through `lib/db` (a Prisma-style repository). The shared engine (`lib/db/engine.ts`) runs inside authenticated Convex queries and mutations. Nested writes commit as one Convex transaction. `lib/db/schema.json` defines fields and relationships, and `convex/schema.ts` derives the deployment tables and indexes from it.
+Every application page and API reads/writes through `lib/db` (a Prisma-style repository). The engine (`lib/db/engine.ts`) loads records from the ArcGIS feature service and filters, sorts and joins them on the server; each write, including nested writes, is sent as one `applyEdits` call, so it applies completely or not at all. `lib/db/schema.json` defines the fields and relationships.
 
-`main` uses Convex at `https://hearty-caterpillar-651.convex.cloud`. The `arcgis-feature-service` branch preserves the ArcGIS application at the cutover commit. Maps still use Esri basemaps and geocoding independently of database storage.
-
-Only the Next.js server calls the Convex functions, authenticated with `CONVEX_SERVER_SECRET`. User passwords are salted scrypt hashes; sessions are JWT cookies. Uploaded files live in Convex storage and belong to upload records, and file viewers receive expiring application links.
+Only the Next.js server calls the service, with an OAuth application credential. User passwords are salted scrypt hashes; sessions are JWT cookies. Uploaded files are attachments of upload records, and file viewers receive expiring application links.
 
 ## Validation
 
@@ -70,10 +68,9 @@ npm run build
 - `lib/auth/`: session tokens (`session.ts`), `getCurrentUser`, `requireUser` for pages, `getApiUser` for API routes, and report access checks.
 - `lib/nav.ts`: sidebar menus for every portal.
 - `lib/reports/`, `lib/map/`, `lib/survey/`: domain helpers.
-- `lib/db/`: repository engine and Convex client, record types, schema, file storage, and login rate-limit counters.
-- `convex/`: authenticated data, file storage, atomic rate-limit counters, and migration functions.
-- `scripts/backup-databases.cjs`: private record and file backups.
-- `scripts/migrate-arcgis-to-convex.cjs`: resumable merge with identity, relation, and file verification.
+- `lib/db/`: repository engine and ArcGIS client, record types, schema, file storage, and login rate-limit counters.
+- `scripts/arcgis-provision.mjs`: adds missing tables and fields to the service.
+- `scripts/migrate-convex-to-arcgis.mjs`: one-time Convex to ArcGIS data copy.
 - `tests/`: Node test runner tests (`npm test`).
 
 ## UI Design

@@ -62,7 +62,7 @@ test('no signature PIN is hardcoded, stored in plaintext or shown on the public 
 test('login sets a secure cookie in production and notifications are scoped to the caller', () => {
   assert.match(read('lib/auth/session.ts'), /secure:\s*process\.env\.NODE_ENV === 'production'/);
   assert.match(read('app/api/auth/login/route.ts'), /sessionCookieOptions\(\)/);
-  // Attempts are counted in the shared (Convex) store, not per server.
+  // Attempts are counted in the shared (ArcGIS) store, not per server.
   assert.match(read('app/api/auth/login/route.ts'), /limitRequest\(/);
   const notifications = read('app/api/notifications/route.ts');
   const patch = notifications.slice(notifications.indexOf('export async function PATCH'), notifications.indexOf('export async function GET'));

@@ -1,92 +1,67 @@
-# Convex setup
+# ArcGIS setup
 
-`main` uses the Convex database at `https://hearty-caterpillar-651.convex.cloud` and its HTTP Actions origin `https://hearty-caterpillar-651.convex.site`. The complete ArcGIS-backed application is preserved on `arcgis-feature-service`.
+The application stores all operational data and uploaded files in a private ArcGIS feature service (`Hosted/Tailan` on `environment.ub.gov.mn`). Each model in `lib/db/schema.json` is one table named `tailan_<model>` whose fields carry an `app_` prefix; report locations are a point layer. Uploaded files are attachments of `tailan_upload` records. Next.js talks to the service only from the server with an OAuth application credential, so records and the token never reach the browser.
 
-## Local configuration
+## 1. Install
 
-Use Node.js 20.19 or newer and run `npm install`. Copy the values from `.env.example` into `.env.local` and set:
+Use Node.js 20.12 or later and run `npm install`.
 
-- `JWT_SECRET`: session and private attachment-link signing secret.
-- `CONVEX_DEPLOYMENT=dev:hearty-caterpillar-651`: the CLI deployment selector.
-- `CONVEX_URL=https://hearty-caterpillar-651.convex.cloud`: server-side query/mutation endpoint.
-- `CONVEX_SITE_URL=https://hearty-caterpillar-651.convex.site`: HTTP Actions origin.
-- `CONVEX_SERVER_SECRET`: at least 32 random characters, shared only by Next.js and Convex.
-- `APP_URL`: the app's public origin, used in signer QR codes.
-- `TRUST_PROXY_HOPS`: number of trusted reverse proxies, default 1.
+## 2. Configure
 
-Keep all credentials in ignored environment files. Never put the server secret in a `NEXT_PUBLIC_*` variable. Existing sessions use the same JWT secret after migration.
+Add the server values to `.env.local` (see `.env.example`):
 
-## Deploy functions and add missing reference data
-
-Authenticate the Convex CLI with the deployment's existing account, or use a deployment-scoped deploy key. Set `CONVEX_SERVER_SECRET` in the deployment's environment to match the local server. The CLI supports reading a value with `convex env set CONVEX_SERVER_SECRET --from-file <private-file>`.
-
-```bash
-npm run convex:push
-npm run setup
-npm run db:verify
-npm run dev
+```env
+JWT_SECRET="<random string>"
+ARCGIS_PORTAL_URL="https://environment.ub.gov.mn/gis"
+ARCGIS_DATA_SERVICE_URL="https://environment.ub.gov.mn/hosting/rest/services/Hosted/Tailan/FeatureServer"
+ARCGIS_CLIENT_ID="<OAuth application client ID>"
+ARCGIS_CLIENT_SECRET="<OAuth application client secret>"
+ARCGIS_HTTP_REFERER="<app URL, if the credential is referrer-restricted>"
 ```
 
-`convex:push` deploys to the configured development deployment. Production uses `npm run convex:deploy` with the production deployment's deploy key, URL, and server secret. Do not point the application at a different deployment than the one you deploy functions to.
+The service item must stay private and the OAuth application needs edit access to it.
 
-`setup` safely adds missing core report types and plan/performance scoring sheets for every category. It does not create fictional business reports, scores, or signatures. The admin dashboard lists remaining setup problems.
+### Connection troubleshooting
 
-The application continues to use `lib/db` throughout. It converts JavaScript dates to epoch milliseconds at the Convex boundary. Every function authenticates the server secret; private storage URLs stay on the server and file viewers receive expiring application links. Login and signature attempt counters run atomically in Convex, with the existing local outage fallback.
+If login returns HTTP 503 and the server logs `getaddrinfo ENOTFOUND environment.ub.gov.mn`, the Next.js server could not resolve the ArcGIS hostname. Check DNS and network access from the machine or container running Next.js, including any required VPN. Confirm both ArcGIS URLs against the deployment's service addresses. Changing OAuth credentials does not fix a DNS failure.
 
-## ArcGIS-to-Convex cutover
+OAuth requests retry a connection failure once. During a continuing outage, login pages remain available, but signing in requires the service to recover. The rate limiter's local fallback only counts attempts; it does not provide offline access to user accounts.
 
-Retain the ArcGIS credentials in `.env.local` only while copying the archived data. The application itself no longer reads ArcGIS records. Basemaps/geocoding are separate from database storage.
+## 3. Schema changes
 
-```bash
-npm run db:backup
-npm run migrate:convex -- --backup=backups/convex-cutover-<timestamp>
-npm run migrate:convex -- --backup=backups/convex-cutover-<timestamp> --apply
-npm run setup
-```
-
-The backup stores both databases and their file bytes privately under the ignored `backups/` directory. The migration defaults to a dry run. It retains all reports, report IDs, scoring records, and upload IDs from both databases. Matching company registrations, account emails, and report-type slugs are consolidated to the active ArcGIS identities, with references updated. It refuses to silently remap an evaluator who has signed an evaluation.
-
-Colliding report numbers receive fresh `RPT-<year>-<sequence>` numbers; `merge-plan.json` records the original/new mapping. Historical criteria remain stored for existing scores but are deactivated where the current source sheet replaces them. Signed evaluation hashes and signature IDs remain intact. Both `upload:` and historical `convex-upload:` references work.
-
-The importer checkpoints uploaded files, aborts if data changed since backup, verifies every merged record, and compares every stored file against its original bytes. All record changes commit in one transaction. Re-running the same completed import skips the merge. It never deletes ArcGIS records. Keep both databases quiet during the final merge; after cutover, write only to Convex.
-
-## Schema and deployment checks
-
-Edit `lib/db/schema.json` and the corresponding `lib/db/models.ts` types together, then run `npm run convex:push`. Nullable fields are optional in the Convex schema so existing documents remain valid when a new nullable field is added.
+Fields and relationships are defined in `lib/db/schema.json`, and `lib/db/models.ts` holds the matching TypeScript types. After editing the schema, update `models.ts` and add the new tables and fields to the service:
 
 ```bash
-npm test
-npm run lint
-npm run build
+npm run arcgis:provision -- --dry-run   # lists what is missing
+npm run arcgis:provision                # adds missing tables, fields and indexes
 ```
 
-On a host that restricts Turbopack's build-worker ports, use `npm run build -- --webpack`.
+Provisioning only adds; it never removes or changes existing fields or records. It needs `ARCGIS_ADMIN_TOKEN`, a token of the service owner (the OAuth application credential cannot change the service definition). Generate one at `https://environment.ub.gov.mn/gis/sharing/rest/generateToken` with referer set to the value of `ARCGIS_HTTP_REFERER`.
 
-For a deployed Next.js host, set `JWT_SECRET`, `CONVEX_URL`, `CONVEX_SITE_URL`, `CONVEX_SERVER_SECRET`, `APP_URL`, and (when needed) `TRUST_PROXY_HOPS`. Convex schema/functions are deployed separately using the matching CLI credentials. An HTTP 503 during login means the database lookup failed; check the deployment URL, shared secret, deployed functions, and network access.
+## 4. Copy data from Convex (one time)
 
-## Vercel service deployment
-
-The root `vercel.json` declares one Next.js service named `web`, rooted at `.`. Set the Vercel project's Root Directory to the repository root. Installation, build, and development commands belong to the service configuration. The public catch-all rewrite sends pages, static assets, and `/api/*` requests to this same service, preserving their existing paths.
-
-The API is implemented by Next.js Route Handlers under `app/api`; there is no separate Fastify application. Browser requests use same-origin `/api/...` URLs, so authentication cookies and the origin checks in `proxy.ts` stay on the same domain. Server components and API handlers call external Convex through `lib/db/convex.ts`, using `CONVEX_URL` and `CONVEX_SERVER_SECRET`. There are no calls between Vercel services, so no internal service bindings or generated binding URL variables are needed. Convex is deployed on Convex Cloud and is not a Vercel service.
-
-Set the following environment variables in the Vercel project for each deployment environment:
-
-| Variable | Value |
-| --- | --- |
-| `CONVEX_URL` | `https://hearty-caterpillar-651.convex.cloud`, or the selected environment's Convex deployment |
-| `CONVEX_SITE_URL` | `https://hearty-caterpillar-651.convex.site`, matching that deployment |
-| `CONVEX_SERVER_SECRET` | The same server-only secret configured on that Convex deployment |
-| `JWT_SECRET` | The application's session and private file-link signing secret |
-| `APP_URL` | The public application origin used in signer QR codes |
-| `TRUST_PROXY_HOPS` | Number of trusted proxies, default `1` |
-
-The Vercel build runs `npm run build`. It does not deploy Convex functions, seed records, or run migrations. Deploy backend schema/function changes separately to the matching Convex deployment. In particular, deploying this repository preserves an intentionally cleared database; run `npm run setup` only when you want to restore report types and scoring sheets.
-
-Test the service routing locally with the Vercel CLI:
+From 2026-10-15 the data lived in Convex. To move it back, provision the service first, then run, with `CONVEX_URL` and `CONVEX_SERVER_SECRET` still in `.env.local`:
 
 ```bash
-vercel dev --local
+npm run migrate:convex -- --dry-run   # read only: record counts on both sides
+npm run migrate:convex -- --replace   # back up, clear and refill the ArcGIS tables
 ```
 
-`--local` runs without linking or authenticating a Vercel project (`-L` is the older alias). Keep `.env.local` configured for the external Convex backend. Stop a separate `next dev` process in the same checkout before starting the Vercel runner, since Next.js allows only one development server per output directory. Open the URL printed by the CLI and check `/`, `/login/admin`, and `/api/auth/session`. Without a session cookie, the session endpoint returns HTTP 200 with `userId` and `name` set to `null`.
+Without `--replace` the script refuses to run while any `tailan_` table has records. With it, the current ArcGIS records are saved to `backups/arcgis-<time>.json` first. Record IDs and timestamps are kept, files are copied into attachments, and `convex-upload:` file references become `upload:` references. Afterwards delete the `CONVEX_*` values.
+
+## 5. Deploying (Vercel or any Node host)
+
+Set these environment variables for every environment that runs the app (Production and Preview on Vercel):
+
+- `JWT_SECRET`
+- `ARCGIS_PORTAL_URL`
+- `ARCGIS_DATA_SERVICE_URL`
+- `ARCGIS_CLIENT_ID`
+- `ARCGIS_CLIENT_SECRET`
+- `ARCGIS_HTTP_REFERER` (if the credential is referrer-restricted)
+
+### Vercel service deployment
+
+The root `vercel.json` declares one Next.js service named `web`, rooted at `.`. Set the Vercel project's Root Directory to the repository root. The catch-all rewrite sends pages, static assets, and `/api/*` requests to this service, so authentication cookies and the origin checks in `proxy.ts` stay on one domain. Server components and API handlers reach the ArcGIS feature service through `lib/db/arcgis.ts`; the credential never reaches the browser. The Vercel build runs `npm run build` only: it does not provision ArcGIS tables, seed records, or run migrations.
+
+Test the service routing locally with `vercel dev --local` (stop any separate `next dev` first). Open the printed URL and check `/`, `/login/admin`, and `/api/auth/session`.

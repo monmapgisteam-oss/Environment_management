@@ -38,7 +38,7 @@ export async function POST(request: Request) {
       include: { company: true },
     });
   } catch (error) {
-    // Usually missing CONVEX_* settings in the deployment or an unreachable deployment.
+    // Usually missing ARCGIS_* settings in the deployment or an unreachable service.
     console.error('[auth/login] user lookup failed:', error);
     return NextResponse.json({ error: 'Нэвтрэх үйлчилгээ түр ажиллахгүй байна. Дахин оролдоно уу.' }, { status: 503 });
   }
