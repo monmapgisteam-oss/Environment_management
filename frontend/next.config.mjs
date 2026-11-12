@@ -51,10 +51,12 @@ const nextConfig = {
   async headers() {
     return [{ source: '/(.*)', headers: securityHeaders }];
   },
-  // In Docker the reverse proxy sends /api to the backend before it reaches
-  // this server. Without it (local `npm run dev`), forward /api here.
+  // Local `npm run dev` only: forward /api to the backend. In production the
+  // reverse proxy routes /api; a rewrite here would let requests that miss the
+  // proxy's rules (e.g. "/API/...", matched without case) reach the backend
+  // past them.
   async rewrites() {
-    return [{ source: '/api/:path*', destination: `${backendUrl}/api/:path*` }];
+    return isDev ? [{ source: '/api/:path*', destination: `${backendUrl}/api/:path*` }] : [];
   },
   experimental: {
     // Dev-only React debug channel. On Firefox, Next mistakes a still-streaming

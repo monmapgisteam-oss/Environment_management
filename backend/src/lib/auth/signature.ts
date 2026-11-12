@@ -47,6 +47,13 @@ export function generateSignatureId(sequence: number, at: Date = new Date(), pre
 // guessed even by someone holding the session. Returns the error to show, or
 // null when the PIN is right. Only wrong PINs count.
 export async function checkPinWithLimit(userId: string, pin: string, pinHash: string): Promise<string | null> {
+  const { withKeyLock } = await import('@/lib/auth/keyedLock');
+  // One check at a time per user, so parallel requests cannot all pass the
+  // counter before a wrong PIN is recorded.
+  return withKeyLock(`pin:${userId}`, () => checkPin(userId, pin, pinHash));
+}
+
+async function checkPin(userId: string, pin: string, pinHash: string): Promise<string | null> {
   const { limitRequest } = await import('@/lib/auth/rateLimit');
   const key = `pin:${userId}`;
   const window = 15 * 60 * 1000;

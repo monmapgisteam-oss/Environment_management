@@ -1,5 +1,20 @@
 import { fetchAttachment, verifyAttachmentToken } from '@/lib/db/storage';
 
+const EXTENSION: Record<string, string> = { 'application/pdf': '.pdf', 'image/png': '.png', 'image/jpeg': '.jpg' };
+
+// The saved file name. The `download` parameter is not signed, so it only
+// chooses the name: the extension always follows the file's real type, and
+// any other type is saved as a plain ".bin" file.
+function downloadName(requested: string | null, type: string | null): string | null {
+  if (!requested && type) return null;
+  const base = (requested ?? 'file')
+    .replace(/[\u0000-\u001f\u007f/\\]/g, '')
+    .replace(/\.[^.]*$/, '')
+    .trim()
+    .slice(0, 120) || 'file';
+  return `${base}${(type && EXTENSION[type]) || '.bin'}`;
+}
+
 export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
   const reference = verifyAttachmentToken(params.get('token') || '');
@@ -20,8 +35,10 @@ export async function GET(request: Request) {
       'Cache-Control': 'private, no-store',
       'X-Content-Type-Options': 'nosniff',
       'Content-Security-Policy': "default-src 'none'; sandbox",
+      // The link carries a bearer token; never pass it on as a Referer.
+      'Referrer-Policy': 'no-referrer',
     });
-    const filename = params.get('download') || (inline ? null : 'file');
+    const filename = downloadName(params.get('download'), inline ? upstreamType : null);
     if (filename) headers.set('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(filename).replace(/'/g, '%27')}`);
     return new Response(upstream.body, { headers });
   } catch {

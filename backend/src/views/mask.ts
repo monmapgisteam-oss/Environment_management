@@ -1,8 +1,8 @@
 import { scoresReleased, senderStatus } from '@shared/reports/scoreRelease';
 
 // Fields no view ever returns, at any depth: password hashes and signature PIN
-// hashes of any user record a view happens to include.
-const SECRET_KEYS = new Set(['password', 'signaturePinHash']);
+// hashes of any user record a view happens to include, and stored signatures.
+const SECRET_KEYS = new Set(['password', 'signaturePinHash', 'signature']);
 
 export function stripSecrets<T>(value: T): T {
   if (Array.isArray(value)) return value.map(stripSecrets) as T;

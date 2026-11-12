@@ -2,8 +2,14 @@
 // No secrets or token handling here: tokens are made and checked only by the
 // backend (backend/src/lib/auth/session.ts).
 
-export const SESSION_COOKIE = 'tailan_session';
+// In production the "__Host-" prefix makes browsers accept the cookie only
+// from this exact host over HTTPS with Path=/, so a sibling subdomain cannot
+// plant its own session cookie. Plain HTTP development keeps the bare name.
+export const SESSION_COOKIE = process.env.NODE_ENV === 'production' ? '__Host-tailan_session' : 'tailan_session';
 export const SESSION_MAX_AGE_SECONDS = 8 * 60 * 60;
+// However often a session is renewed, it ends this long after the password was
+// entered; the user then signs in again.
+export const SESSION_ABSOLUTE_MAX_SECONDS = 12 * 60 * 60;
 
 export type Role = 'admin' | 'sender' | 'review_manager' | 'evaluator';
 
@@ -45,6 +51,8 @@ export type SessionPayload = {
   companyType?: string;
   // Fingerprint of the password the session was issued for (lib/auth/password).
   pv?: string;
+  // When the user entered the password (seconds); kept through renewals.
+  at?: number;
 };
 
 // Sliding session: a token older than this is reissued (same user, role and

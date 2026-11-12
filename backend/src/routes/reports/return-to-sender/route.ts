@@ -6,6 +6,7 @@ import { loadReturnSections } from '@/lib/reports/reportSections';
 import { cleanRevisionItems, serializeRevisionItems } from '@shared/reports/revisions';
 import { canTransition, signingProgress, transitionError } from '@/lib/reports/transitions';
 import { nounForReportType } from '@shared/reports/terms';
+import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@shared/reports/conclusions';
 import { NO_SENDER_ACCOUNT_WARNING, senderRecipientIds } from '@/lib/reports/companies';
 
 // The manager returns a report to the sender company for revision. This is the
@@ -28,6 +29,10 @@ export async function POST(request: Request) {
     });
     if (!before) {
       return NextResponse.json({ error: 'Тайлан олдсонгүй.' }, { status: 404 });
+    }
+    // A general evaluation conclusion is not a report the sender revises.
+    if (before.title === GENERAL_EVALUATION_CONCLUSION_TITLE) {
+      return NextResponse.json({ error: 'Дүгнэлтийг буцаах боломжгүй.' }, { status: 400 });
     }
     // Once every evaluator has signed, the scores are final: the manager
     // approves them instead of returning the report.

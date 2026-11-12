@@ -91,7 +91,7 @@ export class UndoError extends Error {
 function readToken(token: unknown): UndoPayload {
   if (typeof token !== 'string' || !token) throw new UndoError('Буцаах мэдээлэл олдсонгүй.', 400);
   try {
-    const payload = jwt.verify(token, secret(), { audience: AUDIENCE });
+    const payload = jwt.verify(token, secret(), { audience: AUDIENCE, algorithms: ['HS256'] });
     if (typeof payload === 'string' || !payload.action || !payload.userId) throw new Error('bad payload');
     return payload as unknown as UndoPayload;
   } catch (error) {

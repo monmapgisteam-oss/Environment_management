@@ -53,7 +53,7 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
     // New files must be PDF uploads made through the app by this company,
     // the same rule as the full form (lib/reports/attachmentOwnership.ts).
     const added = fixes.flatMap((fix) => fix.added);
-    const fileError = await attachmentError(JSON.stringify(added), user);
+    const fileError = await attachmentError(JSON.stringify(added), user, [], report.id);
     if (fileError) return NextResponse.json({ error: fileError }, { status: 400 });
 
     // Something must actually change.

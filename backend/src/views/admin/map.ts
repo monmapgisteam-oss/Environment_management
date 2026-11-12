@@ -12,7 +12,8 @@ async function fetchData() {
     where: {
       latitude: { not: null },
       longitude: { not: null },
-      report: { title: { not: GENERAL_EVALUATION_CONCLUSION_TITLE } },
+      // Senders' unsent drafts are private to them.
+      report: { title: { not: GENERAL_EVALUATION_CONCLUSION_TITLE }, status: { not: 'draft' } },
     },
     include: { report: { include: { senderCompany: true, reportType: true } } },
   });

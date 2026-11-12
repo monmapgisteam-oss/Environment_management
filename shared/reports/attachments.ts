@@ -58,7 +58,10 @@ type StoredAttachment = { url?: string; name?: string; criterionId?: unknown; ma
 // the reviewer sees the sender's original file name. Older records may hold a
 // plain (comma-separated) list of URLs, which we still parse for compatibility.
 export function parseAttachments(fileUrl: string | null | undefined): Attachment[] {
-  if (!fileUrl) return [];
+  // Only a string is a stored list. Anything else from a request body (an
+  // array, an object) is no list at all: JSON.parse would turn an array into
+  // a string and read it, past the checks that only look at strings.
+  if (typeof fileUrl !== 'string' || !fileUrl) return [];
   try {
     const parsed = JSON.parse(fileUrl);
     if (Array.isArray(parsed)) {

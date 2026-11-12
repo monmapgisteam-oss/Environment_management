@@ -50,6 +50,10 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
     if (!(await canAccessReport(user, existing)) || !['draft', 'needs_revision'].includes(existing.status)) {
       return unauthorized();
     }
+    // Conclusions change only through /api/sender/conclusions.
+    if (existing.title === GENERAL_EVALUATION_CONCLUSION_TITLE) {
+      return NextResponse.json({ error: 'Ерөнхий үнэлгээний дүгнэлт илгээх хэсэг хаагдсан.' }, { status: 400 });
+    }
 
     const data = await request.json();
     // Files already on the report may stay; new ones must be the company's own PDF uploads.
@@ -57,6 +61,7 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
       data.fileUrl,
       user,
       parseAttachments(existing.fileUrl).map((file) => file.url),
+      existing.id,
     );
     if (fileError) return NextResponse.json({ error: fileError }, { status: 400 });
     if ((data.title || '').trim() === GENERAL_EVALUATION_CONCLUSION_TITLE) {

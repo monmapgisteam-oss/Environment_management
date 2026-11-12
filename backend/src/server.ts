@@ -28,7 +28,17 @@ if (process.env.NODE_ENV === 'production' && !/^https?:\/\/[^/]+/.test(process.e
 const proxyHops = Math.max(1, Number(process.env.TRUST_PROXY_HOPS) || 1);
 
 const app = Fastify({
-  logger: { level: process.env.LOG_LEVEL ?? 'info', redact: ['req.headers.cookie', 'req.headers.authorization'] },
+  logger: {
+    level: process.env.LOG_LEVEL ?? 'info',
+    // Request logs carry no query string: file links hold a bearer token there.
+    serializers: {
+      req: (request: { method: string; url: string; ip?: string }) => ({
+        method: request.method,
+        url: request.url.replace(/\?.*$/, ''),
+        remoteAddress: request.ip,
+      }),
+    },
+  },
   // The backend is reached only through the reverse proxy (and the frontend
   // server). Trust as many X-Forwarded-* hops as the deployment says.
   trustProxy: (_address: string, hop: number) => hop < proxyHops,
@@ -138,7 +148,8 @@ function viewHandler(view: ViewDefinition) {
 for (const view of views) app.get(`/api/views/${view.name}`, viewHandler(view));
 
 const port = Number(process.env.PORT) || 4000;
-const host = process.env.HOST || '0.0.0.0';
+// Docker sets HOST=0.0.0.0; elsewhere only this machine can reach it.
+const host = process.env.HOST || '127.0.0.1';
 
 app.listen({ port, host }).catch((error) => {
   app.log.error(error);

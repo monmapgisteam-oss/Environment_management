@@ -51,8 +51,13 @@ docker compose ps            # backend, frontend and proxy should be healthy
 - **backend** (Fastify) reads `.env` and also has outbound access for ArcGIS.
 - All three run as non-root users on read-only file systems with all capabilities dropped.
 
-Serve the site over HTTPS. Terminate TLS in front of the proxy, forward `X-Forwarded-Proto: https`, and set `TRUST_PROXY_HOPS=2`. The session cookie is `Secure` in production, so plain HTTP only works on `localhost`. `APP_URL` must be the public HTTPS address; the backend refuses to start in production without it.
+Serve the site over HTTPS. Terminate TLS in front of the proxy and forward `X-Forwarded-Proto: https`. With a terminator in front:
+- set `TRUST_PROXY_HOPS=2`;
+- set `HTTP_BIND=127.0.0.1` (or firewall the port), so nobody reaches nginx around the terminator;
+- enable the `set_real_ip_from` lines at the top of `nginx/default.conf`, so the login limit counts per visitor. The session cookie is `Secure` in production, so plain HTTP only works on `localhost`. `APP_URL` must be the public HTTPS address; the backend refuses to start in production without it.
 
 Updating: `git pull && docker compose up -d --build`. The build runs the backend type check; seeding and provisioning stay manual (section 3 and README).
 
-Logs: `docker compose logs -f backend` (JSON; cookies are redacted).
+Logs: `docker compose logs -f backend` (JSON). Request logs in the backend and nginx leave out query strings, because file links carry a token there.
+
+Sessions: the cookie is `__Host-tailan_session` in production. It is renewed while in use, and it always ends 12 hours after sign-in. The backend container receives only the variables listed in `docker-compose.yml`, so `ARCGIS_ADMIN_TOKEN` never reaches it.
