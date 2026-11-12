@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import SignOutEverywhere from '@/components/auth/SignOutEverywhere';
 import { loadView } from '@/lib/api/server';
 import { requireUser, ROLE_HOME } from '@/lib/auth';
 
@@ -86,6 +87,7 @@ export default async function ProfilePage() {
             )}
           </div>
         </section>
+        <SignOutEverywhere />
       </div>
     </main>
   );

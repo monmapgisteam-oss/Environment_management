@@ -4,6 +4,7 @@ import { getApiUser, unauthorized } from '@/lib/auth';
 import { parseStaffAccount } from '@shared/auth/accounts';
 import { hashPassword } from '@/lib/auth/password';
 import { generateSignaturePin, hashPin } from '@/lib/auth/signature';
+import { securityEvent } from '@/lib/securityLog';
 
 // The admin creates an account for the review organisation (staff member or
 // manager) with a temporary password; the user replaces it at first login.
@@ -29,16 +30,17 @@ export async function POST(request: Request) {
       data: {
         name: input.name,
         email: input.email,
-        password: hashPassword(input.password),
+        password: await hashPassword(input.password),
         role: input.role,
         companyId: company.id,
         position: input.position ?? (input.role === 'evaluator' ? 'Үнэлгээний гишүүн' : 'Хянах менежер'),
         phone: input.phone,
-        signaturePinHash: hashPin(signaturePin),
+        signaturePinHash: await hashPin(signaturePin),
         isActive: true,
         mustChangePassword: true,
       },
     });
+    securityEvent('user.created', { actor: admin.id, target: user.id, role: user.role });
     return NextResponse.json({ success: true, id: user.id, signaturePin }, { status: 201 });
   } catch (error) {
     console.error('[admin/users] create failed:', error);

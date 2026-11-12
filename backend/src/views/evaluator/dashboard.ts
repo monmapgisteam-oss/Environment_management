@@ -1,3 +1,4 @@
+import { scoresReleased } from '@shared/reports/scoreRelease';
 import dataStore from '@/lib/db';
 import { attachEffectiveSenderCompanies } from '@/lib/reports/companies';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@shared/reports/conclusions';
@@ -52,7 +53,8 @@ async function fetchAssignedReports(evaluatorUserId: string, typeSlug?: string):
     return {
       assignmentStatus: assignment.status,
       dueDate: assignment.deadline ? assignment.deadline.toISOString() : null,
-      ...reportRow(report, status, report.finalScore),
+      // The combined score only once the manager has released it.
+      ...reportRow(report, status, scoresReleased(report) ? report.finalScore : null),
     };
   });
 }

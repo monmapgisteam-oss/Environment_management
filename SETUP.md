@@ -60,4 +60,4 @@ Updating: `git pull && docker compose up -d --build`. The build runs the backend
 
 Logs: `docker compose logs -f backend` (JSON). Request logs in the backend and nginx leave out query strings, because file links carry a token there.
 
-Sessions: the cookie is `__Host-tailan_session` in production. It is renewed while in use, and it always ends 12 hours after sign-in. The backend container receives only the variables listed in `docker-compose.yml`, so `ARCGIS_ADMIN_TOKEN` never reaches it.
+Sessions: the cookie is `__Host-tailan_session` in production. A session ends after 2 hours without activity and always 12 hours after sign-in; logout ends it on the server. Security events are JSON lines with `"type":"security"` in the backend log. Before real data arrives, work through the operator checklist in [SECURITY.md](SECURITY.md). The backend container receives only the variables listed in `docker-compose.yml`, so `ARCGIS_ADMIN_TOKEN` never reaches it.

@@ -2,6 +2,8 @@ import { NextResponse } from '@/http/next';
 import dataStore from '@/lib/db';
 import { getApiUser, unauthorized } from '@/lib/auth';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@shared/reports/conclusions';
+import { findSenderCompanyByRegister } from '@/lib/reports/companies';
+import { securityEvent } from '@/lib/securityLog';
 
 // The review manager approves or rejects a self-registered sender company
 // after checking its conclusion. Approval lets its users sign in. A rejection
@@ -22,10 +24,25 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
 
   const company = await dataStore.company.findUnique({ where: { id }, include: { users: { select: { id: true } } } });
   if (!company || company.type !== 'sender') return NextResponse.json({ error: 'Байгууллага олдсонгүй.' }, { status: 404 });
+  // Only a waiting company is rejected: rejecting an approved one would sign
+  // all its users out. A rejected company may still be approved later, unless
+  // another company has taken its register number meanwhile.
+  const status = company.approvalStatus ?? 'approved';
+  if (body.action === 'reject' && status !== 'pending') {
+    return NextResponse.json({ error: 'Зөвхөн хүлээгдэж буй байгууллагыг татгалзах боломжтой.' }, { status: 409 });
+  }
+  if (body.action === 'approve') {
+    if (status === 'approved') return NextResponse.json({ error: 'Байгууллага аль хэдийн батлагдсан.' }, { status: 409 });
+    const holder = await findSenderCompanyByRegister(company.registerNumber);
+    if (holder && holder.id !== company.id && holder.approvalStatus !== 'rejected') {
+      return NextResponse.json({ error: 'Энэ регистрийн дугаартай өөр байгууллага бүртгэлтэй байна.' }, { status: 409 });
+    }
+  }
 
   try {
     const approve = body.action === 'approve';
     await dataStore.company.update({ where: { id }, data: { approvalStatus: approve ? 'approved' : 'rejected' } });
+    securityEvent(approve ? 'company.approved' : 'company.rejected', { actor: manager.id, companyId: id });
 
     if (!approve) {
       try {

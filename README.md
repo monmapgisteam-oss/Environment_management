@@ -29,6 +29,8 @@ Official report submission and evaluation system for managing reports, reviews, 
 - Notification system
 - Export capabilities (PDF, Excel)
 
+Security controls and the operator checklist for deploying with sensitive data: [SECURITY.md](SECURITY.md).
+
 ## Architecture
 
 ```
@@ -70,7 +72,7 @@ npm --prefix backend run seed:criteria         # once per deployment: scoring sh
 npm --prefix backend run seed:report-types     # core report types; folds Survey123-made types into them
 npm --prefix backend run fix:locations         # fills missing province/district of saved report locations
 npm --prefix backend run fix:signatures        # clears signature PINs older versions stored in plaintext
-SEED_PASSWORD=... npm --prefix backend run seed:evaluators   # 10 evaluator accounts staff1..staff10@tailan.mn
+npm --prefix backend run seed:evaluators   # 10 evaluator accounts staff1..staff10@tailan.mn, each with a random temporary password printed once
 (cd frontend && python3 -I scripts/split-sample-tables.py public/samples/bomt-zagvaruud.pdf)   # regenerates public/samples/<category>/*.pdf (needs PyMuPDF)
 ```
 

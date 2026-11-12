@@ -1,4 +1,4 @@
-import { MIN_PASSWORD_LENGTH } from '@shared/auth/signup';
+import { MIN_PASSWORD_LENGTH, weakPasswordError } from '@shared/auth/signup';
 
 // Accounts the admin creates for the review organisation, and the rules for
 // deactivating them and for the first-login password change.
@@ -36,12 +36,9 @@ function text(value: unknown, max = 200) {
   return typeof value === 'string' ? value.trim().slice(0, max) : '';
 }
 
-export function passwordError(password: unknown): string | null {
-  if (typeof password !== 'string' || password.length < MIN_PASSWORD_LENGTH) {
-    return `Нууц үг ${MIN_PASSWORD_LENGTH}-аас доошгүй тэмдэгттэй байна.`;
-  }
-  if (password.length > 200) return 'Нууц үг хэт урт байна.';
-  return null;
+export function passwordError(password: unknown, email?: string): string | null {
+  if (typeof password !== 'string') return `Нууц үг ${MIN_PASSWORD_LENGTH}-аас доошгүй тэмдэгттэй байна.`;
+  return weakPasswordError(password, email);
 }
 
 export function parseStaffAccount(data: Record<string, unknown>): { input: StaffAccountInput } | { error: string } {
@@ -51,7 +48,7 @@ export function parseStaffAccount(data: Record<string, unknown>): { input: Staff
   if (!EMAIL.test(email)) return { error: 'Имэйл хаяг буруу байна.' };
   const role = STAFF_ACCOUNT_ROLES.find((candidate) => candidate === data.role);
   if (!role) return { error: 'Эрхийн төрлөө сонгоно уу.' };
-  const error = passwordError(data.password);
+  const error = passwordError(data.password, typeof data.email === 'string' ? data.email : undefined);
   if (error) return { error };
   return {
     input: {
@@ -66,8 +63,8 @@ export function parseStaffAccount(data: Record<string, unknown>): { input: Staff
 }
 
 // The new password chosen at first login (or on a later change).
-export function parseNewPassword(data: Record<string, unknown>): { password: string } | { error: string } {
-  const error = passwordError(data.newPassword);
+export function parseNewPassword(data: Record<string, unknown>, email?: string): { password: string } | { error: string } {
+  const error = passwordError(data.newPassword, email);
   if (error) return { error };
   if (data.newPassword !== data.confirmPassword) return { error: 'Шинэ нууц үг давтан оруулсантай таарахгүй байна.' };
   return { password: data.newPassword as string };

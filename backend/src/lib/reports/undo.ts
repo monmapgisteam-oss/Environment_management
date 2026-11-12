@@ -1,4 +1,5 @@
-import jwt from 'jsonwebtoken';
+import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
+import { signingKey } from '@/lib/auth/keys';
 import dataStore from '@/lib/db';
 import type { Report, ReportAssignment } from '@shared/db/models';
 
@@ -53,9 +54,7 @@ type UndoPayload = { action: UndoAction; userId: string; reportUpdatedAt: number
 type NotificationInput = { userId: string; reportId: string; title: string; message: string };
 
 function secret() {
-  const value = process.env.JWT_SECRET;
-  if (!value) throw new Error('JWT_SECRET is required for undo tokens.');
-  return value;
+  return signingKey('undo');
 }
 
 const time = (value: Date | string | number | null | undefined) => (value == null ? null : new Date(value).getTime());
@@ -77,9 +76,31 @@ export async function createNotifications(data: NotificationInput[]): Promise<st
 }
 
 // `reportUpdatedAt` is the report's updatedAt after the action's last write.
+// Undo tokens are encrypted (AES-256-GCM), not only signed: they carry the
+// state to restore (previous status, score, record ids), which the browser
+// holding the token must not be able to read.
 export function createUndoToken(action: UndoAction, userId: string, reportUpdatedAt: Date | string | number) {
   const payload: UndoPayload = { action, userId, reportUpdatedAt: time(reportUpdatedAt) as number };
-  return jwt.sign(payload, secret(), { expiresIn: UNDO_TTL_SECONDS, audience: AUDIENCE });
+  const sealed = { aud: AUDIENCE, exp: Date.now() + UNDO_TTL_SECONDS * 1000, payload };
+  const iv = randomBytes(12);
+  const cipher = createCipheriv('aes-256-gcm', secret(), iv);
+  const body = Buffer.concat([cipher.update(JSON.stringify(sealed), 'utf8'), cipher.final()]);
+  return Buffer.concat([iv, body, cipher.getAuthTag()]).toString('base64url');
+}
+
+class UndoExpiredError extends Error {}
+
+function openToken(token: string): unknown {
+  const raw = Buffer.from(token, 'base64url');
+  // Exactly the encoding we produced: no extra or altered characters.
+  if (raw.length < 12 + 16 + 2 || raw.toString('base64url') !== token) throw new Error('malformed token');
+  const decipher = createDecipheriv('aes-256-gcm', secret(), raw.subarray(0, 12));
+  decipher.setAuthTag(raw.subarray(raw.length - 16));
+  const text = Buffer.concat([decipher.update(raw.subarray(12, raw.length - 16)), decipher.final()]).toString('utf8');
+  const sealed = JSON.parse(text) as { aud?: unknown; exp?: unknown; payload?: unknown };
+  if (sealed.aud !== AUDIENCE || typeof sealed.exp !== 'number') throw new Error('bad token');
+  if (sealed.exp <= Date.now()) throw new UndoExpiredError();
+  return sealed.payload;
 }
 
 export class UndoError extends Error {
@@ -91,11 +112,11 @@ export class UndoError extends Error {
 function readToken(token: unknown): UndoPayload {
   if (typeof token !== 'string' || !token) throw new UndoError('Буцаах мэдээлэл олдсонгүй.', 400);
   try {
-    const payload = jwt.verify(token, secret(), { audience: AUDIENCE, algorithms: ['HS256'] });
-    if (typeof payload === 'string' || !payload.action || !payload.userId) throw new Error('bad payload');
-    return payload as unknown as UndoPayload;
+    const payload = openToken(token) as Partial<UndoPayload> | null;
+    if (!payload || typeof payload !== 'object' || !payload.action || !payload.userId) throw new Error('bad payload');
+    return payload as UndoPayload;
   } catch (error) {
-    if (error instanceof jwt.TokenExpiredError) throw new UndoError('Буцаах хугацаа дууссан байна.', 410);
+    if (error instanceof UndoExpiredError) throw new UndoError('Буцаах хугацаа дууссан байна.', 410);
     throw new UndoError('Буцаах мэдээлэл буруу байна.', 400);
   }
 }

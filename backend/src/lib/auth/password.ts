@@ -1,12 +1,20 @@
 import { createHash } from 'crypto';
-import { hashPin, verifyPin } from './signature';
+import { deriveHash, verifyHash } from './kdf';
 
-export function hashPassword(password: string) {
-  return `scrypt:${hashPin(password)}`;
+export async function hashPassword(password: string) {
+  return `scrypt:${await deriveHash(password)}`;
 }
 
-export function verifyPassword(password: unknown, stored: string) {
-  return typeof password === 'string' && stored.startsWith('scrypt:') && verifyPin(password, stored.slice(7));
+// Whether the password matches, and whether its stored hash uses an older,
+// weaker format (lib/auth/kdf.ts) that should be replaced now that the
+// password is known.
+export async function checkPassword(password: unknown, stored: string): Promise<{ ok: boolean; outdated: boolean }> {
+  if (typeof password !== 'string' || !stored.startsWith('scrypt:')) return { ok: false, outdated: false };
+  return verifyHash(password, stored.slice(7));
+}
+
+export async function verifyPassword(password: unknown, stored: string) {
+  return (await checkPassword(password, stored)).ok;
 }
 
 // Short fingerprint of the stored password hash, carried in the session
@@ -19,8 +27,10 @@ export function passwordVersion(stored: string) {
 
 // Spends the same time as checking a real password, so a login attempt for an
 // unknown email can't be told apart by how long it takes.
-const DUMMY_HASH = hashPassword('timing-equaliser');
-export function verifyDummyPassword(password: unknown) {
-  verifyPassword(typeof password === 'string' ? password : '', DUMMY_HASH);
+// Started at load so the first unknown-email attempt takes no longer than later ones.
+let dummyHash: Promise<string> | undefined = hashPassword('timing-equaliser');
+export async function verifyDummyPassword(password: unknown) {
+  dummyHash ??= hashPassword('timing-equaliser');
+  await verifyPassword(typeof password === 'string' ? password : '', await dummyHash);
   return false;
 }

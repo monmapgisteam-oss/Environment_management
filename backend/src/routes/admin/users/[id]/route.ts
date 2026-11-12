@@ -4,6 +4,7 @@ import { getApiUser, unauthorized } from '@/lib/auth';
 import { passwordError } from '@shared/auth/accounts';
 import { hashPassword } from '@/lib/auth/password';
 import { generateSignaturePin, hashPin } from '@/lib/auth/signature';
+import { securityEvent } from '@/lib/securityLog';
 
 // Admin actions on one account: deactivate, activate again, set a new
 // temporary password the user must replace at next login, or issue a new
@@ -22,17 +23,20 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
     switch (body.action) {
       case 'deactivate':
         await dataStore.user.update({ where: { id }, data: { isActive: false } });
+        securityEvent('user.updated', { actor: admin.id, target: id, change: 'deactivated' });
         return NextResponse.json({ success: true });
       case 'activate':
         await dataStore.user.update({ where: { id }, data: { isActive: true } });
+        securityEvent('user.updated', { actor: admin.id, target: id, change: 'activated' });
         return NextResponse.json({ success: true });
       case 'reset-password': {
-        const error = passwordError(body.password);
+        const error = passwordError(body.password, user.email);
         if (error) return NextResponse.json({ error }, { status: 400 });
         await dataStore.user.update({
           where: { id },
-          data: { password: hashPassword(body.password), mustChangePassword: true },
+          data: { password: await hashPassword(body.password), mustChangePassword: true },
         });
+        securityEvent('user.updated', { actor: admin.id, target: id, change: 'password-reset' });
         return NextResponse.json({ success: true });
       }
       case 'reset-signature': {
@@ -40,7 +44,8 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
           return NextResponse.json({ error: 'Зөвхөн хянах байгууллагын ажилтанд гарын үсэг олгоно.' }, { status: 400 });
         }
         const signaturePin = generateSignaturePin();
-        await dataStore.user.update({ where: { id }, data: { signaturePinHash: hashPin(signaturePin) } });
+        await dataStore.user.update({ where: { id }, data: { signaturePinHash: await hashPin(signaturePin) } });
+        securityEvent('user.updated', { actor: admin.id, target: id, change: 'signature-pin-reset' });
         // Shown to the admin once; only the hash is stored.
         return NextResponse.json({ success: true, signaturePin });
       }

@@ -5,6 +5,7 @@ const dataStore = require('../src/lib/db/index.ts').default;
 const { getCurrentUser, getApiUser } = require('../src/lib/auth/index.ts');
 const { createToken } = require('../src/lib/auth/session.ts');
 const { passwordVersion } = require('../src/lib/auth/password.ts');
+const revocation = require('../src/lib/auth/revocation.ts');
 
 test('a database outage makes protected auth fail instead of passing', async (t) => {
   const original = process.env.JWT_SECRET;
@@ -15,6 +16,7 @@ test('a database outage makes protected auth fail instead of passing', async (t)
     else process.env.JWT_SECRET = original;
   });
   const token = createToken({ userId: 'user-1', role: 'admin', pv: passwordVersion('stored-password') });
+  t.mock.method(revocation, 'isSessionRevoked', async () => false);
   t.mock.method(headers, 'cookies', async () => ({ get: () => ({ value: token }) }));
   const unavailable = new TypeError('fetch failed', { cause: { code: 'ENOTFOUND' } });
   const lookup = t.mock.method(dataStore.user, 'findUnique', async () => { throw unavailable; });

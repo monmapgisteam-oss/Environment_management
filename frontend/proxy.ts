@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { backendUrl } from '@/lib/api/config';
+import { contentSecurityPolicy, newNonce } from '@/lib/csp';
 import { isRole, LOGIN_PATH, SESSION_COOKIE, SESSION_RENEW_AFTER_SECONDS, type Role, type SessionPayload } from '@shared/auth/roles';
 
 // Optimistic gate in front of every signed-in area. Layouts still check the
@@ -32,8 +33,7 @@ function unverifiedSession(token: string | undefined): SessionPayload | null {
 
 // Sliding session: once the token is older than the renewal age, ask the
 // backend for a fresh one (any API call renews it) and pass it to the browser.
-async function next(request: NextRequest, session: (SessionPayload & { iat?: number }) | null) {
-  const response = NextResponse.next();
+async function next(request: NextRequest, session: (SessionPayload & { iat?: number }) | null, response: NextResponse) {
   const age = session?.iat ? Date.now() / 1000 - session.iat : 0;
   if (session && age >= SESSION_RENEW_AFTER_SECONDS) {
     try {
@@ -51,25 +51,32 @@ async function next(request: NextRequest, session: (SessionPayload & { iat?: num
 }
 
 export async function proxy(request: NextRequest) {
+  // A fresh script nonce for this page (lib/csp.ts). Next.js reads the policy
+  // from the request headers and puts the nonce on its scripts.
+  const nonce = newNonce();
+  const policy = contentSecurityPolicy(nonce);
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set('x-nonce', nonce);
+  requestHeaders.set('content-security-policy', policy);
+  const pass = () => {
+    const response = NextResponse.next({ request: { headers: requestHeaders } });
+    response.headers.set('Content-Security-Policy', policy);
+    return response;
+  };
+
   const { pathname } = request.nextUrl;
   const area = AREA_ROLES.find(({ prefix }) => pathname === prefix || pathname.startsWith(`${prefix}/`));
-  if (!area) return NextResponse.next();
+  if (!area) return pass();
 
   const session = unverifiedSession(request.cookies.get(SESSION_COOKIE)?.value);
-  if (session && area.roles.includes(session.role)) return next(request, session);
+  if (session && area.roles.includes(session.role)) return next(request, session, pass());
 
   const loginPath = area.roles.length === 1 ? LOGIN_PATH[area.roles[0]] : '/';
   return NextResponse.redirect(new URL(loginPath, request.url));
 }
 
 export const config = {
-  matcher: [
-    '/admin/:path*',
-    '/reviewer/:path*',
-    '/evaluator/:path*',
-    '/sender/:path*',
-    '/registration',
-    '/report/:path*',
-    '/profile',
-  ],
+  // Every page (for its CSP nonce); not the API, which nginx sends to the
+  // backend, and not built assets or files from public/.
+  matcher: ['/((?!api/|_next/static/|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpe?g|gif|webp|ico|pdf|css|js|map|woff2?|txt)$).*)'],
 };

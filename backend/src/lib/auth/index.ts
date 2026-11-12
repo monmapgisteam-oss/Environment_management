@@ -4,6 +4,7 @@ import dataStore from '@/lib/db';
 import { attachEffectiveSenderCompanies } from '@/lib/reports/companies';
 import { GENERAL_EVALUATION_CONCLUSION_TITLE } from '@shared/reports/conclusions';
 import { SESSION_COOKIE, verifyToken, type Role } from './session';
+import { isSessionRevoked } from './revocation';
 import { isActiveUser, isCompanyApproved } from '@shared/auth/accounts';
 import { passwordVersion } from './password';
 
@@ -20,6 +21,8 @@ export async function getCurrentUser({ allowPendingPassword = false, allowUnappr
   if (!token) return null;
   const payload = verifyToken(token);
   if (!payload) return null;
+  // Logged out on the server (logout, "sign out everywhere").
+  if (await isSessionRevoked(payload)) return null;
   const user = await dataStore.user.findUnique({
     where: { id: payload.userId },
     include: { company: true },
@@ -83,8 +86,12 @@ export async function canAccessReport(
 ) {
   if (user.role === 'evaluator') {
     // Conclusions ("Ерөнхий үнэлгээний дүгнэлт") are never assigned; staff read
-    // them from the conclusions list.
-    if ('title' in report && report.title === GENERAL_EVALUATION_CONCLUSION_TITLE) return true;
+    // them from the conclusions list, which shows approved companies only, so
+    // a pending or rejected company's conclusion stays closed to them.
+    if ('title' in report && report.title === GENERAL_EVALUATION_CONCLUSION_TITLE) {
+      const company = await dataStore.company.findUnique({ where: { id: report.senderCompanyId } });
+      return !!company && isCompanyApproved(company);
+    }
     const assignment = await dataStore.reportAssignment.findFirst({
       where: { reportId: report.id, evaluatorUserId: user.id },
       select: { id: true },

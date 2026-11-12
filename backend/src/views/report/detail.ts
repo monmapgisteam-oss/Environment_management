@@ -139,7 +139,9 @@ export default defineView({
 
     return {
       // The sender sees the report as GET /api/reports/:id returns it.
-      report: currentUser.role === 'sender' ? forSender(report) : report,
+      // Staff never learn the combined score before the manager releases it:
+      // with their own score it would reveal a colleague's on a small panel.
+      report: currentUser.role === 'sender' ? forSender(report) : isStaff && !scoresReleased(report) ? { ...report, finalScore: null } : report,
       criteria: scoresVisible ? criteria : [],
       attachments,
       reportAttachments,

@@ -4,7 +4,24 @@ type CompanyIdentity = {
   id: string;
   name: string;
   registerNumber: string;
+  approvalStatus: 'pending' | 'approved' | 'rejected' | null;
 };
+
+// When several companies share a register number (a rejected sign-up, then the
+// real company), the approved one wins, then a pending one; a rejected company
+// never takes the register from another.
+const STATUS_RANK = { approved: 0, pending: 1, rejected: 2 } as const;
+const rank = (company: CompanyIdentity) => STATUS_RANK[company.approvalStatus ?? 'approved'];
+
+function companiesByRegister(companies: CompanyIdentity[]) {
+  const result = new Map<string, CompanyIdentity>();
+  for (const company of companies) {
+    const key = normalizeRegister(company.registerNumber);
+    const current = result.get(key);
+    if (!current || rank(company) < rank(current)) result.set(key, company);
+  }
+  return result;
+}
 
 type ReportWithCompany = {
   senderCompany: object | null;
@@ -21,10 +38,10 @@ export async function findSenderCompanyByRegister(register: unknown): Promise<Co
 
   const companies = await dataStore.company.findMany({
     where: { type: 'sender' },
-    select: { id: true, name: true, registerNumber: true },
+    select: { id: true, name: true, registerNumber: true, approvalStatus: true },
   });
 
-  return companies.find((company) => normalizeRegister(company.registerNumber) === normalized) || null;
+  return companiesByRegister(companies).get(normalized) ?? null;
 }
 
 export async function attachEffectiveSenderCompanies<T extends ReportWithCompany>(
@@ -37,15 +54,14 @@ export async function attachEffectiveSenderCompanies<T extends ReportWithCompany
 
   const companies = await dataStore.company.findMany({
     where: { type: 'sender' },
-    select: { id: true, name: true, registerNumber: true },
+    select: { id: true, name: true, registerNumber: true, approvalStatus: true },
   });
-  const companyByRegister = new Map(
-    companies.map((company) => [normalizeRegister(company.registerNumber), company]),
-  );
+  const companyByRegister = companiesByRegister(companies);
 
   return reports.map((report) => {
-    const company = companyByRegister.get(normalizeRegister(report.implementerRegister));
-    if (!company) return report;
+    const found = companyByRegister.get(normalizeRegister(report.implementerRegister));
+    if (!found) return report;
+    const { approvalStatus: _status, ...company } = found;
     return {
       ...report,
       senderCompany: report.senderCompany ? { ...report.senderCompany, ...company } : company,

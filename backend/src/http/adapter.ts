@@ -8,6 +8,8 @@ import { MAX_UPLOAD_REQUEST_BYTES } from '@/lib/reports/fileType';
 // multipart envelope. The proxy refuses bigger bodies first; this also stops
 // a chunked body that sends no Content-Length.
 export const MAX_BODY_BYTES = MAX_UPLOAD_REQUEST_BYTES;
+// Any body that is not a file upload (JSON forms, scores, comments).
+export const MAX_JSON_BYTES = 1024 * 1024;
 
 export class BodyTooLargeError extends Error {
   readonly statusCode = 413;
@@ -38,16 +40,19 @@ export function toWebRequest(request: FastifyRequest): Request {
     else if (value !== undefined) headers.set(name, String(value));
   }
   const hasBody = !['GET', 'HEAD'].includes(request.method);
+  // Only multipart uploads may be large; JSON and other bodies stay small.
+  const multipart = String(request.headers['content-type'] ?? '').toLowerCase().startsWith('multipart/form-data');
+  const limit = multipart ? MAX_BODY_BYTES : MAX_JSON_BYTES;
   return new Request(`${request.protocol}://${request.host}${request.url}`, {
     method: request.method,
     headers,
-    body: hasBody ? (Readable.toWeb(limited(request.raw, MAX_BODY_BYTES) as Readable) as ReadableStream) : undefined,
+    body: hasBody ? (Readable.toWeb(limited(request.raw, limit) as Readable) as ReadableStream) : undefined,
     // Required by Node when the body is a stream.
     duplex: 'half',
   } as RequestInit);
 }
 
-// Sliding session: a request carrying a session token older than 30 minutes
+// Sliding session: a request carrying a session token older than 10 minutes
 // gets a fresh one (lib/auth/session.ts), unless the handler already set or
 // cleared the cookie itself (login, logout, password change).
 function renewalCookie(request: Request, handled: Set<string>) {

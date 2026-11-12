@@ -1,4 +1,6 @@
+import { randomUUID } from 'node:crypto';
 import jwt from 'jsonwebtoken';
+import { signingKey } from './keys';
 import { isRole, SESSION_ABSOLUTE_MAX_SECONDS, SESSION_MAX_AGE_SECONDS, SESSION_RENEW_AFTER_SECONDS, type SessionPayload } from '@shared/auth/roles';
 
 // Session token helpers with no database or request access.
@@ -6,8 +8,7 @@ import { isRole, SESSION_ABSOLUTE_MAX_SECONDS, SESSION_MAX_AGE_SECONDS, SESSION_
 export * from '@shared/auth/roles';
 
 function sessionSecret() {
-  if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET is required.');
-  return process.env.JWT_SECRET;
+  return signingKey('session');
 }
 
 // Cookie settings shared by login and sign-up.
@@ -24,7 +25,8 @@ export function sessionCookieOptions() {
 
 export function createToken(payload: SessionPayload) {
   const at = payload.at ?? Math.floor(Date.now() / 1000);
-  return jwt.sign({ ...payload, at }, sessionSecret(), { expiresIn: '8h', audience: 'tailan-session' });
+  const sid = payload.sid ?? randomUUID();
+  return jwt.sign({ ...payload, at, sid }, sessionSecret(), { expiresIn: SESSION_MAX_AGE_SECONDS, audience: 'tailan-session' });
 }
 
 // Seconds since the password was entered for this session.
@@ -40,8 +42,8 @@ export function renewedToken(token: string): string | null {
     if (Date.now() / 1000 - payload.iat < SESSION_RENEW_AFTER_SECONDS) return null;
     if (typeof payload.userId !== 'string' || !isRole(payload.role)) return null;
     if (sessionAge(payload) >= SESSION_ABSOLUTE_MAX_SECONDS) return null;
-    const { userId, role, companyId, companyType, pv, at } = payload as SessionPayload;
-    return createToken({ userId, role, companyId, companyType, pv, at: at ?? payload.iat });
+    const { userId, role, companyId, companyType, pv, at, sid } = payload as SessionPayload;
+    return createToken({ userId, role, companyId, companyType, pv, at: at ?? payload.iat, sid });
   } catch {
     return null;
   }

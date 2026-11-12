@@ -17,7 +17,33 @@ export type SignupInput = {
 // Mongolian legal entities carry a 7-digit state register number.
 const REGISTER = /^\d{7}$/;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-export const MIN_PASSWORD_LENGTH = 8;
+export const MIN_PASSWORD_LENGTH = 12;
+
+// Passwords attackers try first. Lower-cased, and also matched with digits and
+// symbols stripped from the end ("password2024!" counts as "password").
+const COMMON_PASSWORDS = new Set([
+  'password', 'passw0rd', 'qwerty', 'qwertyuiop', 'asdfghjkl', 'zxcvbnm', 'letmein', 'welcome', 'admin',
+  'administrator', 'iloveyou', 'monkey', 'dragon', 'football', 'baseball', 'sunshine', 'princess', 'master',
+  'superman', 'trustno1', 'changeme', 'default', 'secret', 'login', 'abc123', 'abcdef', 'tailan', 'mongolia',
+  'mongol', 'ulaanbaatar', 'nuuts', 'nuutsug', 'bayalag', 'baigal', 'baigalorchin',
+]);
+
+// Why a password is too weak, or null. Shared by sign-up, the first-login
+// change and admin resets, on both the form and the server.
+export function weakPasswordError(password: string, email?: string): string | null {
+  if (password.length < MIN_PASSWORD_LENGTH) return `Нууц үг ${MIN_PASSWORD_LENGTH}-аас доошгүй тэмдэгттэй байна.`;
+  if (password.length > 200) return 'Нууц үг хэт урт байна.';
+  const lower = password.toLowerCase();
+  const core = lower.replace(/[^a-zа-яөүё]+$/u, '');
+  if (COMMON_PASSWORDS.has(lower) || COMMON_PASSWORDS.has(core)) return 'Энэ нууц үг хэт түгээмэл байна. Өөр нууц үг сонгоно уу.';
+  if (/^(.)\1+$/.test(password) || '01234567890123456789'.includes(password) || '98765432109876543210'.includes(password)) {
+    return 'Нууц үг хэт энгийн байна. Өөр нууц үг сонгоно уу.';
+  }
+  if (new Set(password).size < 5) return 'Нууц үг хэт энгийн байна. Өөр нууц үг сонгоно уу.';
+  const name = email?.split('@')[0]?.toLowerCase();
+  if (name && name.length >= 4 && lower.includes(name)) return 'Нууц үгэнд имэйл хаягаа бүү оруулна уу.';
+  return null;
+}
 
 function text(value: unknown, max = 200) {
   return typeof value === 'string' ? value.trim().slice(0, max) : '';
@@ -38,8 +64,8 @@ export function parseSignup(data: Record<string, unknown>): { input: SignupInput
   const email = text(data.email, 128).toLowerCase();
   if (!EMAIL.test(email)) return { error: 'Имэйл хаяг буруу байна.' };
   const password = typeof data.password === 'string' ? data.password : '';
-  if (password.length < MIN_PASSWORD_LENGTH) return { error: `Нууц үг ${MIN_PASSWORD_LENGTH}-аас доошгүй тэмдэгттэй байна.` };
-  if (password.length > 200) return { error: 'Нууц үг хэт урт байна.' };
+  const weak = weakPasswordError(password, typeof data.email === 'string' ? data.email : undefined);
+  if (weak) return { error: weak };
   if (data.passwordConfirm !== undefined && data.passwordConfirm !== password) {
     return { error: 'Нууц үг давтан оруулсантай таарахгүй байна.' };
   }

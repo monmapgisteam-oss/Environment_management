@@ -8,6 +8,7 @@ import { createNotifications } from '@/lib/reports/undo';
 import { formatScore } from '@shared/utils';
 import { nounForReportType, PLAN_NOUN } from '@shared/reports/terms';
 import { isVerifiedEvaluation, managerApprovalError } from '@shared/reports/managerEvaluation';
+import { securityEvent } from '@/lib/securityLog';
 
 async function nextApprovalId(at: Date) {
   const dayStart = new Date(Date.UTC(at.getUTCFullYear(), at.getUTCMonth(), at.getUTCDate()));
@@ -120,6 +121,7 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
       console.error('[approve-scores] notify failed:', notifyError);
     }
 
+    securityEvent('scores.approved', { userId: manager.id, reportId: report.id, signatureId });
     // Safe response only — never the PIN.
     return NextResponse.json({ success: true, signatureId, approvedAt: approvedAt.toISOString() });
   } catch (error) {

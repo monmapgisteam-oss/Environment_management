@@ -9,6 +9,7 @@ import { findSenderCompanyByRegister } from '@/lib/reports/companies';
 import { CONCLUSION_PROVINCE, GENERAL_EVALUATION_CONCLUSION_TITLE } from '@shared/reports/conclusions';
 import { withNextReportNumber } from '@/lib/reports/reportNumber';
 import { uploadAttachment } from '@/lib/db/storage';
+import { securityEvent } from '@/lib/securityLog';
 import { findReportTypeByKind, MISSING_TYPE_ERROR } from '@/lib/reports/reportTypes';
 
 // Owner of the conclusion upload until the user record exists.
@@ -20,13 +21,17 @@ function uploadId(reference: string) {
 }
 
 // Email and register number must both be new: a register number already in
-// the system cannot be claimed again; the admin adds further users to it. One
-// answer covers both, so the form can't be used to find out which emails or
-// companies are registered.
+// the system cannot be claimed again; the admin adds further users to it. A
+// company the managers rejected no longer holds its register number, so a
+// false sign-up cannot block the real company. One answer covers both, and it
+// is only given at the final step (which needs the conclusion PDF and has a
+// tight per-address limit), so the form is a poor tool for finding out which
+// emails are registered.
 async function accountConflict(input: SignupInput) {
+  const company = await findSenderCompanyByRegister(input.registerNumber);
   const taken =
     !!(await dataStore.user.findUnique({ where: { email: input.email }, select: { id: true } })) ||
-    !!(await findSenderCompanyByRegister(input.registerNumber));
+    (!!company && company.approvalStatus !== 'rejected');
   return taken
     ? 'Энэ имэйл эсвэл регистрийн дугаараар бүртгэл үүссэн байна. Нэвтэрнэ үү, эсвэл хянах байгууллагад хандана уу.'
     : null;
@@ -41,7 +46,7 @@ async function accountConflict(input: SignupInput) {
 export async function POST(request: Request) {
   const isFinal = (request.headers.get('content-type') || '').includes('multipart/form-data');
   const limit = isFinal
-    ? await limitRequest(`signup:ip:${clientIp(request)}`, 10, 60 * 60 * 1000)
+    ? await limitRequest(`signup:ip:${clientIp(request)}`, 5, 60 * 60 * 1000)
     : await limitRequest(`signup-check:ip:${clientIp(request)}`, 15, 60 * 60 * 1000);
   if (!limit.ok) {
     return NextResponse.json({ error: 'Хэт олон оролдлого. Түр хүлээгээд дахин оролдоно уу.' }, { status: 429 });
@@ -77,9 +82,11 @@ export async function POST(request: Request) {
   }
 
   try {
+    // The first step only checks the fields; whether the email or register is
+    // taken is told at the final step only.
+    if (!conclusion || !file) return NextResponse.json({ success: true });
     const conflict = await accountConflict(input);
     if (conflict) return NextResponse.json({ error: conflict, step: 1 }, { status: 409 });
-    if (!conclusion || !file) return NextResponse.json({ success: true });
 
     const reportType = await findReportTypeByKind('performance');
     if (!reportType) return NextResponse.json({ error: MISSING_TYPE_ERROR, step: 2 }, { status: 503 });
@@ -94,7 +101,7 @@ export async function POST(request: Request) {
       data: {
         name: input.contactName,
         email: input.email,
-        password: hashPassword(input.password),
+        password: await hashPassword(input.password),
         role: 'sender',
         companyId: company.id,
         phone: input.phone ?? input.companyPhone,
@@ -128,6 +135,7 @@ export async function POST(request: Request) {
       }),
     );
 
+    securityEvent('signup.created', { userId, companyId: company.id });
     // The review managers check the conclusion and approve the new company;
     // the admins are informed. A notification
     // failure must not fail the sign-up.

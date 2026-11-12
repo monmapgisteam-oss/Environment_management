@@ -10,8 +10,8 @@ const valid = {
   position: '',
   phone: '99001122',
   email: 'Name@Company.MN',
-  password: 'Secret123!',
-  passwordConfirm: 'Secret123!',
+  password: 'Secret-Harbor-123!',
+  passwordConfirm: 'Secret-Harbor-123!',
 };
 
 test('a complete sign-up is cleaned: trimmed, email lowercased, blanks become null', () => {
@@ -25,7 +25,7 @@ test('a complete sign-up is cleaned: trimmed, email lowercased, blanks become nu
     position: null,
     phone: '99001122',
     email: 'name@company.mn',
-    password: 'Secret123!',
+    password: 'Secret-Harbor-123!',
   });
 });
 
@@ -37,7 +37,7 @@ test('each required field is checked and the first problem is reported', () => {
   assert.ok('error' in bad({ contactName: '' }));
   assert.ok('error' in bad({ email: 'not-an-email' }));
   assert.ok('error' in bad({ password: 'short', passwordConfirm: 'short' }));
-  assert.ok('error' in bad({ passwordConfirm: 'Different1' }));
+  assert.ok('error' in bad({ passwordConfirm: 'Different-Harbor-1' }));
   assert.ok('error' in parseSignup({}));
 });
 
@@ -82,4 +82,14 @@ test('the conclusion file must be a PDF of 25MB or less', () => {
   assert.ok(conclusionFileError(null));
   assert.ok(conclusionFileError({ name: 'a.docx', type: 'application/msword', size: 1000 }));
   assert.ok(conclusionFileError({ name: 'a.pdf', type: 'application/pdf', size: 26 * 1024 * 1024 }));
+});
+
+test('weak passwords are refused everywhere a password is set', () => {
+  const { weakPasswordError } = require('../../shared/auth/signup.ts');
+  for (const weak of ['short1!', 'password2024!', 'Qwertyuiop123', 'aaaaaaaaaaaaaa', '123456789012', 'ababababababab']) {
+    assert.ok(weakPasswordError(weak), weak);
+  }
+  assert.ok(weakPasswordError('boldbaatar-2026', 'boldbaatar@tailan.mn'));
+  assert.equal(weakPasswordError('Хаврын-шувуу-7-нисэв'), null);
+  assert.equal(weakPasswordError('correct horse battery'), null);
 });

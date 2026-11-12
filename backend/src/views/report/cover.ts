@@ -2,6 +2,7 @@ import dataStore from '@/lib/db';
 import { canAccessReport } from '@/lib/auth';
 import { createQrImageUrl, getPublicProfileQrUrl } from '@/lib/auth/profileQr';
 import { uniqueAssignmentsByEvaluator } from '@shared/reports/assignments';
+import { scoresReleased } from '@shared/reports/scoreRelease';
 import type { CoverSigner } from '@shared/views/report';
 import { defineView } from '../define';
 
@@ -45,7 +46,13 @@ export default defineView({
 
     // Signatures come from the workflow itself: each evaluator's signed scores
     // and the manager who approved them.
-    const uniqueAssignments = uniqueAssignmentsByEvaluator(report.assignments).filter((assignment) => assignment.evaluator);
+    // Until the manager releases the scores, a staff member's cover shows only
+    // their own signature and no combined score: colleagues stay anonymous.
+    const released = scoresReleased(report);
+    const staffOnlySelf = currentUser.role === 'evaluator' && !released;
+    const uniqueAssignments = uniqueAssignmentsByEvaluator(report.assignments).filter(
+      (assignment) => assignment.evaluator && (!staffOnlySelf || assignment.evaluator.id === currentUser.id),
+    );
     const approver = report.scoresApprovedById
       ? await dataStore.user.findUnique({ where: { id: report.scoresApprovedById } })
       : null;
@@ -72,7 +79,7 @@ export default defineView({
         implementerRegister: report.implementerRegister,
         approvedDate: report.approvedDate,
         description: report.description,
-        finalScore: report.finalScore,
+        finalScore: staffOnlySelf ? null : report.finalScore,
         reportType: { name: report.reportType.name },
         senderCompany: report.senderCompany
           ? { name: report.senderCompany.name, registerNumber: report.senderCompany.registerNumber }

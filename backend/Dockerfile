@@ -1,7 +1,9 @@
 # syntax=docker/dockerfile:1
 # Build context: the repository root (the backend bundles ../shared).
+# Base images are pinned by digest; update the tag and digest together
+# (docker pull node:24-alpine && docker image inspect --format "{{index .RepoDigests 0}}").
 
-FROM node:22-alpine AS build
+FROM node:24-alpine@sha256:116b800c3754b440ee0aa3ed2f20f5bf3d99a554bfd9adeea09ea8017f6e85f5 AS build
 WORKDIR /app/backend
 COPY backend/package.json backend/package-lock.json ./
 RUN npm ci --no-audit --no-fund
@@ -9,7 +11,7 @@ COPY shared /app/shared
 COPY backend ./
 RUN npm run lint && npm run build && npm prune --omit=dev
 
-FROM node:22-alpine
+FROM node:24-alpine@sha256:116b800c3754b440ee0aa3ed2f20f5bf3d99a554bfd9adeea09ea8017f6e85f5
 ENV NODE_ENV=production \
     HOST=0.0.0.0 \
     PORT=4000

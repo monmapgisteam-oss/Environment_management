@@ -1,10 +1,11 @@
 import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
-import { adapt, MAX_BODY_BYTES, sendWebResponse, toWebRequest } from '@/http/adapter';
+import { adapt, MAX_BODY_BYTES, MAX_JSON_BYTES, sendWebResponse, toWebRequest } from '@/http/adapter';
 import { NextResponse, requestContext } from '@/http/next';
 import { getCurrentUser, publicUser } from '@/lib/auth';
 import { encodeView } from '@shared/views/encoding';
 import type { MeResponse } from '@shared/views';
 import { routes } from '@/routes';
+import { sweepExpiredCounters, sweepOrphanUploads } from '@/lib/db/cleanup';
 import { views } from '@/views';
 import { stripSecrets } from '@/views/mask';
 import { isCompanyApproved } from '@shared/auth/accounts';
@@ -45,6 +46,11 @@ const app = Fastify({
   bodyLimit: MAX_BODY_BYTES,
   // Route handlers read the body themselves (JSON or multipart form data).
   return503OnClosing: true,
+  // Slow or stalled clients are cut off (nginx also limits them).
+  connectionTimeout: 130_000,
+  requestTimeout: 130_000,
+  keepAliveTimeout: 65_000,
+  maxParamLength: 200,
 });
 
 // Leave every body unread: the Web Request handed to the handler streams it.
@@ -65,14 +71,28 @@ function crossSiteWrite(request: FastifyRequest) {
   return origin !== `${request.protocol}://${request.host}`;
 }
 
+// Bodies over the limit are refused before any handler reads them.
+app.addHook('onRequest', async (request, reply) => {
+  const length = Number(request.headers['content-length']);
+  const multipart = String(request.headers['content-type'] ?? '').toLowerCase().startsWith('multipart/form-data');
+  if (Number.isFinite(length) && length > (multipart ? MAX_BODY_BYTES : MAX_JSON_BYTES)) {
+    return reply.code(413).send({ error: 'Хүсэлт хэт том байна.' });
+  }
+});
+
 app.addHook('onRequest', async (request, reply) => {
   if (crossSiteWrite(request)) {
+    process.stdout.write(`${JSON.stringify({ type: 'security', time: new Date().toISOString(), event: 'request.cross_site', ip: request.ip, path: request.url.replace(/\?.*$/, ''), origin: request.headers.origin ?? null })}\n`);
     return reply.code(403).send({ error: 'Хүсэлтийг зөвшөөрөөгүй.' });
   }
 });
 
 app.addHook('onSend', async (_request, reply, payload) => {
   reply.header('X-Content-Type-Options', 'nosniff');
+  reply.header('X-Frame-Options', 'DENY');
+  reply.header('Cross-Origin-Resource-Policy', 'same-origin');
+  if (!reply.hasHeader('referrer-policy')) reply.header('Referrer-Policy', 'no-referrer');
+  if (!reply.hasHeader('content-security-policy')) reply.header('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'");
   if (!reply.hasHeader('cache-control')) reply.header('Cache-Control', 'no-store');
   return payload;
 });
@@ -155,6 +175,21 @@ app.listen({ port, host }).catch((error) => {
   app.log.error(error);
   process.exit(1);
 });
+
+// Daily housekeeping: delete uploads nothing uses any more and attempt
+// counters / sign-out records that have expired (src/lib/db/cleanup.ts).
+async function housekeeping() {
+  try {
+    const [uploads, counters] = [await sweepOrphanUploads(), await sweepExpiredCounters()];
+    app.log.info({ uploads, counters }, 'housekeeping done');
+  } catch (error) {
+    app.log.error(error, 'housekeeping failed');
+  }
+}
+if (process.env.HOUSEKEEPING !== 'off') {
+  setTimeout(housekeeping, 5 * 60 * 1000).unref();
+  setInterval(housekeeping, 24 * 60 * 60 * 1000).unref();
+}
 
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.on(signal, () => {

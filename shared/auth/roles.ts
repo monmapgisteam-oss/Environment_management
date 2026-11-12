@@ -6,7 +6,8 @@
 // from this exact host over HTTPS with Path=/, so a sibling subdomain cannot
 // plant its own session cookie. Plain HTTP development keeps the bare name.
 export const SESSION_COOKIE = process.env.NODE_ENV === 'production' ? '__Host-tailan_session' : 'tailan_session';
-export const SESSION_MAX_AGE_SECONDS = 8 * 60 * 60;
+// A session ends after two hours without any page or API request.
+export const SESSION_MAX_AGE_SECONDS = 2 * 60 * 60;
 // However often a session is renewed, it ends this long after the password was
 // entered; the user then signs in again.
 export const SESSION_ABSOLUTE_MAX_SECONDS = 12 * 60 * 60;
@@ -53,12 +54,14 @@ export type SessionPayload = {
   pv?: string;
   // When the user entered the password (seconds); kept through renewals.
   at?: number;
+  // Random id of this sign-in, kept through renewals; logout ends it.
+  sid?: string;
 };
 
 // Sliding session: a token older than this is reissued (same user, role and
 // password version) on the next page or API request, so someone who keeps
-// working stays signed in; 8 hours without any request still signs them out.
-export const SESSION_RENEW_AFTER_SECONDS = 30 * 60;
+// working stays signed in; two hours without any request signs them out.
+export const SESSION_RENEW_AFTER_SECONDS = 10 * 60;
 
 export function isRole(value: unknown): value is Role {
   return typeof value === 'string' && value in ROLE_HOME;

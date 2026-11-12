@@ -3,22 +3,22 @@
 // reviewer portal (/login/reviewer). Safe to run again: an email that already
 // exists is left alone.
 //
-//   SEED_PASSWORD=... npm run seed:evaluators -- --dry-run
-//   SEED_PASSWORD=... npm run seed:evaluators
-import { randomBytes, scryptSync } from 'crypto';
+// Every account gets its own random temporary password, printed once here
+// for the admin to hand over privately; each member must replace it on first
+// sign-in. Nothing else stores it.
+//
+//   npm run seed:evaluators -- --dry-run
+//   npm run seed:evaluators
+import { randomBytes } from 'crypto';
+import { createRequire } from 'module';
 import store from './data-store.cjs';
+
+// data-store.cjs registered the TypeScript loader, so the app's own hashing is used.
+const { hashPassword } = createRequire(import.meta.url)('../src/lib/auth/password.ts');
 
 const COUNT = 10;
 
-// Same format as hashPassword in lib/auth/password.ts.
-function hashPassword(password) {
-  const salt = randomBytes(16).toString('hex');
-  return `scrypt:${salt}:${scryptSync(password, salt, 64).toString('hex')}`;
-}
-
 const dryRun = process.argv.includes('--dry-run');
-const password = process.env.SEED_PASSWORD;
-if (!password || password.length < 8) throw new Error('Set SEED_PASSWORD (8+ characters).');
 const read = (model, op, args) => store.read(model, op, args);
 const write = (model, op, args) =>
   dryRun ? Promise.resolve() : store.write(model, op, args);
@@ -36,17 +36,18 @@ for (let n = 1; n <= COUNT; n++) {
     console.log(`${email} already exists, skipped.`);
     continue;
   }
+  const password = randomBytes(12).toString('base64url');
   await write('user', 'create', {
     data: {
       name: `Үнэлгээний гишүүн ${n}`,
       email,
-      password: hashPassword(password),
+      password: await hashPassword(password),
       role: 'evaluator',
       companyId: company.id,
       position: 'Үнэлгээний гишүүн',
-      // The shared seed password is temporary: each member sets their own on first sign-in.
+      // The temporary password: each member sets their own on first sign-in.
       mustChangePassword: true,
     },
   });
-  console.log(`${dryRun ? 'Would create' : 'Created'} ${email} in "${company.name}".`);
+  console.log(`${dryRun ? 'Would create' : 'Created'} ${email} in "${company.name}"${dryRun ? '' : `, temporary password: ${password}`}.`);
 }

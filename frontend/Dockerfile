@@ -1,7 +1,8 @@
 # syntax=docker/dockerfile:1
 # Build context: the repository root (pages import ../shared).
+# Base images are pinned by digest; update the tag and digest together.
 
-FROM node:22-alpine AS build
+FROM node:24-alpine@sha256:116b800c3754b440ee0aa3ed2f20f5bf3d99a554bfd9adeea09ea8017f6e85f5 AS build
 WORKDIR /app/frontend
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci --no-audit --no-fund
@@ -11,7 +12,7 @@ ENV NEXT_TELEMETRY_DISABLED=1 \
     BACKEND_URL=http://backend:4000
 RUN npm run build
 
-FROM node:22-alpine
+FROM node:24-alpine@sha256:116b800c3754b440ee0aa3ed2f20f5bf3d99a554bfd9adeea09ea8017f6e85f5
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     HOSTNAME=0.0.0.0 \

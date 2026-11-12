@@ -1,0 +1,76 @@
+# Checks every push and pull request: type checks, tests, builds, known
+# vulnerable dependencies, committed secrets, and the Docker images.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  app:
+    name: ${{ matrix.part }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        part: [backend, frontend]
+    defaults:
+      run:
+        working-directory: ${{ matrix.part }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: ${{ matrix.part }}/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+      # Fails on a known high or critical vulnerability in what ships.
+      - run: npm audit --omit=dev --audit-level=high
+
+  secrets:
+    name: committed secrets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: gitleaks
+        run: docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:v8.21.2 detect --source /repo --redact --verbose
+
+  images:
+    name: docker images
+    runs-on: ubuntu-latest
+    needs: app
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: docker build -f backend/Dockerfile -t tailan-backend:ci .
+      - run: docker build -f frontend/Dockerfile -t tailan-frontend:ci .
+      # Fails on fixable high or critical vulnerabilities in the images, and
+      # on risky Dockerfile / Compose settings.
+      - name: trivy
+        run: |
+          for image in tailan-backend:ci tailan-frontend:ci; do
+            docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.56.2 \
+              image --exit-code 1 --ignore-unfixed --severity HIGH,CRITICAL "$image"
+          done
+          docker run --rm -v "$PWD:/repo" aquasec/trivy:0.56.2 \
+            config --exit-code 1 --severity HIGH,CRITICAL /repo

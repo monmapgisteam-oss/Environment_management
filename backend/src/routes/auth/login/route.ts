@@ -1,10 +1,11 @@
 import { NextResponse } from '@/http/next';
 import dataStore from '@/lib/db';
 import { createToken, isRole, REGISTRATION_PATH, ROLE_HOME, SESSION_COOKIE, sessionCookieOptions } from '@/lib/auth/session';
-import { passwordVersion, verifyDummyPassword, verifyPassword } from '@/lib/auth/password';
+import { checkPassword, hashPassword, passwordVersion, verifyDummyPassword } from '@/lib/auth/password';
 import { clientIp, limitRequest } from '@/lib/auth/rateLimit';
 import { withKeyLock } from '@/lib/auth/keyedLock';
 import { isActiveUser, isCompanyApproved } from '@shared/auth/accounts';
+import { hashedEmail, securityEvent } from '@/lib/securityLog';
 
 // Brute-force guard: attempts per address, and failed attempts per account
 // (a successful login never counts, so others can't lock a user out by
@@ -37,6 +38,7 @@ export async function POST(request: Request) {
     ]);
     if (!byAddress.ok || !byEmailAndAddress.ok || !byEmail.ok) {
       const retryAfter = Math.max(byAddress.retryAfterSeconds, byEmailAndAddress.retryAfterSeconds, byEmail.retryAfterSeconds);
+      securityEvent('login.blocked', { email: hashedEmail(email) });
       return { response: NextResponse.json(
         { error: 'Хэт олон оролдлого. Түр хүлээгээд дахин оролдоно уу.' },
         { status: 429, headers: { 'Retry-After': String(retryAfter) } },
@@ -54,13 +56,25 @@ export async function POST(request: Request) {
       return { response: NextResponse.json({ error: 'Нэвтрэх үйлчилгээ түр ажиллахгүй байна. Дахин оролдоно уу.' }, { status: 503 }) };
     }
 
-    const passwordOk = found ? verifyPassword(password, found.password) : verifyDummyPassword(password);
-    if (!found || !passwordOk || !isRole(found.role)) {
+    const checked = found ? await checkPassword(password, found.password) : { ok: await verifyDummyPassword(password), outdated: false };
+    if (!found || !checked.ok || !isRole(found.role)) {
       await Promise.all([
         limitRequest(emailAddressKey(email, address), FAILURES_PER_EMAIL_AND_ADDRESS, ATTEMPT_WINDOW_MS),
         limitRequest(emailKey(email), FAILURES_PER_EMAIL, ATTEMPT_WINDOW_MS),
       ]);
+      securityEvent('login.failure', { email: hashedEmail(email), knownAccount: !!found });
       return { response: NextResponse.json({ error: 'Имэйл эсвэл нууц үг буруу.' }, { status: 401 }) };
+    }
+    // An older, weaker hash is replaced now that the password is known. The
+    // new session carries the new hash's version; older sessions end.
+    if (checked.outdated) {
+      try {
+        const password = await hashPassword(body.password);
+        await dataStore.user.update({ where: { id: found.id }, data: { password } });
+        found.password = password;
+      } catch (error) {
+        console.error('[auth/login] password rehash failed:', error);
+      }
     }
     return { user: found };
   });
@@ -94,5 +108,6 @@ export async function POST(request: Request) {
     mustChangePassword: !!user.mustChangePassword,
   });
   response.cookies.set(SESSION_COOKIE, token, sessionCookieOptions());
+  securityEvent('login.success', { userId: user.id, role: user.role });
   return response;
 }

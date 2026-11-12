@@ -68,7 +68,9 @@ export async function fetchReviewedCompanyPoints(
       reportType: r.reportType?.name || '',
       location: r.location?.addressDetail || '',
       status: r.status,
-      score: r.pointScore ?? r.finalScore,
+      // A staff member's map shows only their own score; the manager's shows
+      // the combined one.
+      score: options.evaluatorUserId ? (r.pointScore ?? null) : (r.pointScore ?? r.finalScore),
       province: r.location?.province,
       district: r.location?.district,
     });

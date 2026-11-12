@@ -1,4 +1,5 @@
-import { createHash, randomBytes, randomInt, scryptSync, timingSafeEqual } from 'crypto';
+import { createHash, randomInt } from 'crypto';
+import { deriveHash, verifyHash } from './kdf';
 
 // Signature passwords are issued by the system (admin creates or reissues
 // them), never chosen by the signer.
@@ -10,19 +11,12 @@ export function generateSignaturePin(): string {
 
 // Numeric-PIN hashing (scrypt, salted). Only the hash is ever persisted —
 // the raw PIN never touches the database or an API response.
-export function hashPin(pin: string): string {
-  const salt = randomBytes(16).toString('hex');
-  const hash = scryptSync(pin, salt, 64).toString('hex');
-  return `${salt}:${hash}`;
+export function hashPin(pin: string): Promise<string> {
+  return deriveHash(pin);
 }
 
-export function verifyPin(pin: string, stored: string): boolean {
-  const [salt, hash] = stored.split(':');
-  if (!salt || !hash) return false;
-  const candidate = scryptSync(pin, salt, 64);
-  const expected = Buffer.from(hash, 'hex');
-  if (candidate.length !== expected.length) return false;
-  return timingSafeEqual(candidate, expected);
+export async function verifyPin(pin: string, stored: string): Promise<boolean> {
+  return (await verifyHash(pin, stored)).ok;
 }
 
 // SHA-256 hash of the fixed, signed payload (report/assignment id, staff id,
@@ -59,10 +53,24 @@ async function checkPin(userId: string, pin: string, pinHash: string): Promise<s
   const window = 15 * 60 * 1000;
   const state = await limitRequest(key, 5, window, { count: false });
   if (!state.ok) {
+    const { securityEvent } = await import('@/lib/securityLog');
+    securityEvent('pin.blocked', { userId });
     return `Гарын үсгийн нууц үгийг олон удаа буруу оруулсан тул түр хаагдлаа. ${Math.ceil(state.retryAfterSeconds / 60)} минутын дараа дахин оролдоно уу.`;
   }
-  if (verifyPin(pin, pinHash)) return null;
+  const result = await verifyHash(pin, pinHash);
+  if (result.ok) {
+    // An older, weaker PIN hash is replaced now that the PIN is known.
+    if (result.outdated) {
+      const { default: dataStore } = await import('@/lib/db');
+      await dataStore.user.update({ where: { id: userId }, data: { signaturePinHash: await deriveHash(pin) } }).catch((error: unknown) => {
+        console.error('[signature] PIN rehash failed:', error);
+      });
+    }
+    return null;
+  }
   const after = await limitRequest(key, 5, window);
+  const { securityEvent } = await import('@/lib/securityLog');
+  securityEvent(after.remaining > 0 ? 'pin.failure' : 'pin.blocked', { userId, remaining: after.remaining });
   return after.remaining > 0
     ? `Гарын үсгийн нууц үг буруу байна. ${after.remaining} оролдлого үлдлээ.`
     : 'Гарын үсгийн нууц үгийг олон удаа буруу оруулсан тул 15 минут хаагдлаа.';

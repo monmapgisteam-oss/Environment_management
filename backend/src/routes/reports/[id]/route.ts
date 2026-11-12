@@ -32,6 +32,11 @@ export async function GET(_request: Request, props: { params: Promise<{ id: stri
   if (user.role === 'sender' && !scoresReleased(report)) {
     return NextResponse.json({ ...report, status: senderStatus(report), finalScore: null });
   }
+  // Staff never see the combined score before release: with their own score
+  // it would reveal a colleague's.
+  if (user.role === 'evaluator' && !scoresReleased(report)) {
+    return NextResponse.json({ ...report, finalScore: null });
+  }
   return NextResponse.json(report);
 }
 

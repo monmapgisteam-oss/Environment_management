@@ -28,7 +28,7 @@ await build({
   outfile: path.join(root, 'dist/server.mjs'),
   bundle: true,
   platform: 'node',
-  target: 'node20',
+  target: 'node22',
   format: 'esm',
   external: Object.keys(pkg.dependencies ?? {}),
   plugins: [projectAliases],

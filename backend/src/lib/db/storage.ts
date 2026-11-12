@@ -1,11 +1,15 @@
 import jwt from 'jsonwebtoken';
+import { cookies } from '@/http/next';
+import { signingKey } from '@/lib/auth/keys';
+import { SESSION_COOKIE, verifyToken } from '@/lib/auth/session';
 import type { Attachment } from '@shared/reports/attachments';
 import { arcgisFetch, arcgisUpload, layerInfo, queryFeatures, sqlString, storedFieldName } from './arcgis';
 import dataStore from './index';
 import { CONTENT_TYPE, detectFileKind } from '@/lib/reports/fileType';
 
-// File links are bearer links, so they live 30 minutes; pages make new ones on load.
-export const SIGNED_URL_TTL = 30 * 60;
+// File links live 15 minutes and only work in the session that loaded the
+// page; pages make new ones on load.
+export const SIGNED_URL_TTL = 15 * 60;
 // Stored file references point at an upload record, never at a storage URL.
 // The file itself is the ArcGIS attachment of that record.
 const REFERENCE = /^upload:([0-9a-f-]{36})$/i;
@@ -16,9 +20,17 @@ export function isUploadReference(value: unknown): value is string {
 }
 
 function signingSecret() {
-  const secret = process.env.JWT_SECRET;
-  if (!secret) throw new Error('JWT_SECRET is required for private file access.');
-  return secret;
+  return signingKey('attachment');
+}
+
+// The session of the request in progress, if any: file links are bound to it.
+async function currentSessionId(): Promise<string | null> {
+  try {
+    const token = (await cookies()).get(SESSION_COOKIE)?.value;
+    return (token && verifyToken(token)?.sid) || null;
+  } catch {
+    return null; // outside a request (scripts, tests)
+  }
 }
 
 // The upload dataset and the ArcGIS object ID of one upload record.
@@ -53,21 +65,26 @@ export async function uploadAttachment(received: File, ownerUserId: string): Pro
   }
 }
 
+// A link that opens one stored file. It is bound to the session that asked
+// for it (sid), so a copied or logged link is useless in another browser or
+// after logout, and it expires after SIGNED_URL_TTL.
 export async function createSignedUrl(reference: string, expiresIn = SIGNED_URL_TTL): Promise<string> {
   if (!REFERENCE.test(reference)) {
-    // Plain links and other app routes are returned as they are.
-    if (/^https?:\/\//i.test(reference) || reference.startsWith('/')) return reference;
+    // Older records may hold an app path ("/samples/..."); it stays as it is.
+    // Outside addresses and "//host" links are never shown as report files.
+    if (/^\/(?![/\\])/.test(reference)) return reference;
     throw new Error('Unknown attachment reference.');
   }
-  const token = jwt.sign({ reference }, signingSecret(), { expiresIn, audience: 'tailan-attachment' });
+  const sid = await currentSessionId();
+  const token = jwt.sign({ reference, ...(sid ? { sid } : {}) }, signingSecret(), { expiresIn, audience: 'tailan-attachment' });
   return `/api/attachments?token=${encodeURIComponent(token)}`;
 }
 
-export function verifyAttachmentToken(token: string): string | null {
+export function verifyAttachmentToken(token: string): { reference: string; sid: string | null } | null {
   try {
     const payload = jwt.verify(token, signingSecret(), { audience: 'tailan-attachment', algorithms: ['HS256'] });
     if (typeof payload === 'string' || typeof payload.reference !== 'string' || !REFERENCE.test(payload.reference)) return null;
-    return payload.reference;
+    return { reference: payload.reference, sid: typeof payload.sid === 'string' ? payload.sid : null };
   } catch { return null; }
 }
 

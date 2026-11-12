@@ -29,18 +29,30 @@ test('signed scan references must point at an app upload, never an outside addre
   assert.equal(isUploadReference(null), false);
 });
 
-test('attachment tokens are rejected when forged, expired or issued for another purpose', () => {
+test('attachment tokens are rejected when forged, expired, signed with the raw secret or issued for another purpose', async () => {
+  const { signingKey } = require('../src/lib/auth/keys.ts');
+  const { createSignedUrl } = require('../src/lib/db/storage.ts');
   const reference = 'upload:51b63a99-ae48-4f02-996a-986197559089';
-  const good = jwt.sign({ reference }, process.env.JWT_SECRET, { expiresIn: 60, audience: 'tailan-attachment' });
-  assert.equal(verifyAttachmentToken(good), reference);
+  const key = signingKey('attachment');
+  const good = jwt.sign({ reference, sid: 's1' }, key, { expiresIn: 60, audience: 'tailan-attachment' });
+  assert.deepEqual(verifyAttachmentToken(good), { reference, sid: 's1' });
+  const made = decodeURIComponent((await createSignedUrl(reference)).split('token=')[1]);
+  assert.deepEqual(verifyAttachmentToken(made), { reference, sid: null });
+  // The raw JWT_SECRET is no longer a signing key for anything.
+  const rawSecret = jwt.sign({ reference }, process.env.JWT_SECRET, { expiresIn: 60, audience: 'tailan-attachment' });
+  assert.equal(verifyAttachmentToken(rawSecret), null);
   const wrongSecret = jwt.sign({ reference }, 'other', { expiresIn: 60, audience: 'tailan-attachment' });
   assert.equal(verifyAttachmentToken(wrongSecret), null);
-  const expired = jwt.sign({ reference }, process.env.JWT_SECRET, { expiresIn: -1, audience: 'tailan-attachment' });
+  const expired = jwt.sign({ reference }, key, { expiresIn: -1, audience: 'tailan-attachment' });
   assert.equal(verifyAttachmentToken(expired), null);
-  // A session token must not open files.
-  const session = jwt.sign({ userId: 'u', role: 'admin', reference }, process.env.JWT_SECRET, { expiresIn: 60, audience: 'tailan-session' });
+  // A session token must not open files, even with the same audience.
+  const session = jwt.sign({ reference }, signingKey('session'), { expiresIn: 60, audience: 'tailan-attachment' });
   assert.equal(verifyAttachmentToken(session), null);
   assert.equal(verifyAttachmentToken(''), null);
+  // Outside and protocol-relative addresses are never turned into file links.
+  await assert.rejects(createSignedUrl('https://evil.example/x.pdf'));
+  await assert.rejects(createSignedUrl('//evil.example/x.pdf'));
+  assert.equal(await createSignedUrl('/samples/a.pdf'), '/samples/a.pdf');
 });
 
 test('no signature PIN is hardcoded, stored in plaintext or shown on the public card', () => {
@@ -70,11 +82,15 @@ test('login sets a secure cookie in production and notifications are scoped to t
   assert.match(patch, /userId:\s*user\.id/);
 });
 
-test('pages send a content security policy', () => {
-  const config = read('frontend/next.config.mjs');
-  assert.match(config, /Content-Security-Policy/);
-  assert.match(config, /frame-ancestors 'none'/);
-  assert.match(config, /object-src 'none'/);
+test('pages send a nonce-based content security policy with no inline-script allowance', () => {
+  const csp = read('frontend/lib/csp.ts');
+  assert.match(csp, /'nonce-\$\{nonce\}' 'strict-dynamic'/);
+  assert.match(csp, /frame-ancestors 'none'/);
+  assert.match(csp, /object-src 'none'/);
+  const scripts = csp.slice(csp.indexOf('script-src'), csp.indexOf('style-src'));
+  assert.ok(!scripts.includes('unsafe-inline'), 'script-src allows inline scripts');
+  assert.match(read('frontend/proxy.ts'), /response\.headers\.set\('Content-Security-Policy', policy\)/);
+  assert.match(read('frontend/app/layout.tsx'), /nonce=\{nonce\}/);
 });
 
 test('an unapproved company signs in to the registration page only', () => {

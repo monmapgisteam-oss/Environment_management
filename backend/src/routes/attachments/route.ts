@@ -1,3 +1,6 @@
+import { cookies } from '@/http/next';
+import { getCurrentUser } from '@/lib/auth';
+import { SESSION_COOKIE, verifyToken } from '@/lib/auth/session';
 import { fetchAttachment, verifyAttachmentToken } from '@/lib/db/storage';
 
 const EXTENSION: Record<string, string> = { 'application/pdf': '.pdf', 'image/png': '.png', 'image/jpeg': '.jpg' };
@@ -17,15 +20,23 @@ function downloadName(requested: string | null, type: string | null): string | n
 
 export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
-  const reference = verifyAttachmentToken(params.get('token') || '');
-  if (!reference) {
+  const link = verifyAttachmentToken(params.get('token') || '');
+  // A link made for a session opens only in that session, while it is valid.
+  const sessionOk = async () => {
+    if (!link?.sid) return true;
+    const user = await getCurrentUser({ allowPendingPassword: true, allowUnapprovedCompany: true });
+    if (!user) return false;
+    const token = (await cookies()).get(SESSION_COOKIE)?.value;
+    return !!token && verifyToken(token)?.sid === link.sid;
+  };
+  if (!link || !(await sessionOk())) {
     return new Response('Файлын холбоосын хугацаа дууссан байна. Хуудсаа дахин ачаалаад нээнэ үү.', {
       status: 401,
-      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+      headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' },
     });
   }
   try {
-    const upstream = await fetchAttachment(reference);
+    const upstream = await fetchAttachment(link.reference);
     // Only PDFs and raster images open in the browser; anything else (older
     // uploads of other kinds) is downloaded as an opaque file.
     const upstreamType = (upstream.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();

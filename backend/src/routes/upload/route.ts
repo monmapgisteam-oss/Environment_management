@@ -5,6 +5,7 @@ import { limitRequest } from '@/lib/auth/rateLimit';
 
 const UPLOADS_PER_HOUR = 60;
 import { CONTENT_TYPE, detectFileKind, MAX_FILE_BYTES, tooLargeRequest } from '@/lib/reports/fileType';
+import { securityEvent } from '@/lib/securityLog';
 
 // Files are ArcGIS attachments of upload records, which also record the owner.
 // Every file is identified by its first bytes: senders upload PDF only; review
@@ -17,6 +18,7 @@ export async function POST(request: Request) {
     // A cap per user keeps one account from filling the file store.
     const quota = await limitRequest(`upload:${current.id}`, UPLOADS_PER_HOUR, 60 * 60 * 1000);
     if (!quota.ok) {
+      securityEvent('upload.blocked', { userId: current.id });
       return NextResponse.json(
         { error: 'Хэт олон файл хуулсан байна. Түр хүлээгээд дахин оролдоно уу.' },
         { status: 429, headers: { 'Retry-After': String(quota.retryAfterSeconds) } },
