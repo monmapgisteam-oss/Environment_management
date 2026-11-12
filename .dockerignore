@@ -1,0 +1,17 @@
+# Only source goes into the images: no secrets, backups, local builds or
+# installed packages (each image installs its own).
+**/node_modules
+**/.next
+**/dist
+**/*.tsbuildinfo
+**/next-env.d.ts
+.git
+.env
+.env.*
+!.env.example
+backups
+**/public/uploads
+**/*.log
+**/.DS_Store
+.vscode
+.idea

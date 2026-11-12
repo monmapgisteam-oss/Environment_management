@@ -1,35 +1,36 @@
 # ArcGIS setup
 
-The application stores all operational data and uploaded files in a private ArcGIS feature service (`Hosted/Tailan` on `environment.ub.gov.mn`). Each model in `lib/db/schema.json` is one table named `tailan_<model>` whose fields carry an `app_` prefix; report locations are a point layer. Uploaded files are attachments of `tailan_upload` records. Next.js talks to the service only from the server with an OAuth application credential, so records and the token never reach the browser.
+The application stores all operational data and uploaded files in a private ArcGIS feature service (`Hosted/Tailan` on `environment.ub.gov.mn`). Each model in `backend/src/lib/db/schema.json` is one table named `tailan_<model>` whose fields carry an `app_` prefix; report locations are a point layer. Uploaded files are attachments of `tailan_upload` records. Only the backend talks to the service, with an OAuth application credential, so the token never reaches the frontend or the browser.
 
 ## 1. Install
 
-Use Node.js 20.12 or later and run `npm install`.
+With Docker, nothing else is needed. For local development use Node.js 20.12 or later and run `npm run install:all`.
 
 ## 2. Configure
 
-Add the server values to `.env.local` (see `.env.example`):
+Add the backend values to `.env` for Docker Compose, or `.env.local` for local development (see `.env.example`):
 
 ```env
-JWT_SECRET="<random string>"
+JWT_SECRET="<at least 32 random characters>"
 ARCGIS_PORTAL_URL="https://environment.ub.gov.mn/gis"
 ARCGIS_DATA_SERVICE_URL="https://environment.ub.gov.mn/hosting/rest/services/Hosted/Tailan/FeatureServer"
 ARCGIS_CLIENT_ID="<OAuth application client ID>"
 ARCGIS_CLIENT_SECRET="<OAuth application client secret>"
 ARCGIS_HTTP_REFERER="<app URL, if the credential is referrer-restricted>"
+APP_URL="https://<public site address>"
 ```
 
 The service item must stay private and the OAuth application needs edit access to it.
 
 ### Connection troubleshooting
 
-If login returns HTTP 503 and the server logs `getaddrinfo ENOTFOUND environment.ub.gov.mn`, the Next.js server could not resolve the ArcGIS hostname. Check DNS and network access from the machine or container running Next.js, including any required VPN. Confirm both ArcGIS URLs against the deployment's service addresses. Changing OAuth credentials does not fix a DNS failure.
+If login returns HTTP 503 and the server logs `getaddrinfo ENOTFOUND environment.ub.gov.mn`, the backend could not resolve the ArcGIS hostname. Check DNS and network access from the backend container (it uses the `egress` network in `docker-compose.yml`), including any required VPN. Confirm both ArcGIS URLs against the deployment's service addresses. Changing OAuth credentials does not fix a DNS failure.
 
 OAuth requests retry a connection failure once. During a continuing outage, login pages remain available, but signing in requires the service to recover. The rate limiter's local fallback only counts attempts; it does not provide offline access to user accounts.
 
 ## 3. Schema changes
 
-Fields and relationships are defined in `lib/db/schema.json`, and `lib/db/models.ts` holds the matching TypeScript types. After editing the schema, update `models.ts` and add the new tables and fields to the service:
+Fields and relationships are defined in `backend/src/lib/db/schema.json`, and `shared/db/models.ts` holds the matching TypeScript types. After editing the schema, update `models.ts` and add the new tables and fields to the service:
 
 ```bash
 npm run arcgis:provision -- --dry-run   # lists what is missing
@@ -38,30 +39,20 @@ npm run arcgis:provision                # adds missing tables, fields and indexe
 
 Provisioning only adds; it never removes or changes existing fields or records. It needs `ARCGIS_ADMIN_TOKEN`, a token of the service owner (the OAuth application credential cannot change the service definition). Generate one at `https://environment.ub.gov.mn/gis/sharing/rest/generateToken` with referer set to the value of `ARCGIS_HTTP_REFERER`.
 
-## 4. Copy data from Convex (one time)
-
-From 2026-10-15 the data lived in Convex. To move it back, provision the service first, then run, with `CONVEX_URL` and `CONVEX_SERVER_SECRET` still in `.env.local`:
+## 4. Deploy with Docker Compose
 
 ```bash
-npm run migrate:convex -- --dry-run   # read only: record counts on both sides
-npm run migrate:convex -- --replace   # back up, clear and refill the ArcGIS tables
+docker compose up -d --build
+docker compose ps            # backend, frontend and proxy should be healthy
 ```
 
-Without `--replace` the script refuses to run while any `tailan_` table has records. With it, the current ArcGIS records are saved to `backups/arcgis-<time>.json` first. Record IDs and timestamps are kept, files are copied into attachments, and `convex-upload:` file references become `upload:` references. Afterwards delete the `CONVEX_*` values.
+- **proxy** (nginx, `nginx/default.conf`) is the only container with a published port (`HTTP_PORT`, default 8080).
+- **frontend** (Next.js standalone server) has no secrets and sits on the internal network only.
+- **backend** (Fastify) reads `.env` and also has outbound access for ArcGIS.
+- All three run as non-root users on read-only file systems with all capabilities dropped.
 
-## 5. Deploying (Vercel or any Node host)
+Serve the site over HTTPS. Terminate TLS in front of the proxy, forward `X-Forwarded-Proto: https`, and set `TRUST_PROXY_HOPS=2`. The session cookie is `Secure` in production, so plain HTTP only works on `localhost`. `APP_URL` must be the public HTTPS address; the backend refuses to start in production without it.
 
-Set these environment variables for every environment that runs the app (Production and Preview on Vercel):
+Updating: `git pull && docker compose up -d --build`. The build runs the backend type check; seeding and provisioning stay manual (section 3 and README).
 
-- `JWT_SECRET`
-- `ARCGIS_PORTAL_URL`
-- `ARCGIS_DATA_SERVICE_URL`
-- `ARCGIS_CLIENT_ID`
-- `ARCGIS_CLIENT_SECRET`
-- `ARCGIS_HTTP_REFERER` (if the credential is referrer-restricted)
-
-### Vercel service deployment
-
-The root `vercel.json` declares one Next.js service named `web`, rooted at `.`. Set the Vercel project's Root Directory to the repository root. The catch-all rewrite sends pages, static assets, and `/api/*` requests to this service, so authentication cookies and the origin checks in `proxy.ts` stay on one domain. Server components and API handlers reach the ArcGIS feature service through `lib/db/arcgis.ts`; the credential never reaches the browser. The Vercel build runs `npm run build` only: it does not provision ArcGIS tables, seed records, or run migrations.
-
-Test the service routing locally with `vercel dev --local` (stop any separate `next dev` first). Open the printed URL and check `/`, `/login/admin`, and `/api/auth/session`.
+Logs: `docker compose logs -f backend` (JSON; cookies are redacted).

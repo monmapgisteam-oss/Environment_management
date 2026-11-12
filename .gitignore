@@ -9,10 +9,10 @@ node_modules/
 /.coverage
 
 # production
-/.next
-/out
-/dist
-/build
+**/.next
+**/out
+**/dist
+**/build
 /.vercel
 
 # misc
@@ -41,7 +41,7 @@ env
 Thumbs.db
 
 # uploaded attachments (local test files)
-/public/uploads
+frontend/public/uploads
 
 # record backups written by scripts/migrate-convex-to-arcgis.mjs
 /backups

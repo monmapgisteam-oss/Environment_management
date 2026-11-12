@@ -1,0 +1,34 @@
+{
+  "name": "tailan-backend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsx watch --env-file=../.env.local src/server.ts",
+    "build": "node scripts/build.mjs",
+    "start": "node dist/server.mjs",
+    "lint": "tsc --noEmit",
+    "test": "node --require ./scripts/register-typescript.cjs --test tests/*.test.cjs",
+    "routes": "node scripts/generate-routes.mjs",
+    "arcgis:provision": "node --env-file=../.env.local scripts/arcgis-provision.mjs",
+    "seed:criteria": "node --env-file=../.env.local scripts/seed-category-criteria.mjs",
+    "fix:signatures": "node --env-file=../.env.local scripts/scrub-evaluation-signatures.mjs",
+    "fix:locations": "node --env-file=../.env.local --require ./scripts/register-typescript.cjs scripts/backfill-locations.cjs",
+    "seed:report-types": "node --env-file=../.env.local scripts/seed-report-types.mjs",
+    "seed:evaluators": "node --env-file=../.env.local scripts/seed-evaluators.mjs",
+    "seed:plan-criteria": "node --env-file=../.env.local scripts/seed-plan-criteria.mjs",
+    "setup": "npm run seed:report-types && npm run seed:criteria && npm run seed:plan-criteria"
+  },
+  "dependencies": {
+    "fastify": "^5.12.8",
+    "jsonwebtoken": "^9.0.3",
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^20.19.43",
+    "@types/qrcode": "^1.5.6",
+    "esbuild": "^0.28.2",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3"
+  }
+}

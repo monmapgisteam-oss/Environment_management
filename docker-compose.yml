@@ -1,0 +1,67 @@
+# The whole system: reverse proxy -> frontend (Next.js) and backend (Fastify,
+# which alone talks to the ArcGIS feature service). Only the proxy publishes
+# a port. Secrets come from .env (see .env.example).
+#
+#   docker compose up -d --build
+#   open http://localhost:8080
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      # Proxies that append to X-Forwarded-For: nginx, plus any TLS
+      # terminator in front of it.
+      TRUST_PROXY_HOPS: ${TRUST_PROXY_HOPS:-1}
+    networks: [internal, egress]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    environment:
+      BACKEND_URL: http://backend:4000
+    # The frontend holds no secrets and needs no internet access.
+    networks: [internal]
+    depends_on:
+      backend:
+        condition: service_healthy
+    read_only: true
+    tmpfs: [/tmp, /app/frontend/.next/cache]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: unless-stopped
+
+  proxy:
+    image: nginxinc/nginx-unprivileged:1.27-alpine
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "${HTTP_PORT:-8080}:8080"
+    networks: [internal, edge]
+    depends_on:
+      frontend:
+        condition: service_healthy
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: unless-stopped
+
+networks:
+  # Between the three containers only; no outside access.
+  internal:
+    internal: true
+  # Outbound access for the backend (ArcGIS).
+  egress: {}
+  # The published port.
+  edge: {}

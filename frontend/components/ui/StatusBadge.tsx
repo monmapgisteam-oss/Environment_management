@@ -1,0 +1,15 @@
+import { getStatusBadgeClass, getStatusLabel } from '@shared/utils';
+
+type Props = {
+  status: string;
+  label?: string;
+};
+
+export default function StatusBadge({ status, label }: Props) {
+  const displayLabel = label || getStatusLabel(status);
+  return (
+    <span className={`inline-flex items-center whitespace-nowrap px-3 py-1 text-xs font-semibold ${getStatusBadgeClass(status)}`}>
+      {displayLabel}
+    </span>
+  );
+}
