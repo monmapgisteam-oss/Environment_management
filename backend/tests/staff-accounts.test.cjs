@@ -15,8 +15,8 @@ test('an admin-created account is cleaned and limited to review roles', () => {
 });
 
 test('the new password must be long enough and typed twice the same', () => {
-  assert.deepEqual(parseNewPassword({ newPassword: 'Secret-Harbor-123', confirmPassword: 'Secret-Harbor-123' }), { password: 'Secret-Harbor-123' });
-  assert.ok('error' in parseNewPassword({ newPassword: 'Secret-Harbor-123', confirmPassword: 'Secret124' }));
+  assert.deepEqual(parseNewPassword({ newPassword: 'Secret-Harbor-123', confirmPassword: 'Secret-Harbor-123' }), { password: 'Secret-Harbor-123' }); // gitleaks:allow (test value)
+  assert.ok('error' in parseNewPassword({ newPassword: 'Secret-Harbor-123', confirmPassword: 'Secret124' })); // gitleaks:allow (test value)
   assert.ok('error' in parseNewPassword({ newPassword: 'short', confirmPassword: 'short' }));
 });
 

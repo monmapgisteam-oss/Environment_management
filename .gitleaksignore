@@ -1,0 +1,4 @@
+# Fake passwords in a validation test (backend/tests/staff-accounts.test.cjs),
+# not secrets. Format: commit:file:rule:line.
+8fd3da5e23eb03aa2318fddb912a1d661084b108:backend/tests/staff-accounts.test.cjs:generic-api-key:18
+8fd3da5e23eb03aa2318fddb912a1d661084b108:backend/tests/staff-accounts.test.cjs:generic-api-key:19
